@@ -31,17 +31,26 @@ export class LLMClient {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
+    const url = `${this.baseUrl}/chat/completions`;
+    const headers = this.getHeaders();
+    const body = JSON.stringify({
+      model: this.model,
+      messages,
+      temperature: 0.8,
+      max_tokens: 2000,
+      stream: true,
+    });
+
+    console.log(`[LLM] Connecting to: ${url}`);
+    console.log(`[LLM] Model: ${this.model}`);
+    console.log(`[LLM] Has API Key: ${!!this.apiKey}`);
+    console.log(`[LLM] Headers: ${JSON.stringify(headers)}`);
+
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const response = await fetch(url, {
         method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          model: this.model,
-          messages,
-          temperature: 0.8,
-          max_tokens: 2000,
-          stream: true,
-        }),
+        headers,
+        body,
         signal: controller.signal,
       });
 

@@ -5,10 +5,17 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Explicit .env path — dotenv.config() without args depends on process.cwd()
+const envPath = path.join(__dirname, "../..", ".env");
+dotenv.config({ path: envPath });
+
+console.log(`[Server] Loaded .env from: ${envPath}`);
+console.log(`[Server] LLM_API_URL: ${process.env.LLM_API_URL || "(not set)"}`);
+console.log(`[Server] LLM_API_KEY: ${process.env.LLM_API_KEY ? "(set)" : "(not set)"}`);
+console.log(`[Server] LLM_MODEL: ${process.env.LLM_MODEL || "(not set)"}`);
 
 const app = express();
 const server = createServer(app);
