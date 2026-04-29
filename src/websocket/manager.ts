@@ -127,26 +127,28 @@ export class WebSocketManager {
 
     this.send(ws, "GAME_CREATED", { gameId: engine.id, game: engine.game });
 
-    // Generate opening scene via LLM
+    // Generate opening scene via LLM (delay to let LM Studio finish loading)
     this.send(ws, "STREAM_CHUNK", { content: "The Dungeon Master prepares the world...", isFinal: false });
 
-    engine.generateOpeningScene({
-      onChunk: (chunk: string) => {
-        this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
-      },
-      onEnd: (fullContent: string) => {
-        this.broadcastToGame(engine!.id, "STREAM_END", {
-          fullNarrative: fullContent,
-          structured: engine!.game,
-        });
-      },
-      onError: (error: Error) => {
-        this.broadcastToGame(engine!.id, "STREAM_ERROR", {
-          message: error.message,
-          fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
-        });
-      },
-    }).catch(console.error);
+    setTimeout(() => { // Wait for LM Studio to be ready (model loading takes time)
+      engine.generateOpeningScene({
+        onChunk: (chunk: string) => {
+          this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+        },
+        onEnd: (fullContent: string) => {
+          this.broadcastToGame(engine!.id, "STREAM_END", {
+            fullNarrative: fullContent,
+            structured: engine!.game,
+          });
+        },
+        onError: (error: Error) => {
+          this.broadcastToGame(engine!.id, "STREAM_ERROR", {
+            message: error.message,
+            fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+          });
+        },
+      }).catch(console.error);
+    }, 3000);
   }
 
   private handleJoinGame(ws: WebSocket, client: { id: string; gameId: string | null }, payload: Record<string, unknown>): void {
