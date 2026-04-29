@@ -115,6 +115,11 @@ hr { border: none; border-top: 1px solid #333; margin: 20px 0; }
 
 .game-header h2 { color: #c084fc; font-size: 1.2rem; }
 .game-id { color: #666; font-size: 0.85rem; }
+.game-header button {
+  background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px 8px;
+  border-radius: 6px; transition: background 0.2s;
+}
+.game-header button:hover { background: #1a1a2e; }
 
 .main-content {
   display: flex;

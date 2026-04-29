@@ -174,6 +174,7 @@ class App {
         <header class="game-header">
           <h2>${this.escapeHtml(game.name)}</h2>
           <span class="game-id">ID: ${this.escapeHtml(game.id)}</span>
+          <button id="settings-btn" title="LLM Settings">⚙️</button>
           <button id="copy-link-btn" title="Copy link">📋</button>
         </header>
         <div class="main-content">
@@ -214,6 +215,9 @@ class App {
         this.showNotification("Link copied!", "success");
       });
     });
+
+    // Settings
+    document.getElementById("settings-btn")?.addEventListener("click", () => this.showSettingsModal());
   }
 
   private renderStreamBuffer(): void {

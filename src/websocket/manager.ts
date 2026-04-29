@@ -127,10 +127,10 @@ export class WebSocketManager {
 
     this.send(ws, "GAME_CREATED", { gameId: engine.id, game: engine.game });
 
-    // Generate opening scene via LLM (delay to let LM Studio finish loading)
+    // Generate opening scene via LLM (retry until LM Studio is ready)
     this.send(ws, "STREAM_CHUNK", { content: "The Dungeon Master prepares the world...", isFinal: false });
 
-    setTimeout(() => { // Wait for LM Studio to be ready (model loading takes time)
+    const tryGenerate = (attempt: number): void => {
       engine.generateOpeningScene({
         onChunk: (chunk: string) => {
           this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
@@ -142,13 +142,20 @@ export class WebSocketManager {
           });
         },
         onError: (error: Error) => {
-          this.broadcastToGame(engine!.id, "STREAM_ERROR", {
-            message: error.message,
-            fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
-          });
+          if (attempt < 3 && error.message.includes("ECONNREFUSED")) {
+            console.log(`[OpeningScene] Attempt ${attempt + 1} failed, retrying in 3s...`);
+            setTimeout(() => tryGenerate(attempt + 1), 3000);
+          } else {
+            this.broadcastToGame(engine!.id, "STREAM_ERROR", {
+              message: error.message,
+              fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+            });
+          }
         },
       }).catch(console.error);
-    }, 3000);
+    };
+
+    setTimeout(() => tryGenerate(0), 3000);
   }
 
   private handleJoinGame(ws: WebSocket, client: { id: string; gameId: string | null }, payload: Record<string, unknown>): void {
