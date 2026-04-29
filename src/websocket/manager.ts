@@ -148,7 +148,8 @@ export class WebSocketManager {
             });
           },
           onError: (error: Error) => {
-            if (attempt < 4 && error.message.includes("ECONNREFUSED")) {
+            const isConnectionError = error.message.includes("unreachable") || error.message.includes("ECONNREFUSED");
+            if (attempt < 4 && isConnectionError) {
               console.log(`[OpeningScene] Attempt ${attempt} failed, retrying in 3s...`);
               setTimeout(() => tryGenerate(), 3000);
             } else {

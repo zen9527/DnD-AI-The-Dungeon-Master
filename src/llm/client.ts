@@ -101,9 +101,15 @@ export class LLMClient {
     } catch (error) {
       clearTimeout(timeoutId);
       clearTimeout(idleTimer);
+
+      const isConnectionRefused = error instanceof Error && (
+        error.message.includes("ECONNREFUSED") ||
+        error.cause instanceof Error && error.cause.message.includes("ECONNREFUSED")
+      );
+
       if (error instanceof Error && error.name === "AbortError") {
         callbacks.onError(new Error("LLM stream timed out after 60s"));
-      } else if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
+      } else if (isConnectionRefused) {
         callbacks.onError(new Error(`LLM endpoint unreachable (${this.baseUrl}). Check that LM Studio is running and the port is correct.`));
       } else {
         callbacks.onError(error as Error);
