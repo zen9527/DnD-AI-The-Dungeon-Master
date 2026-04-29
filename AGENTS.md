@@ -1,48 +1,32 @@
-# DnD Offline Multiplayer Project Specifics
+# DnD Full Auto-DM Project Specifics
 
 ## Tech Stack
 - **Backend**: Node.js + TypeScript + Express + ws (WebSocket)
 - **Frontend**: TypeScript + Vite
 - **Validation**: Zod (shared between backend and frontend)
-- **Build**: `npm run build:backend` + `npm run build:frontend`
+- **Build**: `npm run build` (builds backend + frontend)
 
 ## Project Structure
 ```
 src/           # Backend TypeScript source
   ├── server.ts
-  ├── types/
-  ├── schemas/
-  └── utils/
-shared/        # Shared types and schemas for frontend
-public/        # Frontend source (TypeScript)
-dist/          # Compiled output
+  ├── game/    # Dice engine, rules engine, game engine, store
+  ├── llm/     # LLM client, parser, prompts
+  ├── types/   # Core D&D types
+  ├── utils/   # ID generator
+  └── websocket/
+shared/        # Shared Zod schemas (game, action, chat, config, scenario)
+public/        # Frontend source (TypeScript + CSS + HTML)
+dist/          # Compiled output (excluded from git)
 ```
 
 ## Development Commands
 - `npm run build` - Full build (backend + frontend)
-- `npm run dev` - Concurrent development (watch mode)
-- `npm start` - Start production server (use timeout for testing!)
+- `npm run dev` - Concurrent watch mode (backend + frontend dev server)
+- `npm start` - Build + start production server
 - `npx tsc --noEmit` - Type check without compilation
+- `start.bat` - Build + start (Windows)
+- `stop.bat` - Kill server on port 3000 (Windows)
 
 ## Testing Servers
-**CRITICAL**: Always use `timeout 3 npm start` when testing server startup.
-Never run `npm start` directly in automated tasks - it will hang subagents.
-
----
-
-# Global Rules Reference
-
-The following global rules apply to this project (defined in ~/.config/opencode/AGENTS.md):
-
-## Windows Environment Detection
-- ALWAYS check if running on Windows before executing commands
-- Use PowerShell cmdlets instead of Unix commands where applicable
-
-## Server Testing Rules
-- NEVER run `npm start` directly - use `timeout 3 npm start` or `node --check`
-- Background processes will hang subagents indefinitely
-
-## Development Workflow
-- Before starting any implementation: Check if a skill applies using the Skill tool
-- For multi-step tasks: Use writing-plans skill to create implementation plans
-- For parallel independent tasks: Use subagent-driven-development skill
+**CRITICAL**: Never run `npm start` directly in automated tasks — it will hang.

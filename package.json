@@ -2,7 +2,6 @@
   "name": "dnd-offline-multiplayer",
   "version": "0.2.0",
   "description": "Offline multiplayer D&D game with AI Dungeon Master",
-  "main": "server.js",
   "type": "module",
   "scripts": {
     "build:backend": "tsc",
