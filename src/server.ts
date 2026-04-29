@@ -1,6 +1,5 @@
 import express from "express";
 import { createServer } from "http";
-import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -8,14 +7,25 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Explicit .env path — dotenv.config() without args depends on process.cwd()
+// Read .env directly — bypass dotenv which depends on process.cwd()
 const envPath = path.join(__dirname, "../..", ".env");
-dotenv.config({ path: envPath });
+const envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf-8") : "";
+const envVars: Record<string, string> = {};
+for (const line of envContent.split("\n")) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) continue;
+  const [key, ...rest] = trimmed.split("=");
+  if (key && rest.length > 0) envVars[key.trim()] = rest.join("=").trim();
+}
 
-console.log(`[Server] Loaded .env from: ${envPath}`);
-console.log(`[Server] LLM_API_URL: ${process.env.LLM_API_URL || "(not set)"}`);
-console.log(`[Server] LLM_API_KEY: ${process.env.LLM_API_KEY ? "(set)" : "(not set)"}`);
-console.log(`[Server] LLM_MODEL: ${process.env.LLM_MODEL || "(not set)"}`);
+console.log(`[Server] .env file: ${envPath}`);
+console.log(`[Server] .env exists: ${fs.existsSync(envPath)}`);
+console.log(`[Server] LLM_API_URL: ${envVars.LLM_API_URL || "(default: http://localhost:1234/v1)"}`);
+console.log(`[Server] LLM_API_KEY: ${envVars.LLM_API_KEY ? "(set)" : "(not set)"}`);
+console.log(`[Server] LLM_MODEL: ${envVars.LLM_MODEL || "(default: local-model)"}`);
+
+// Set process.env for other modules
+Object.assign(process.env, envVars);
 
 const app = express();
 const server = createServer(app);
@@ -27,13 +37,14 @@ import { WebSocketManager } from "./websocket/manager.js";
 import { gameStore } from "./game/store.js";
 import { configSchema } from "../shared/schemas/config.js";
 
-const llmBaseUrl = process.env.LLM_API_URL || "http://localhost:1234/v1";
-const llmModel = process.env.LLM_MODEL || "local-model";
+const llmBaseUrl = envVars.LLM_API_URL || "http://localhost:1234/v1";
+const llmApiKey = envVars.LLM_API_KEY || null;
+const llmModel = envVars.LLM_MODEL || "local-model";
 
 const wsManager = new WebSocketManager(server);
 
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || "0.0.0.0";
+const PORT = envVars.PORT || "3000";
+const HOST = envVars.HOST || "0.0.0.0";
 
 // ---- Config API Routes ----
 
@@ -41,9 +52,9 @@ const envFilePath = path.join(__dirname, "../..", ".env");
 
 app.get("/api/config", (_req, res) => {
   res.json({
-    llmBaseUrl: process.env.LLM_API_URL || "http://localhost:1234/v1",
-    llmApiKey: process.env.LLM_API_KEY || "",
-    llmModel: process.env.LLM_MODEL || "",
+    llmBaseUrl: envVars.LLM_API_URL || "http://localhost:1234/v1",
+    llmApiKey: envVars.LLM_API_KEY || "",
+    llmModel: envVars.LLM_MODEL || "",
   });
 });
 
@@ -54,28 +65,15 @@ app.post("/api/config", (req, res) => {
     return;
   }
 
-  const { llmBaseUrl, llmApiKey, llmModel } = parsed.data;
+  const { llmBaseUrl: newBaseUrl, llmApiKey: newApiKey, llmModel: newModel } = parsed.data;
 
-  // Read existing .env and update values
-  let envContent = fs.readFileSync(envFilePath, "utf-8");
+  let content = fs.readFileSync(envFilePath, "utf-8");
+  content = content.replace(/^LLM_API_URL=.*/mi, `LLM_API_URL=${newBaseUrl}`);
+  content = content.replace(/^LLM_API_KEY=.*/mi, `LLM_API_KEY=${newApiKey}`);
+  content = content.replace(/^LLM_MODEL=.*/mi, `LLM_MODEL=${newModel}`);
+  fs.writeFileSync(envFilePath, content, "utf-8");
 
-  envContent = envContent.replace(
-    /^LLM_API_URL=.*/mi,
-    `LLM_API_URL=${llmBaseUrl}`
-  );
-  envContent = envContent.replace(
-    /^LLM_API_KEY=.*/mi,
-    `LLM_API_KEY=${llmApiKey}`
-  );
-  envContent = envContent.replace(
-    /^LLM_MODEL=.*/mi,
-    `LLM_MODEL=${llmModel}`
-  );
-
-  fs.writeFileSync(envFilePath, envContent, "utf-8");
-
-  console.log(`[Config] LLM updated: ${llmBaseUrl} (${llmModel})`);
-
+  console.log(`[Config] LLM updated: ${newBaseUrl} (${newModel})`);
   res.json({ success: true, restartRequired: true });
 });
 
@@ -118,17 +116,17 @@ app.post("/api/config/test", async (req, res) => {
     return;
   }
 
-  const { llmBaseUrl, llmApiKey, llmModel } = parsed.data;
+  const { llmBaseUrl: testBaseUrl, llmApiKey: testApiKey, llmModel: testModel } = parsed.data;
 
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (llmApiKey) headers["Authorization"] = `Bearer ${llmApiKey}`;
+    if (testApiKey) headers["Authorization"] = `Bearer ${testApiKey}`;
 
-    const response = await fetch(`${llmBaseUrl}/chat/completions`, {
+    const response = await fetch(`${testBaseUrl}/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        model: llmModel || "test",
+        model: testModel || "test",
         messages: [{ role: "user", content: "test" }],
         max_tokens: 5,
       }),
@@ -147,7 +145,7 @@ app.post("/api/config/test", async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
   console.log(`DnD Full Auto-DM Server running at http://${HOST}:${PORT}`);
   console.log(`LLM: ${llmBaseUrl} (${llmModel})`);
