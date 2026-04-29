@@ -29,6 +29,7 @@ export class LLMClient {
   ): Promise<string> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -53,7 +54,6 @@ export class LLMClient {
       const decoder = new TextDecoder();
       let fullContent = "";
       let buffer = "";
-      let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
       const resetIdleTimer = () => {
         clearTimeout(idleTimer);
@@ -100,8 +100,11 @@ export class LLMClient {
 
     } catch (error) {
       clearTimeout(timeoutId);
+      clearTimeout(idleTimer);
       if (error instanceof Error && error.name === "AbortError") {
-        callbacks.onError(new Error("LLM stream aborted (timeout)"));
+        callbacks.onError(new Error("LLM stream timed out after 60s"));
+      } else if (error instanceof Error && error.message.includes("ECONNREFUSED")) {
+        callbacks.onError(new Error(`LLM endpoint unreachable (${this.baseUrl}). Check that LM Studio is running and the port is correct.`));
       } else {
         callbacks.onError(error as Error);
       }

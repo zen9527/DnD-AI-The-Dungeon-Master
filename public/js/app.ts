@@ -130,10 +130,14 @@ class App {
     wsManager.on("STREAM_ERROR", (payload) => {
       const p = payload as { message: string; fallbackNarrative: string };
       gameState.clearStreamBuffer();
+      const isOffline = p.message.includes("unreachable") || p.message.includes("ECONNREFUSED");
+      const content = isOffline
+        ? `⚠️ DM unavailable — ${p.message}. Check that LM Studio is running and restart the server.`
+        : p.fallbackNarrative || "The DM's voice fades...";
       gameState.addChatMessage({
         id: "stream-error",
-        content: p.fallbackNarrative || "The DM's voice fades...",
-        type: "narrative",
+        content,
+        type: isOffline ? "error" : "narrative",
         timestamp: Date.now(),
       });
       this.renderChatMessages();
