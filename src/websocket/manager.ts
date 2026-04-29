@@ -127,35 +127,42 @@ export class WebSocketManager {
 
     this.send(ws, "GAME_CREATED", { gameId: engine.id, game: engine.game });
 
-    // Generate opening scene via LLM (retry until LM Studio is ready)
+    // Generate opening scene via LLM (delay + retry)
     this.send(ws, "STREAM_CHUNK", { content: "The Dungeon Master prepares the world...", isFinal: false });
 
-    const tryGenerate = (attempt: number): void => {
-      engine.generateOpeningScene({
-        onChunk: (chunk: string) => {
-          this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
-        },
-        onEnd: (fullContent: string) => {
-          this.broadcastToGame(engine!.id, "STREAM_END", {
-            fullNarrative: fullContent,
-            structured: engine!.game,
-          });
-        },
-        onError: (error: Error) => {
-          if (attempt < 3 && error.message.includes("ECONNREFUSED")) {
-            console.log(`[OpeningScene] Attempt ${attempt + 1} failed, retrying in 3s...`);
-            setTimeout(() => tryGenerate(attempt + 1), 3000);
-          } else {
-            this.broadcastToGame(engine!.id, "STREAM_ERROR", {
-              message: error.message,
-              fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+    console.log(`[OpeningScene] Scheduling in 5s (game: ${engine.id})`);
+    setTimeout(() => {
+      console.log(`[OpeningScene] Attempting generation (game: ${engine.id})`);
+      let attempt = 0;
+      const tryGenerate = (): void => {
+        attempt++;
+        console.log(`[OpeningScene] Attempt ${attempt} (game: ${engine.id})`);
+        engine.generateOpeningScene({
+          onChunk: (chunk: string) => {
+            this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+          },
+          onEnd: (fullContent: string) => {
+            this.broadcastToGame(engine!.id, "STREAM_END", {
+              fullNarrative: fullContent,
+              structured: engine!.game,
             });
-          }
-        },
-      }).catch(console.error);
-    };
-
-    setTimeout(() => tryGenerate(0), 3000);
+          },
+          onError: (error: Error) => {
+            if (attempt < 4 && error.message.includes("ECONNREFUSED")) {
+              console.log(`[OpeningScene] Attempt ${attempt} failed, retrying in 3s...`);
+              setTimeout(() => tryGenerate(), 3000);
+            } else {
+              console.error(`[OpeningScene] Failed after ${attempt} attempts:`, error.message);
+              this.broadcastToGame(engine!.id, "STREAM_ERROR", {
+                message: error.message,
+                fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+              });
+            }
+          },
+        }).catch(console.error);
+      };
+      tryGenerate();
+    }, 5000);
   }
 
   private handleJoinGame(ws: WebSocket, client: { id: string; gameId: string | null }, payload: Record<string, unknown>): void {
