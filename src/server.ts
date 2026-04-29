@@ -30,7 +30,7 @@ const HOST = process.env.HOST || "0.0.0.0";
 
 // ---- Config API Routes ----
 
-const envFilePath = path.join(__dirname, "../.env");
+const envFilePath = path.join(__dirname, "../..", ".env");
 
 app.get("/api/config", (_req, res) => {
   res.json({
