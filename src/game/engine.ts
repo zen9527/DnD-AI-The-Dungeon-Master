@@ -137,6 +137,32 @@ export class GameEngine {
       scenario: this._game.scenario as Scenario || "dungeon",
     });
 
+    // Deduct spell slot if player is using a known spell
+    const usedSpell = player.spells?.find(
+      s => actionPrompt.toLowerCase().includes(s.name.toLowerCase())
+    );
+    
+    if (usedSpell) {
+      const key = `level-${usedSpell.level}`;
+      const currentSlots = player.spellSlots[key] || 0;
+      
+      if (currentSlots > 0) {
+        // Deduct one slot from this player's spell slots
+        const playerIdx = this._game.players.findIndex(p => p.id === playerId);
+        if (playerIdx >= 0) {
+          if (!this._game.players[playerIdx].spellSlots) {
+            this._game.players[playerIdx].spellSlots = {};
+          }
+          this._game.players[playerIdx].spellSlots[key] = currentSlots - 1;
+          
+          console.log(`[Engine] Deducted spell slot: ${usedSpell.name} (level-${usedSpell.level}, remaining: ${currentSlots - 1})`);
+        }
+      } else {
+        // No slots left — LLM will narrate the failure naturally
+        console.log(`[Engine] No slots for spell: ${usedSpell.name}`);
+      }
+    }
+
     const messages = [
       { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario) },
       { role: "user" as const, content: actionPrompt },
@@ -217,10 +243,12 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       { role: "user" as const, content: openingPrompt },
     ];
 
-    const result = await this.llmClient.streamChat(messages, callbacks, 60000);
+    // Use 90s idle timeout - opening scenes can be long with structured JSON output
+    const result = await this.llmClient.streamChat(messages, callbacks, 90000);
 
     const parsed = parseLLMResponse(result);
 
+    // Update state after stream completes (onEnd already fired but we need complete state)
     this._game.conversationHistory.push({ role: "user", content: openingPrompt });
     this._game.conversationHistory.push({ role: "assistant", content: parsed.fullNarrative });
 

@@ -1,4 +1,5 @@
 import type { Game, Player, ChatMessage, NPC, StructuredResult, StreamResult } from "../../shared/index.js";
+import { parseLLMResponse } from "@llm/parser.js";
 
 interface GameStateListener {
   (state: { game: Game | null; currentPlayer: Player | null }): void;
@@ -40,23 +41,57 @@ export class GameState {
     this._streamBuffer = "";
   }
 
+  /**
+   * Get the parsed narrative from current stream buffer (strips JSON block)
+   */
+  getParsedNarrative(): string {
+    if (!this._streamBuffer) return "";
+    const parsed = parseLLMResponse(this._streamBuffer);
+    return parsed.fullNarrative;
+  }
+
   applyStreamResult(result: StreamResult): void {
     if (this._game) {
+      // Update player HP
       if (result.structured.playerHp && this._currentPlayer) {
         this._currentPlayer.hp = result.structured.playerHp.after;
       }
+      
+      // Update creature HP
       if (result.structured.creatureHp) {
         const npc = this._game.npcs.find((n: NPC) => n.name === result.structured.creatureHp!.name);
         if (npc) npc.hp = result.structured.creatureHp!.after;
       }
+      
+      // Remove defeated creatures from NPC list
       if (result.structured.creatureDefeated && result.structured.creatureHp) {
         this._game.npcs = this._game.npcs.filter(
           (n: NPC) => n.name !== result.structured.creatureHp!.name
         );
       }
+      
+      // Add new NPCs from DM response to game state
       if (result.structured.newNPCs) {
         this._game.npcs.push(...result.structured.newNPCs);
       }
+      
+      // Add newly learned spells to current player's spell list
+      if (result.structured.newSpells && result.structured.newSpells.length > 0) {
+        const player = this._game.players.find(p => p.id === this._currentPlayer?.id);
+        if (player) {
+          for (const spell of result.structured.newSpells) {
+            // Avoid duplicates — only add if not already known
+            const exists = player.spells?.some(s => s.name.toLowerCase() === spell.name.toLowerCase());
+            if (!exists && !player.spells) {
+              player.spells = [];
+            }
+            if (player.spells && !player.spells.some(s => s.name.toLowerCase() === spell.name.toLowerCase())) {
+              player.spells.push({ name: spell.name, level: spell.level });
+            }
+          }
+        }
+      }
+      
       this.notifyListeners();
     }
   }

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import type { MessageType, WebSocketMessage } from '../../shared/index.js';
+import { parseLLMResponse } from '@llm/parser.js';
 
 interface EventHandler {
   (payload: unknown): void;

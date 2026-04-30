@@ -1,5 +1,6 @@
 import { GameEngine } from "./engine.js";
 import { generateId } from "../utils/id.js";
+import { configManager } from "../utils/config.js";
 import type { Game, Player, ChatMessage, NPC } from "../types/index.js";
 
 interface Snapshot {
@@ -11,17 +12,11 @@ interface Snapshot {
 export class GameStore {
   private games: Map<string, GameEngine>;
   private snapshots: Map<string, Snapshot>;
-  private llmBaseUrl: string;
-  private llmApiKey: string | null;
-  private llmModel: string;
   private cleanupInterval!: ReturnType<typeof setInterval>;
 
-  constructor(llmBaseUrl: string, llmApiKey: string | null, llmModel: string) {
+  constructor() {
     this.games = new Map();
     this.snapshots = new Map();
-    this.llmBaseUrl = llmBaseUrl;
-    this.llmApiKey = llmApiKey;
-    this.llmModel = llmModel;
     this.startSnapshotTimer();
   }
 
@@ -48,11 +43,13 @@ export class GameStore {
     firstPlayer: Player
   ): GameEngine {
     const gameId = generateId();
+    // Read fresh config from .env at runtime (not cached)
+    const config = configManager.read();
     const engine = new GameEngine(
       { id: gameId, name: gameName, maxPlayers, scenario, players: [firstPlayer], npcs: [], chatHistory: [], events: [] },
-      this.llmBaseUrl,
-      this.llmApiKey,
-      this.llmModel
+      config.llmBaseUrl,
+      config.llmApiKey,
+      config.llmModel
     );
     this.games.set(gameId, engine);
     console.log(`[GameStore] Created game "${gameName}" (ID: ${gameId}, scenario: ${scenario})`);
@@ -103,8 +100,4 @@ export class GameStore {
   }
 }
 
-export const gameStore = new GameStore(
-  process.env.LLM_API_URL || "http://localhost:1234/v1",
-  process.env.LLM_API_KEY || null,
-  process.env.LLM_MODEL || "local-model"
-);
+export const gameStore = new GameStore();

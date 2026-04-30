@@ -110,6 +110,7 @@ export class WebSocketManager {
       ac: 11,
       proficiencyBonus: 2,
       spellSlots: {},
+      spells: [],
       inventory: [],
       conditions: [],
     };
@@ -130,38 +131,58 @@ export class WebSocketManager {
     // Generate opening scene via LLM (delay + retry)
     this.send(ws, "STREAM_CHUNK", { content: "The Dungeon Master prepares the world...", isFinal: false });
 
-    console.log(`[OpeningScene] Scheduling in 5s (game: ${engine.id})`);
     setTimeout(() => {
       console.log(`[OpeningScene] Attempting generation (game: ${engine.id})`);
       let attempt = 0;
-      const tryGenerate = (): void => {
+      
+      const tryGenerate = async (): Promise<void> => {
         attempt++;
         console.log(`[OpeningScene] Attempt ${attempt} (game: ${engine.id})`);
-        engine.generateOpeningScene({
-          onChunk: (chunk: string) => {
-            this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
-          },
-          onEnd: (fullContent: string) => {
-            this.broadcastToGame(engine!.id, "STREAM_END", {
-              fullNarrative: fullContent,
-              structured: engine!.game,
+
+        try {
+          // Pass only onChunk and onError to engine - handle onEnd manually AFTER await
+          const parsed = await engine.generateOpeningScene({
+            onChunk: (chunk: string) => {
+              this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+            },
+            onEnd: () => {
+              // Don't use - we'll broadcast after state updates complete
+            },
+            onError: (error: Error) => {
+              const isConnectionError = error.message.includes("unreachable") || error.message.includes("ECONNREFUSED");
+              const isTimeout = error.message.includes("timed out") || error.message.includes("idle timeout");
+              
+              if (attempt < 4 && (isConnectionError || isTimeout)) {
+                console.log(`[OpeningScene] Attempt ${attempt} failed (${isTimeout ? "timeout" : "connection"}), retrying in 3s...`);
+                setTimeout(() => tryGenerate(), 3000);
+              } else {
+                console.error(`[OpeningScene] Failed after ${attempt} attempts:`, error.message);
+                this.broadcastToGame(engine!.id, "STREAM_ERROR", {
+                  message: error.message,
+                  fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+                });
+              }
+            },
+          });
+
+          // AFTER await completes - engine method has updated chatHistory
+          console.log(`[OpeningScene] Generation complete (game: ${engine.id})`);
+          this.broadcastToGame(engine.id, "STREAM_END", {
+            fullNarrative: parsed.fullNarrative,
+            structured: engine.game,  // Public getter returns a fresh snapshot
+          });
+
+        } catch (error) {
+          if (!(error instanceof Error && error.message.includes("Failed after"))) {
+            console.error(`[OpeningScene] Unexpected error:`, error);
+            this.broadcastToGame(engine.id, "STREAM_ERROR", {
+              message: error instanceof Error ? error.message : "Unknown error",
+              fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
             });
-          },
-          onError: (error: Error) => {
-            const isConnectionError = error.message.includes("unreachable") || error.message.includes("ECONNREFUSED");
-            if (attempt < 4 && isConnectionError) {
-              console.log(`[OpeningScene] Attempt ${attempt} failed, retrying in 3s...`);
-              setTimeout(() => tryGenerate(), 3000);
-            } else {
-              console.error(`[OpeningScene] Failed after ${attempt} attempts:`, error.message);
-              this.broadcastToGame(engine!.id, "STREAM_ERROR", {
-                message: error.message,
-                fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
-              });
-            }
-          },
-        }).catch(console.error);
+          }
+        }
       };
+      
       tryGenerate();
     }, 5000);
   }
@@ -194,6 +215,7 @@ export class WebSocketManager {
       ac: 11,
       proficiencyBonus: 2,
       spellSlots: {},
+      spells: [],
       inventory: [],
       conditions: [],
     };
@@ -214,7 +236,7 @@ export class WebSocketManager {
     this.send(ws, "GAME_STATE", { games: gameStore.listGames() });
   }
 
-  private handlePlayerAction(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+  private async handlePlayerAction(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): Promise<void> {
     if (!client.gameId || !client.playerId) {
       this.sendError(ws, "Not in a game");
       return;
@@ -234,25 +256,44 @@ export class WebSocketManager {
 
     const actionPayload = parsed.data;
 
+    // Add player's action to chat history immediately (so it shows before DM response)
+    engine.addChatMessage(client.playerId, actionPayload.action);
+    this.broadcastToGame(engine.id, "CHAT_MESSAGE", { 
+      message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
+      gameState: engine.game
+    });
+
     this.send(ws, "STREAM_CHUNK", { content: "The DM considers your action...", isFinal: false });
 
-    engine.handlePlayerAction(actionPayload, client.playerId, {
-      onChunk: (chunk: string) => {
-        this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
-      },
-      onEnd: (fullContent: string) => {
-        this.broadcastToGame(engine!.id, "STREAM_END", {
-          fullNarrative: fullContent,
-          structured: engine!.game,
-        });
-      },
-      onError: (error: Error) => {
-        this.broadcastToGame(engine!.id, "STREAM_ERROR", {
-          message: error.message,
-          fallbackNarrative: `You attempt: "${actionPayload.action}". The result is uncertain...`,
-        });
-      },
-    });
+    // Await complete generation then broadcast with updated state
+    try {
+      const parsed = await engine.handlePlayerAction(actionPayload, client.playerId, {
+        onChunk: (chunk: string) => {
+          this.broadcastToGame(engine!.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+        },
+        onEnd: () => {
+          // Don't use this - we'll broadcast after state updates complete
+        },
+        onError: (error: Error) => {
+          this.broadcastToGame(engine!.id, "STREAM_ERROR", {
+            message: error.message,
+            fallbackNarrative: `You attempt: "${actionPayload.action}". The result is uncertain...`,
+          });
+        },
+      });
+
+      // AFTER await completes - engine method has updated chatHistory with DM response
+      console.log(`[DM Response] Complete for player ${client.playerId}`);
+      this.broadcastToGame(engine.id, "STREAM_END", {
+        fullNarrative: parsed.fullNarrative,
+        structured: engine.game,  // Public getter returns fresh snapshot after state update
+      });
+
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes("You attempt"))) {
+        console.error(`[DM Response] Unexpected error for player ${client.playerId}:`, error);
+      }
+    }
   }
 
   private handleChatMessage(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -273,7 +314,10 @@ export class WebSocketManager {
     }
 
     engine.addChatMessage(client.playerId, parsed.data.content);
-    this.broadcastToGame(engine.id, "CHAT_MESSAGE", { message: engine.game.chatHistory[engine.game.chatHistory.length - 1] });
+    this.broadcastToGame(engine.id, "CHAT_MESSAGE", { 
+      message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
+      gameState: engine.game  // Send full game state to ensure consistency
+    });
   }
 
   private handleDiceRoll(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {

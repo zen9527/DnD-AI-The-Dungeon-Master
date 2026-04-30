@@ -109,20 +109,34 @@ class App {
 
     wsManager.on("STREAM_CHUNK", (payload) => {
       const p = payload as { content: string; isFinal: boolean };
-      gameState.updateStreamBuffer(p.content);
+      
+      // Check if this is a status placeholder message or actual LLM chunk
+      const isStatusMessage = p.content === "The DM considers your action..." || 
+                              p.content === "The Dungeon Master prepares the world...";
+      
+      if (isStatusMessage) {
+        // Clear buffer and show only status message temporarily
+        gameState.clearStreamBuffer();
+        gameState.updateStreamBuffer(p.content);
+      } else {
+        // Actual LLM chunk - accumulate into buffer
+        gameState.updateStreamBuffer(p.content);
+      }
+      
       this.renderStreamBuffer();
     });
 
     wsManager.on("STREAM_END", (payload) => {
       const p = payload as { fullNarrative: string; structured: Game };
       gameState.clearStreamBuffer();
-      gameState.addChatMessage({
-        id: "stream-end",
-        content: p.fullNarrative,
-        type: "narrative",
-        timestamp: Date.now(),
-      });
+      
+      // Clear the stream display element immediately
+      const streamDisplay = document.getElementById("stream-display");
+      if (streamDisplay) streamDisplay.innerHTML = "";
+      
+      // The backend already added the narrative to game.chatHistory, so just set the game state
       gameState.setGame(p.structured);
+      
       this.renderChatMessages();
       this.renderHP();
     });
@@ -145,8 +159,17 @@ class App {
     });
 
     wsManager.on("CHAT_MESSAGE", (payload) => {
-      const msg = payload as ChatMessage;
-      gameState.addChatMessage(msg);
+      const p = payload as { message: ChatMessage; gameState: Game };
+      
+      // Use the full game state from backend to ensure consistency
+      if (p.gameState) {
+        gameState.setGame(p.gameState);
+      } else {
+        // Fallback for old format (single message only)
+        const msg = p.message as ChatMessage;
+        gameState.addChatMessage(msg);
+      }
+      
       this.renderChatMessages();
     });
 
@@ -223,7 +246,11 @@ class App {
   private renderStreamBuffer(): void {
     const display = document.getElementById("stream-display");
     if (!display) return;
-    display.innerHTML = `<div class="streaming"><span class="typing">${this.escapeHtml(gameState.streamBuffer)}<span class="cursor">▊</span></span></div>`;
+    
+    // Parse the buffer to extract clean narrative (strips JSON block)
+    const parsedNarrative = gameState.getParsedNarrative();
+    
+    display.innerHTML = `<div class="streaming"><span class="typing">${this.escapeHtml(parsedNarrative)}<span class="cursor">▊</span></span></div>`;
     display.scrollTop = display.scrollHeight;
   }
 

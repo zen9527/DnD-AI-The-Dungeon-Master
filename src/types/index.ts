@@ -14,11 +14,17 @@ export interface Player {
   ac: number;
   proficiencyBonus: number;
   spellSlots: Record<string, number>;
-  inventory: Item[];
+  spells: Spell[]; // Learned spells with levels
+  inventory: Item[]; // Potions and other consumables
   conditions: string[];
 }
 
 export type DiceType = 4 | 6 | 8 | 10 | 12 | 20;
+
+export interface Spell {
+  name: string;
+  level: number; // 1-9 as per D&D rules
+}
 
 export interface Item {
   name: string;
@@ -75,6 +81,7 @@ export interface StructuredResult {
   creatureDefeated?: boolean;
   newNPCs?: NPC[];
   newEvents?: { title: string; description: string }[];
+  newSpells?: Spell[]; // Spells learned during gameplay
   turn: {
     nextPlayerId: string;
     initiative: { playerId: string; npcId?: string; score: number }[];

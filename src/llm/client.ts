@@ -25,10 +25,9 @@ export class LLMClient {
   async streamChat(
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
     callbacks: LLMCallbacks,
-    timeoutMs: number = 60000
+    idleTimeoutMs: number = 90000
   ): Promise<string> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
     const url = `${this.baseUrl}/chat/completions`;
@@ -37,7 +36,7 @@ export class LLMClient {
       model: this.model,
       messages,
       temperature: 0.8,
-      max_tokens: 2000,
+      max_tokens: 8000,
       stream: true,
     });
 
@@ -47,11 +46,11 @@ export class LLMClient {
     console.log(`[LLM] Headers: ${JSON.stringify(headers)}`);
 
     try {
+      // Fetch without timeout signal - connection happens quickly
       const response = await fetch(url, {
         method: "POST",
         headers,
         body,
-        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -64,14 +63,16 @@ export class LLMClient {
       let fullContent = "";
       let buffer = "";
 
+      // Reset idle timer on each chunk received
       const resetIdleTimer = () => {
         clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
           controller.abort();
-          callbacks.onError(new Error("LLM stream idle timeout (30s)"));
-        }, 30000);
+          callbacks.onError(new Error(`LLM stream idle timeout after ${idleTimeoutMs / 1000}s (no chunks received)`));
+        }, idleTimeoutMs);
       };
 
+      // Start idle timer after first chunk delay allowance
       resetIdleTimer();
 
       while (true) {
@@ -102,13 +103,11 @@ export class LLMClient {
         }
       }
 
-      clearTimeout(timeoutId);
       clearTimeout(idleTimer);
       callbacks.onEnd(fullContent);
       return fullContent;
 
     } catch (error) {
-      clearTimeout(timeoutId);
       clearTimeout(idleTimer);
 
       const isConnectionRefused = error instanceof Error && (
@@ -117,7 +116,7 @@ export class LLMClient {
       );
 
       if (error instanceof Error && error.name === "AbortError") {
-        callbacks.onError(new Error("LLM stream timed out after 60s"));
+        callbacks.onError(new Error(`LLM stream timed out after ${idleTimeoutMs / 1000}s (no progress)`));
       } else if (isConnectionRefused) {
         callbacks.onError(new Error(`LLM endpoint unreachable (${this.baseUrl}). Check that LM Studio is running and the port is correct.`));
       } else {

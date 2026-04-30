@@ -59,6 +59,8 @@ button {
 button:hover { background: #1a4a8a; }
 button.primary { background: #7c3aed; }
 button.primary:hover { background: #6d28d9; }
+button.secondary { background: #0f3460; border: 1px solid #333; }
+button.secondary:hover { background: #1a4a8a; }
 
 form label {
   display: block;
@@ -90,6 +92,24 @@ form input, form select {
 
 .attributes-grid label {
   text-align: center;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  max-width: 300px;
+  margin-bottom: 15px;
+}
+
+.form-row.auto-filled {
+  animation: highlightFill 0.8s ease;
+}
+
+@keyframes highlightFill {
+  0% { opacity: 0.5; }
+  50% { background: #7c3aed22; }
+  100% { opacity: 1; }
 }
 
 .form-actions {
@@ -213,6 +233,46 @@ hr { border: none; border-top: 1px solid #333; margin: 20px 0; }
   font-size: 0.85rem;
   border-radius: 20px;
   background: #0f3460;
+}
+
+.dynamic-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.action-item-btn {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  border-radius: 20px;
+  background: #065f46;
+  color: #4ade80;
+  border: 1px solid #333;
+}
+
+.action-item-btn:hover {
+  background: #047857;
+}
+
+.potion-btn::before {
+  content: "🧪 ";
+}
+
+.spell-selector select {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 20px;
+  background: #4c1d95;
+  color: #e0e0e0;
+  border: 1px solid #7c3aed;
+  cursor: pointer;
+  min-width: 160px;
+}
+
+.spell-selector select:focus {
+  outline: none;
+  box-shadow: 0 0 8px #7c3aed44;
 }
 
 .free-text {
