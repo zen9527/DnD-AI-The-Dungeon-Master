@@ -197,8 +197,8 @@ class App {
         <header class="game-header">
           <h2>${this.escapeHtml(game.name)}</h2>
           <span class="game-id">ID: ${this.escapeHtml(game.id)}</span>
-          <button id="settings-btn" title="LLM Settings">⚙️</button>
-          <button id="copy-link-btn" title="Copy link">📋</button>
+          <button id="settings-btn" title="LLM Settings">⚙️ Settings</button>
+          <button id="copy-link-btn" title="Copy link">📋 Copy Link</button>
         </header>
         <div class="main-content">
           <aside class="players-panel">
@@ -206,15 +206,19 @@ class App {
             <ul id="players-list">
               ${(game.players || []).map((p: Player) => `
                 <li class="${p.isDM ? "dm" : ""}">
-                  <div class="hp-bar-container">
-                    <span style="flex:1; font-size:0.85rem;">${p.isDM ? "👑 " : ""}${this.escapeHtml(p.name)}</span>
-                    ${p.hp !== undefined && p.maxHp > 0 ? `
+                  ${p.isDM ? `<span class="badge-dm">👑 DM</span>` : ''}
+                  <div class="player-info">
+                    <span class="character-name">${this.escapeHtml(p.characterName)}</span>
+                    <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} Lv.${p.level}</span>
+                  </div>
+                  ${p.hp !== undefined && p.maxHp > 0 ? `
+                    <div class="hp-bar-container">
                       <div class="hp-bar-track">
                         <div class="hp-bar-fill" style="width:${Math.round((p.hp / p.maxHp) * 100)}%;${p.hp <= Math.round(p.maxHp * 0.2) ? 'background:linear-gradient(90deg,#dc2626,#ef4444)' : ''}"></div>
                       </div>
                       <span class="hp-text">${p.hp}/${p.maxHp}</span>
-                    ` : `<span class="hp-text">—</span>`}
-                  </div>
+                    </div>
+                  ` : ''}
                 </li>
               `).join("")}
             </ul>
