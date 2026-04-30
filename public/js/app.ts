@@ -206,8 +206,15 @@ class App {
             <ul id="players-list">
               ${(game.players || []).map((p: Player) => `
                 <li class="${p.isDM ? "dm" : ""}">
-                  ${p.isDM ? "👑 " : ""}${this.escapeHtml(p.name)} (${this.escapeHtml(p.characterName)})
-                  ${p.hp !== undefined ? `<span class="hp">${p.hp}/${p.maxHp}</span>` : ""}
+                  <div class="hp-bar-container">
+                    <span style="flex:1; font-size:0.85rem;">${p.isDM ? "👑 " : ""}${this.escapeHtml(p.name)}</span>
+                    ${p.hp !== undefined && p.maxHp > 0 ? `
+                      <div class="hp-bar-track">
+                        <div class="hp-bar-fill" style="width:${Math.round((p.hp / p.maxHp) * 100)}%;${p.hp <= Math.round(p.maxHp * 0.2) ? 'background:linear-gradient(90deg,#dc2626,#ef4444)' : ''}"></div>
+                      </div>
+                      <span class="hp-text">${p.hp}/${p.maxHp}</span>
+                    ` : `<span class="hp-text">—</span>`}
+                  </div>
                 </li>
               `).join("")}
             </ul>
@@ -268,9 +275,19 @@ class App {
     const items = list.querySelectorAll("li");
     items.forEach((item, i) => {
       const player = gameState.game!.players[i];
-      if (player?.hp !== undefined) {
-        const hpSpan = item.querySelector(".hp");
-        if (hpSpan) hpSpan.textContent = `${player.hp}/${player.maxHp}`;
+      if (player?.hp !== undefined && player.maxHp > 0) {
+        const fill = item.querySelector(".hp-bar-fill") as HTMLElement;
+        const text = item.querySelector(".hp-text") as HTMLElement;
+        if (fill) {
+          const pct = Math.round((player.hp / player.maxHp) * 100);
+          fill.style.width = `${pct}%`;
+          if (player.hp <= Math.round(player.maxHp * 0.2)) {
+            fill.style.background = "linear-gradient(90deg,#dc2626,#ef4444)";
+          } else {
+            fill.style.background = ""; // revert to CSS default gradient
+          }
+        }
+        if (text) text.textContent = `${player.hp}/${player.maxHp}`;
       }
     });
   }
