@@ -345,31 +345,58 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
 
 .players-panel ul { list-style: none; }
 
-.players-panel li {
-  padding: 10px 12px;
+/* --- DM Card (AI Dungeon Master) --- */
+.players-panel li.dm-card {
+  padding: 12px 14px;
   border-radius: 8px;
-  margin-bottom: 6px;
-  background: var(--bg-primary);
-}
-
-.players-panel li.dm {
-  border-left: 3px solid var(--dm-purple);
-  color: var(--text-primary);
-}
-
-.players-panel li:not(.dm) {
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #2a2015 0%, #1f1a10 100%);
   border-left: 3px solid var(--accent-gold);
 }
 
-/* DM badge */
 .badge-dm {
-  display: inline-block;
+  display: block;
   font-size: 0.7rem;
-  color: var(--dm-purple);
+  color: var(--accent-gold);
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 4px;
+}
+
+/* --- Player Cards (regular characters) --- */
+.players-panel li:not(.dm-card) {
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: var(--bg-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* DM status indicator */
+.dm-status {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px #10b98166; }
+  50% { opacity: 0.5; box-shadow: 0 0 8px #10b98133; }
 }
 
 /* Player info (character name + race/class) */
@@ -379,6 +406,7 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
+  width: 100%;
 }
 
 .character-name {
@@ -434,9 +462,16 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
 }
 
 .message-header strong { color: var(--accent-gold); }
-.message.narrative .message-header strong { color: var(--accent-gold); }
-.message.own .message-header strong { color: var(--player-green); }
-.message.roll .message-header strong { color: var(--dice-gold); }
+.message.narrative .message-header strong,
+.dm-sender { color: var(--accent-gold) !important; }
+.message.own .message-header strong { color: var(--player-green) !important; }
+.message.roll .message-header strong { color: var(--dice-gold) !important; }
+
+/* DM narrative message styling */
+.message.narrative {
+  background: linear-gradient(135deg, #2a2015 0%, #1f1a10 100%);
+  border-left-color: var(--accent-gold);
+}
 
 .message-header .timestamp { color: var(--text-muted); font-size: 0.75rem; }
 .message-content { font-size: 0.85rem; }

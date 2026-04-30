@@ -4,6 +4,7 @@ import { gameState } from "./game-state.js";
 import { CharacterCreator } from "./character.js";
 import { ActionBar } from "./action-bar.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
+import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import type { Player, ChatMessage, Game, StreamResult, EndpointPreset } from "../../shared/index.js";
 
 class App {
@@ -189,6 +190,8 @@ class App {
     const player = gameState.currentPlayer || game?.players?.[0];
     if (!game || !player) return;
 
+    const scenarioLabel = (game.scenario as Scenario) ? `${scenarioDescriptions[game.scenario as Scenario].icon} ${scenarioDescriptions[game.scenario as Scenario].label}` : "Unknown";
+
     const container = document.getElementById("app");
     if (!container) return;
 
@@ -196,7 +199,7 @@ class App {
       <div class="game-interface">
         <header class="game-header">
           <h2>${this.escapeHtml(game.name)}</h2>
-          <span class="game-id">ID: ${this.escapeHtml(game.id)}</span>
+          <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
           <button id="settings-btn" title="LLM Settings">⚙️ Settings</button>
           <button id="copy-link-btn" title="Copy link">📋 Copy Link</button>
         </header>
@@ -204,9 +207,21 @@ class App {
           <aside class="players-panel">
             <h3>Players (${game.players?.length || 0}/${game.maxPlayers})</h3>
             <ul id="players-list">
+              <!-- Dedicated DM Card -->
+              <li class="dm-card">
+                <span class="badge-dm">🧙 AI Dungeon Master</span>
+                <div class="player-info">
+                  <span class="character-name" style="color:var(--accent-gold)">Storyteller</span>
+                  <span class="player-detail">${this.escapeHtml(scenarioLabel)}</span>
+                </div>
+                <div class="dm-status">
+                  <span class="status-dot"></span> Active — ${game.players?.length || 0} player(s) in session
+                </div>
+              </li>
+
+              <!-- Actual Players -->
               ${(game.players || []).map((p: Player) => `
-                <li class="${p.isDM ? "dm" : ""}">
-                  ${p.isDM ? `<span class="badge-dm">👑 DM</span>` : ''}
+                <li>
                   <div class="player-info">
                     <span class="character-name">${this.escapeHtml(p.characterName)}</span>
                     <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} Lv.${p.level}</span>
@@ -228,7 +243,6 @@ class App {
             <div id="stream-display" class="stream-display"></div>
             <div id="action-container"></div>
           </main>
-          ${player.isDM ? '<aside id="dm-panel" class="dm-panel"></aside>' : ""}
         </div>
       </div>
     `;
@@ -243,15 +257,17 @@ class App {
     const actionContainer = document.getElementById("action-container");
     if (actionContainer) new ActionBar(actionContainer);
 
-    // Copy link
-    document.getElementById("copy-link-btn")?.addEventListener("click", () => {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        this.showNotification("Link copied!", "success");
-      });
+    // Copy link — event delegation on header for durability across DOM swaps
+    document.querySelector(".game-header")?.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.id === "copy-link-btn") {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          this.showNotification("Link copied!", "success");
+        });
+      } else if (target.id === "settings-btn") {
+        this.showSettingsModal();
+      }
     });
-
-    // Settings
-    document.getElementById("settings-btn")?.addEventListener("click", () => this.showSettingsModal());
   }
 
   private renderStreamBuffer(): void {
@@ -301,10 +317,12 @@ class App {
     if (!messagesDiv) return;
 
     const el = document.createElement("div");
-    el.className = `message ${message.type} ${message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
+    const isDMNarrative = message.type === "narrative" || !message.playerName;
+    const senderName = isDMNarrative ? "🧙 AI Dungeon Master" : (message.characterName || message.playerName || "Unknown");
+    el.className = `message ${message.type} ${!isDMNarrative && message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
     el.innerHTML = `
       <div class="message-header">
-        <strong>${this.escapeHtml(message.playerName || "DM")}</strong>
+        <strong class="${isDMNarrative ? 'dm-sender' : ''}">${this.escapeHtml(senderName)}</strong>
         <span class="timestamp">${new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
       <div class="message-content">${this.escapeHtml(message.content)}</div>

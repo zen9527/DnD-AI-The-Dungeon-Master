@@ -96,10 +96,6 @@ export class GameState {
     }
   }
 
-  isDM(): boolean {
-    return this._currentPlayer?.isDM ?? false;
-  }
-
   subscribe(callback: GameStateListener): () => void {
     this.listeners.push(callback);
     callback({ game: this._game, currentPlayer: this._currentPlayer });
