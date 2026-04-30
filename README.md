@@ -109,6 +109,21 @@ npm run build
 npm start
 ```
 
+## 🎮 Quick Start
+
+### Windows (Double-Click)
+1. Double-click **`start.bat`** — builds and launches the server automatically
+2. Open `http://localhost:3000` in your browser
+3. To stop: double-click **`stop.bat`** or press `Ctrl+C` in terminal
+
+### Usage Flow
+1. **Create Game** — Select a scenario, create your character, begin adventure
+2. **Join Game** — Share the link; other players join with their own characters
+3. **Take Actions** — Use preset buttons (⚔️ Attack, 🔍 Search, 💬 Talk) or type freely in chat
+4. **Configure LLM** — Click ⚙️ on the welcome screen or game header to set your AI provider
+
+---
+
 ### Configuration API
 
 The server exposes a REST API for runtime configuration:
