@@ -169,6 +169,45 @@ Rule: Never shift pacing mid-paragraph. Pick a rhythm and commit to it.`;
 }
 
 /**
+ * Visual enhancement: emojis, dividers, status indicators for immersion.
+ */
+function buildVisualEnhancement(): string {
+  return `VISUAL ENHANCEMENT — Use emojis and visual elements to make the narrative vivid and immersive:
+
+EMOJI RULES (use naturally, don't overdo it):
+- 2-4 emojis per response maximum. Place them where they enhance mood, not as decoration.
+- Leading emoji at the start of a key paragraph sets atmosphere (e.g., 🏰 for castle scenes, 🔥 for fire/combat)
+- Inline emojis replace or supplement descriptive words: "The torch flickers 🕯️" instead of just "The torch flickers."
+
+CONTEXTUAL EMOJI GUIDE:
+  ⚔️🗡️🛡️ — Combat, weapons, defense
+  🔥💀☠️ — Danger, death, fire, destruction
+  🏰🏯⛰️ — Castles, fortresses, mountains, dungeons
+  🌲🌿🦌 — Forests, wilderness, nature
+  🌊⚓🚢 — Sea, ships, storms
+  👁️🗨️💬 — Dialogue, observation, whispers
+  🔮✨🪄 — Magic, spells, enchantments
+  💰👑🏺 — Treasure, gold, artifacts
+  🌙🌑🕯️ — Night scenes, darkness, torches
+  😱😨💀 — Horror, fear, dread
+  👹🐉🧟 — Monsters: orcs, dragons, undead
+  🍖🏕️⛺ — Campfire, rest, food
+  📜🗝️🔑 — Quests, clues, keys, discoveries
+
+VISUAL DIVIDERS (use between major scene shifts):
+- Scene transition: use a line like "═══ ✦ ═══" or "─── ⚔ ───" to separate scenes
+- Time passage: "☽ ☾ ☽ — hours pass in silence — ☾ ☽ ☽"
+- Combat round start: "⚔️ ROUND 2 ⚔️" centered on its own line
+
+STATUS INDICATORS (when relevant):
+- HP changes: show before/after with emoji. Example: "HP: 🟥🟥🟧🟨🟩 → 🟥🟥🟧🟧🟨 (took 15 damage)"
+- Mood shifts for NPCs: "The merchant's expression darkens 😠 → 🤨"
+- Discovery alerts: "✨ You found a hidden chest! ✨"
+
+IMPORTANT: Emojis should FEEL natural to the scene. A horror dungeon might use 💀🕯️👁️ while an epic battlefield uses ⚔️🏰🐉. Don't force emojis into every sentence — they're seasoning, not the meal.`;
+}
+
+/**
  * Structured output format with field descriptions.
  */
 function buildOutputFormat(): string {
@@ -223,6 +262,8 @@ export function buildSystemPrompt(scenario: Scenario = "dungeon"): string {
     buildNarrativeStyle(),
     "",
     buildDialogueRules(),
+    "",
+    buildVisualEnhancement(),
     "",
     buildActiveLevelLogic(),
     "",
