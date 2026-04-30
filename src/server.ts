@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 
 import { configManager } from "./utils/config.js";
+import { normalizeLlmBaseUrl } from "./utils/normalizeUrl.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,14 +82,14 @@ app.get("/api/config/models", async (req, res) => {
     return;
   }
 
-  // Normalize base URL — strip trailing segment, append /v1 (same logic as LLMClient)
-  baseUrl = baseUrl.replace(/\/[^/]+$/, "") + "/v1";
+  // Normalize base URL (same logic as LLMClient)
+  const normalizedUrl = normalizeLlmBaseUrl(baseUrl);
 
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
-    const response = await fetch(`${baseUrl}/models`, {
+    const response = await fetch(`${normalizedUrl}/models`, {
       headers,
       signal: AbortSignal.timeout(10000),
     });
@@ -116,8 +117,8 @@ app.post("/api/config/test", async (req, res) => {
 
   const { llmBaseUrl: testBaseUrl, llmApiKey: testApiKey, llmModel: testModel } = parsed.data;
 
-  // Normalize base URL — strip trailing segment, append /v1 (same logic as LLMClient)
-  let normalizedTestUrl = testBaseUrl.replace(/\/[^/]+$/, "") + "/v1";
+  // Normalize base URL (same logic as LLMClient)
+  const normalizedTestUrl = normalizeLlmBaseUrl(testBaseUrl);
 
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };

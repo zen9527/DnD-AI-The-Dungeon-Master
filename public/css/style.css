@@ -366,13 +366,13 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
 
 /* --- Player Cards (regular characters) --- */
 .players-panel li:not(.dm-card) {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 6px;
   margin-bottom: 4px;
   background: var(--bg-primary);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* DM status indicator */
@@ -402,10 +402,8 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
 /* Player info (character name + race/class) */
 .player-info {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
 }
 
@@ -418,7 +416,6 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
 .player-detail {
   font-size: 0.75rem;
   color: var(--text-muted);
-  white-space: nowrap;
 }
 
 /* HP text in sidebar */
@@ -675,36 +672,48 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
    HP Progress Bar (in players panel)
    ============================================================================ */
 .hp-bar-container {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   width: 100%;
 }
 
 .hp-bar-track {
-  flex: 1;
+  position: relative;
   background: var(--bg-primary);
-  border-radius: 4px;
-  height: 8px;
+  border-radius: 6px;
+  height: 14px;
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .hp-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-light));
-  border-radius: 4px;
-  transition: width 0.3s ease;
+  border-radius: 5px;
+  transition: width 0.4s ease, background 0.4s ease;
+  /* Default: healthy green-gold */
+  background: linear-gradient(90deg, #4ade80, #a3e635);
+}
+
+.hp-bar-fill.high {
+  background: linear-gradient(90deg, #4ade80, #a3e635);
+}
+
+.hp-bar-fill.mid {
+  background: linear-gradient(90deg, #facc15, #f59e0b);
 }
 
 .hp-bar-fill.low {
-  background: linear-gradient(90deg, var(--error-red), #ef4444);
+  background: linear-gradient(90deg, #f87171, #dc2626);
 }
 
-.players-panel li .hp-text {
-  color: var(--accent-gold);
+.hp-bar-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.65rem;
   font-weight: bold;
-  font-size: 0.8rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   white-space: nowrap;
-  min-width: 52px;
-  text-align: right;
+  pointer-events: none;
+  z-index: 1;
 }

@@ -230,9 +230,9 @@ class App {
                   ${p.hp !== undefined && p.maxHp > 0 ? `
                     <div class="hp-bar-container">
                       <div class="hp-bar-track">
-                        <div class="hp-bar-fill" style="width:${Math.round((p.hp / p.maxHp) * 100)}%;${p.hp <= Math.round(p.maxHp * 0.2) ? 'background:linear-gradient(90deg,#dc2626,#ef4444)' : ''}"></div>
+                        <div class="hp-bar-fill ${p.hp > p.maxHp * 0.6 ? 'high' : p.hp > p.maxHp * 0.3 ? 'mid' : 'low'}" style="width:${Math.round((p.hp / p.maxHp) * 100)}%"></div>
+                        <span class="hp-bar-text">❤ ${p.hp}/${p.maxHp}</span>
                       </div>
-                      <span class="hp-text">${p.hp}/${p.maxHp}</span>
                     </div>
                   ` : ''}
                 </li>
@@ -320,22 +320,20 @@ class App {
   private renderHP(): void {
     const list = document.getElementById("players-list");
     if (!list || !gameState.game) return;
-    const items = list.querySelectorAll("li");
+    // Skip index 0 (DM card), start from 1
+    const items = list.querySelectorAll("li:not(.dm-card)");
     items.forEach((item, i) => {
       const player = gameState.game!.players[i];
       if (player?.hp !== undefined && player.maxHp > 0) {
         const fill = item.querySelector(".hp-bar-fill") as HTMLElement;
-        const text = item.querySelector(".hp-text") as HTMLElement;
+        const text = item.querySelector(".hp-bar-text") as HTMLElement;
         if (fill) {
           const pct = Math.round((player.hp / player.maxHp) * 100);
           fill.style.width = `${pct}%`;
-          if (player.hp <= Math.round(player.maxHp * 0.2)) {
-            fill.style.background = "linear-gradient(90deg,#dc2626,#ef4444)";
-          } else {
-            fill.style.background = ""; // revert to CSS default gradient
-          }
+          fill.classList.remove("high", "mid", "low");
+          fill.classList.add(player.hp > player.maxHp * 0.6 ? "high" : player.hp > player.maxHp * 0.3 ? "mid" : "low");
         }
-        if (text) text.textContent = `${player.hp}/${player.maxHp}`;
+        if (text) text.textContent = `❤ ${player.hp}/${player.maxHp}`;
       }
     });
   }

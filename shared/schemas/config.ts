@@ -40,6 +40,12 @@ export const endpointPresets = [
     model: "llama3-70b-8192",
   },
   {
+    name: "BigModel (GLM)",
+    url: "https://open.bigmodel.cn/api/paas/v4",
+    apiKey: "",
+    model: "",
+  },
+  {
     name: "Custom",
     url: "",
     apiKey: "",

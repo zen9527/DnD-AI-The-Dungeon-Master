@@ -1,3 +1,5 @@
+import { normalizeLlmBaseUrl } from "../utils/normalizeUrl.js";
+
 export interface LLMCallbacks {
   onChunk: (chunk: string) => void;
   onEnd: (fullContent: string) => void;
@@ -10,9 +12,7 @@ export class LLMClient {
   private model: string;
 
   constructor(baseUrl: string, apiKey: string | null, model: string) {
-    // Normalize base URL — strip ALL trailing path segments, then append /v1
-    let normalized = baseUrl.replace(/\/[^/]+$/, "");
-    this.baseUrl = normalized + "/v1";
+    this.baseUrl = normalizeLlmBaseUrl(baseUrl);
     this.apiKey = apiKey;
     this.model = model;
   }
