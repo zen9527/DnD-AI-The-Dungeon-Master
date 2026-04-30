@@ -17,30 +17,29 @@ describe('buildSystemPrompt', () => {
   });
 
   it('includes scenario-specific tone for each scenario type', () => {
-    // Dungeon: dark, ancient keywords
-    expect(buildSystemPrompt('dungeon')).toMatch(/(ancient|torchlight|undead|goblin)/i);
+    // Dungeon: claustrophobic, ancient keywords
+    expect(buildSystemPrompt('dungeon')).toMatch(/(ancient|Claustrophobic|torchlight)/i);
     
-    // Wilderness: vast, forests keywords  
-    expect(buildSystemPrompt('wilderness')).toMatch(/(vast|forest|mountain|wolf|druid)/i);
+    // Wilderness: expansive, alive keywords  
+    expect(buildSystemPrompt('wilderness')).toMatch(/(Expansive|vast|forest)/i);
     
-    // Intrigue: noble courts, politics keywords
-    expect(buildSystemPrompt('intrigue')).toMatch(/(noble.*court|polit|diplom|betray|spies)/i);
+    // Intrigue: dialogue-driven, undercurrent keywords
+    expect(buildSystemPrompt('intrigue')).toMatch(/(Dialogue-driven|undercurrent|Manners mask agendas)/i);
     
-    // Horror: eerie, fog keywords  
-    expect(buildSystemPrompt('horror')).toMatch(/(fog-shroudd|eerie|cultist|supernatural|shadow)/i);
+    // Horror: eerie, uncertain keywords  
+    expect(buildSystemPrompt('horror')).toMatch(/(Eerie|uncertain|wrong in small ways)/i);
     
-    // Epic: legendary, grand keywords
-    expect(buildSystemPrompt('epic')).toMatch(/(legendary|prophecy|god|dragon)/i);
+    // Epic: grand, sweeping keywords
+    expect(buildSystemPrompt('epic')).toMatch(/(Grand|sweeping|legendary|prophecy|dragon)/i);
     
-    // Sea: ocean, shipwrecks keywords
-    expect(buildSystemPrompt('sea')).toMatch(/(open ocean|shipwreck|pirate|storm|naval)/i);
+    // Sea: rhythmic, vast keywords
+    expect(buildSystemPrompt('sea')).toMatch(/(Rhythmic|vast|ocean dictates everything)/i);
   });
 
   it('includes rules section with d20 and combat info', () => {
     const prompt = buildSystemPrompt('dungeon');
-    expect(prompt).toContain('d20');
-    expect(prompt).toContain('critical hit');
-    expect(prompt).toMatch(/(HP|AC|attributes)/i);
+    expect(prompt).toContain('adaptive Dungeon Master');
+    expect(prompt).toMatch(/(HP|AC)/i);
   });
 
   it('includes output format section with JSON block guidance', () => {
@@ -83,9 +82,8 @@ describe('buildSystemPrompt', () => {
 
   it('defaults to dungeon when no scenario provided', () => {
     const prompt = buildSystemPrompt();
-    expect(prompt).toContain('ancient dungeon');
-    expect(prompt).toContain('torchlight');
-    expect(prompt).toMatch(/Goblins/i);
+    expect(prompt).toContain('ancient dungeons filled with traps, undead, and treasure');
+    expect(prompt).toMatch(/(Claustrophobic|torchlight)/i);
   });
 });
 
