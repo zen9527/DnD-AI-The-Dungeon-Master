@@ -299,7 +299,23 @@ Player stats:
 
 Scenario: ${scenarioDescriptions[context.scenario].label} — ${scenarioDescriptions[context.scenario].description}
 
-`;
+STAT-DRIVEN NARRATIVE (IMPORTANT):
+Factor the player's attributes into how their action plays out in the world. High stats make actions more impactful; low stats introduce complications or narrow escapes. Examples:
+- STR 16+ Barbarian punches → devastating impact, enemy stumbles back, bones crack
+- STR 8 Wizard punches → feeble thud, barely makes a dent, but catches enemy off-guard
+- DEX 17 Rogue sneaks → silent as shadow, passes unnoticed even through torchlight
+- DEX 6 Paladin sneaks → clanking armor, scuffing boots — needs luck or distraction to succeed
+- INT 18 Wizard examines runes → instantly recognizes ancient dwarven script and its meaning
+- INT 8 Barbarian examines runes → sees "weird markings" but misses the hidden warning
+- WIS 17 Druid senses danger → feels the air grow heavy, notices subtle shifts in shadows
+- WIS 6 Sorcerer senses danger → oblivious to creeping threat until it's too close
+- CHA 18 Bard persuades NPC → charming words melt hostility into reluctant alliance
+- CHA 7 Fighter persuades NPC → gruff demands earn a glare and a dismissive wave
+
+Race bonuses matter: Elves see in dim light, Dwarves resist poison/illness, Halflings get lucky breaks.
+Class abilities matter: Fighters are trained combatants, Wizards manipulate arcane forces, Rogues exploit weaknesses.
+
+When narrating outcomes, make the player feel their choices and stats MATTER — not just dice numbers.`;
 
   if (target) {
     prompt += `Target: "${target.name}"

@@ -31,11 +31,40 @@ const RACE_ATTRIBUTE_BONUSES: Record<string, Partial<Attributes>> = {
   "Half-Orc": { str: 2, con: 2 },
 };
 
-const CLASS_NAME_PREFIXES: Record<string, string> = {
-  "Barbarian": "Thor", "Fighter": "Garret", "Paladin": "Aldric",
-  "Rogue": "Kael", "Ranger": "Sylvan", "Wizard": "Elara",
-  "Cleric": "Theron", "Druid": "Rowan", "Monk": "Jian",
-  "Bard": "Lyra", "Sorcerer": "Ignis", "Warlock": "Vesper"
+// Fantasy name components for generating unique character names per class+race combination
+const NAME_DATA: Record<string, { firstNames: string[]; lastParts: string[] }> = {
+  "Human": {
+    firstNames: ["Aldric", "Bram", "Cedric", "Dorian", "Elias", "Finn", "Gareth", "Hugo", "Isolde", "Jasper", "Kael", "Liam", "Mira", "Nora", "Orion", "Petra", "Quinn", "Rowan", "Sage", "Talia"],
+    lastParts: ["Ashford", "Brightwater", "Carroway", "Dunmore", "Everett", "Fairwind", "Greystone", "Holloway", "Ironheart", "Jasperfield", "Kingsley", "Lightfoot", "Morrowind", "Nighthawk", "Oakenshield", "Proudfoot", "Quicksilver", "Ravencrest", "Stormborn", "Thornwall"]
+  },
+  "Elf": {
+    firstNames: ["Aelindra", "Baelor", "Caelith", "Daelen", "Elandra", "Faelarion", "Galadriel", "Haelwen", "Ilyndra", "Jarethil", "Kaelthas", "Lirael", "Maevea", "Nimrodel", "Orithiel", "Paelora", "Quel'thalas", "Raeliana", "Sylvaris", "Thalandor"],
+    lastParts: ["Starweaver", "Moonwhisper", "Dawnstrider", "Shadowleaf", "Silverbough", "Nightbloom", "Sunfire", "Windrunner", "Stormsong", "Mistwalker", "Brightwood", "Emberglade", "Frostveil", "Thornshade", "Riverdance", "Starfall", "Duskwalker", "Moonshadow", "Sunwhisper", "Leafdancer"]
+  },
+  "Dwarf": {
+    firstNames: ["Borin", "Durgan", "Grimnar", "Haldur", "Korgan", "Magni", "Narvi", "Orin", "Thrain", "Ulfar", "Vidar", "Ymir", "Zug", "Brunhild", "Eirlys", "Freya", "Gerd", "Helga", "Ingrid", "Sigrid"],
+    lastParts: ["Ironforge", "Stonebeard", "Deepdelver", "Firebrand", "Goldvein", "Hammerfall", "Mountainborn", "Rocksplitter", "Steelheart", "Thunderaxe", "Flamebrand", "Shieldwall", "Anvilhand", "Forgefire", "Cragtooth", "Stonefist", "Ironbrow", "Deepdelver", "Goldvein", "Hammerfall"]
+  },
+  "Halfling": {
+    firstNames: ["Bilbo", "Corrin", "Dillyn", "Eldon", "Finnan", "Gimble", "Hildy", "Jasper", "Kellen", "Lindy", "Milo", "Nedda", "Odo", "Perrin", "Quintus", "Remy", "Sandy", "Toby", "Ursula", "Willy"],
+    lastParts: ["Lightfoot", "Goodbarrel", "Tealeaf", "Appleby", "Greenhills", "Hilltopper", "Quickstep", "Merryweather", "Sunshine", "Breechwood", "Willowbrook", "Fernleaf", "Thistlewick", "Daisyfield", "Rosewater", "Cloverfield", "Maplehurst", "Oakhaven", "Brambleton", "Hawthorne"]
+  },
+  "Dragonborn": {
+    firstNames: ["Akra", "Bharash", "Crimsonscale", "Donaar", "Fenken", "Ghesh", "Heskan", "Ir索拉", "Kriv", "Medrash", "Nadarr", "Pandjed", "Rhogar", "Shamash", "Tarhun", "Ulgarn", "Veros", "Wardir", "Yarmon", "Zemeth"],
+    lastParts: ["Flameclaw", "Stormscale", "Ironwing", "Shadowfang", "Thundermaw", "Bloodscale", "Firebreath", "Stonehide", "Frostwing", "Ashclaw", "Emberheart", "Scaleborn", "Wyrmcaller", "Drakeslayer", "Dragonblood", "Cloudfang", "Stormtail", "Flamescale", "Ironhorn", "Shadowwing"]
+  },
+  "Half-Elf": {
+    firstNames: ["Aelarion", "Baelwen", "Caelith", "Daelora", "Elandra", "Faelarion", "Garethil", "Haelwen", "Ilyndor", "Jarethil", "Kaelthas", "Lirael", "Maevea", "Nimrodel", "Orithiel", "Paelora", "Quel'thalas", "Raeliana", "Sylvaris", "Thalandor"],
+    lastParts: ["Halfstar", "Moonshadow", "Dawnstrider", "Nightbloom", "Silverveil", "Stormsong", "Windwalker", "Brightwood", "Emberglade", "Frostveil", "Thornshade", "Riverdance", "Starfall", "Mistwalker", "Sunwhisper", "Leafdancer", "Shadowleaf", "Moonwhisper", "Starweaver", "Duskwalker"]
+  },
+  "Gnome": {
+    firstNames: ["Alston", "Boddynock", "Caramip", "Dimble", "Eldon", "Fonkin", "Gerbo", "Jebeddo", "Namfoodle", "Orryn", "Sindri", "Waynath", "Zook", "Bilia", "Carami", "Deerfoot", "Ellywick", "Furgara", "Lilli", "Nissa"],
+    lastParts: ["Tinkerwrench", "Gearmender", "Clockwork", "Sparkplug", "Cogsworth", "Wickerman", "Boltmaker", "Springheel", "Gizmo", "Whirlygig", "Tinkertop", "Gadgeteer", "Mechanicus", "Artificer", "Inventor", "Brainstorm", "Wondermind", "Cleverhands", "Quickwit", "Brightspark"]
+  },
+  "Half-Orc": {
+    firstNames: ["Dench", "Feng", "Gell", "Henk", "Holg", "Imsh", "Keth", "Krusk", "Mhurren", "Ront", "Shump", "Thogar", "Venomfang", "Vorg", "Yurrun", "Akta", "Boma", "Desh", "Gruk", "Hurg"],
+    lastParts: ["Bloodfist", "Ironjaw", "Stonebreaker", "Thunderclaw", "Shadowmaw", "Bonecrusher", "Warhorn", "Skullsplitter", "Fangtooth", "Berserker", "Warcry", "Battleborn", "Oathkeeper", "Rageblood", "Stormcaller", "Nightblade", "Darkfang", "Ironhide", "Bloodthorn", "Shadowclaw"]
+  }
 };
 
 function generateDefaultAttributes(characterClass: string, race: string): Attributes {
@@ -69,12 +98,18 @@ function generateDefaultAttributes(characterClass: string, race: string): Attrib
 }
 
 function generateDefaultCharacterName(characterClass: string, race: string): string {
-  const prefix = CLASS_NAME_PREFIXES[characterClass] || "Adventurer";
-  let suffix = "";
-  if (race.toLowerCase().includes("elf")) suffix = "-star";
-  else if (race.toLowerCase().includes("dwarf")) suffix = "-stone";
+  const raceData = NAME_DATA[race] || NAME_DATA["Human"];
   
-  return `${prefix}${suffix}`;
+  // Use class name to seed a deterministic but varied selection
+  // This ensures same character gets consistent name across page reloads
+  const classHash = [...characterClass].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const raceHash = [...race].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  
+  // Combine hashes for unique selection per class+race combo
+  const firstIdx = (classHash * 31 + raceHash * 17) % raceData.firstNames.length;
+  const lastIdx = (classHash * 19 + raceHash * 23) % raceData.lastParts.length;
+  
+  return `${raceData.firstNames[firstIdx]} ${raceData.lastParts[lastIdx]}`;
 }
 
 export class CharacterCreator {
