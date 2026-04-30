@@ -7,6 +7,7 @@ A next-generation tabletop RPG experience where **AI acts as your adaptive Dunge
 ### 🤖 AI-Driven Dungeon Master
 - **Adaptive Narrative Engine**: The DM dynamically adjusts tone, pacing, and sensory details based on the scenario (dungeon, wilderness, horror, epic, sea, intrigue)
 - **Show Don't Tell**: AI generates rich, concrete descriptions with layered sensory details instead of abstract states
+- **Visual Immersion**: Contextual emojis (⚔️🐉🕯️), scene dividers (═══ ✦ ═══), and status indicators make every response vivid and atmospheric
 - **Player Agency Preservation**: Never narrates player actions — only describes the world and NPC reactions
 - **Structured Output**: Every response includes parsed JSON for game state management (combat tracking, NPC status, environmental changes)
 
@@ -156,6 +157,26 @@ The AI DM prompt is constructed from independent, swappable modules:
 4. **Dialogue Rules** — NPC speech formatting
 5. **Active Level Logic** — Reactive vs. proactive triggers
 6. **Structured Output Schema** — JSON parsing requirements
+
+### 🎨 DM Response Style
+
+The AI DM enriches every response with visual elements:
+
+```
+🏰 The heavy oak door creaks open, revealing a cavernous hall lit by
+   flickering torchlight. The air tastes of old smoke and damp earth. 🕯️
+
+═══ ✦ ═══
+
+A goblin merchant lurks behind a makeshift stall, his yellowed teeth bared
+in a grin that doesn't reach his eyes. His hand rests near a dagger beneath
+the counter. 👁️🗨️
+
+"Ah... travelers," he croaks, voice like grinding stones. "What brings you
+to my humble establishment?"
+```
+
+---
 
 ## 📝 Example Gameplay Flow
 
