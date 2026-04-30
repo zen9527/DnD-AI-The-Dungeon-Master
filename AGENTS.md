@@ -28,5 +28,22 @@ dist/          # Compiled output (excluded from git)
 - `start.bat` - Build + start (Windows)
 - `stop.bat` - Kill server on port 3000 (Windows)
 
+## Autonomous Permissions
+
+The following operations may be performed **without asking for confirmation**:
+
+| Operation | Scope | Notes |
+|-----------|-------|-------|
+| **Git** | `add`, `commit`, `push origin main`, branch create/delete/merge | Always push to `origin/main` unless specified otherwise |
+| **Files** | Create, edit, delete any file in the project | Except `.env` (never commit secrets) |
+| **Tests** | Run `npm test` / `npx vitest run` | After any code change that affects tested modules |
+| **Build** | Run `npm run build` and `npx tsc --noEmit` | Verify compilation before pushing |
+
+### Rules
+- Always commit with descriptive messages following conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
+- Push to remote after each significant change set (feature complete, bug fix, cleanup)
+- Run tests + build verification **before** claiming work is done
+- Never run `npm start` in automated tasks — use `node --check dist/src/server.js` or `timeout 5 npm start` instead
+
 ## Testing Servers
 **CRITICAL**: Never run `npm start` directly in automated tasks — it will hang.
