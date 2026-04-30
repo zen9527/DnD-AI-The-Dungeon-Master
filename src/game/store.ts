@@ -67,10 +67,11 @@ export class GameStore {
     engine.addPlayer(player);
   }
 
-  listGames(): Array<{ id: string; name: string; players: number; maxPlayers: number }> {
+  listGames(): Array<{ id: string; name: string; scenario: string; players: number; maxPlayers: number }> {
     return Array.from(this.games.values()).map(e => ({
       id: e.id,
       name: e.name,
+      scenario: e.game.scenario,
       players: e.getPlayerCount(),
       maxPlayers: e.getMaxPlayers(),
     }));

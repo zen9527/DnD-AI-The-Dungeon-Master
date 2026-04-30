@@ -147,6 +147,12 @@ app.post("/api/config/test", async (req, res) => {
   }
 });
 
+// ---- Active Games API Route ----
+
+app.get("/api/games", (_req, res) => {
+  res.json(gameStore.listGames());
+});
+
 server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
   console.log(`DnD Full Auto-DM Server running at http://${HOST}:${PORT}`);

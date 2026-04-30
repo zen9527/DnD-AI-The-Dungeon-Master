@@ -27,7 +27,71 @@ class App {
       this.showJoinForm();
     } else {
       new CharacterCreator();
+      this.fetchActiveGames();
+      // Auto-refresh active games every 30 seconds
+      setInterval(() => this.fetchActiveGames(), 30000);
     }
+  }
+
+  public async fetchActiveGames(): Promise<void> {
+    try {
+      const response = await fetch("/api/games");
+      if (!response.ok) return;
+      const games: Array<{ id: string; name: string; scenario: string; players: number; maxPlayers: number }> = await response.json();
+      this.renderActiveGames(games);
+    } catch {
+      // If API not ready yet, skip — will refresh on next connection
+    }
+  }
+
+  private renderActiveGames(games: Array<{ id: string; name: string; scenario: string; players: number; maxPlayers: number }>): void {
+    const container = document.getElementById("active-games-container");
+    if (!container) return;
+
+    if (games.length === 0) {
+      container.innerHTML = `
+        <div class="no-games">
+          <span class="no-games-icon">🏰</span>
+          <p>No active adventures yet. Be the first to begin!</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = games.map(g => {
+      const scenarioKey = g.scenario as keyof typeof scenarioDescriptions;
+      const desc = scenarioDescriptions[scenarioKey] || scenarioDescriptions.dungeon;
+      const isFull = g.players >= g.maxPlayers;
+      const statusClass = isFull ? "status-full" : "status-open";
+      const statusText = isFull ? "Full" : `${g.players}/${g.maxPlayers} players`;
+
+      return `
+        <div class="game-card ${isFull ? 'full' : ''}" data-game-id="${this.escapeHtml(g.id)}">
+          <div class="game-card-header">
+            <span class="scenario-badge">${desc.icon}</span>
+            <h3>${this.escapeHtml(g.name)}</h3>
+            <span class="status-badge ${statusClass}">${statusText}</span>
+          </div>
+          <div class="game-card-body">
+            <span class="game-scenario-label">${desc.label}</span>
+            <button class="join-game-btn ${isFull ? 'disabled' : ''}" data-game-id="${this.escapeHtml(g.id)}" ${isFull ? 'disabled' : ''}>
+              ${isFull ? "Game Full" : "Join Adventure"}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Attach join handlers to game cards and buttons
+    container.querySelectorAll(".game-card[data-game-id], .join-game-btn:not(.disabled)").forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const gameId = el.getAttribute("data-game-id");
+        if (gameId && !el.classList.contains("disabled")) {
+          window.location.href = `?game=${gameId}`;
+        }
+      });
+    });
   }
 
   private showJoinForm(): void {

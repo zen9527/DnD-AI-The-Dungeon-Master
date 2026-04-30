@@ -31,6 +31,186 @@ body {
 }
 
 /* ============================================================================
+   Hero Section (Landing Page)
+   ============================================================================ */
+.hero-section {
+  text-align: center;
+  padding: 60px 20px 40px;
+  background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-primary) 100%);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  color: var(--accent-gold);
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px #c9a84c33;
+}
+
+.hero-subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================================================
+   Active Games Section (Landing Page)
+   ============================================================================ */
+.active-games-section {
+  padding: 30px 20px 40px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  color: var(--accent-gold);
+  letter-spacing: 0.5px;
+}
+
+.refresh-btn {
+  background: none !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-muted) !important;
+  padding: 6px 12px !important;
+  font-size: 0.85rem !important;
+  cursor: pointer !important;
+}
+
+.refresh-btn:hover {
+  border-color: var(--accent-gold) !important;
+  color: var(--accent-gold) !important;
+}
+
+.game-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.game-card:hover {
+  border-color: var(--accent-gold);
+  background: #3a2e1f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px #c9a84c11;
+}
+
+.game-card.full {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.game-card.full:hover {
+  transform: none;
+  border-color: var(--border-color);
+  background: var(--bg-panel);
+  box-shadow: none;
+}
+
+.game-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.scenario-badge {
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border-radius: 6px;
+}
+
+.game-card-header h3 {
+  font-size: 1rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.status-open {
+  background: #064e3b;
+  color: var(--player-green);
+}
+
+.status-full {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.game-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.game-scenario-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.join-game-btn {
+  padding: 6px 14px !important;
+  font-size: 0.85rem !important;
+  border-radius: 16px !important;
+  background: var(--accent-gold) !important;
+  color: var(--bg-primary) !important;
+  font-weight: bold !important;
+}
+
+.join-game-btn.disabled {
+  background: var(--border-color) !important;
+  color: var(--text-muted) !important;
+  cursor: default !important;
+}
+
+.no-games {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.no-games-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 8px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.game-card {
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+/* ============================================================================
    Welcome Screen (Character Creation)
    ============================================================================ */
 .welcome-screen {

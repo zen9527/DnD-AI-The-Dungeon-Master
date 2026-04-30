@@ -89,16 +89,29 @@ export class CharacterCreator {
 
   private showForm(): void {
     this.element!.innerHTML = `
+      <div class="hero-section">
+        <h1 class="hero-title">🎲 DnD Full Auto-DM</h1>
+        <p class="hero-subtitle">The AI Dungeon Master awaits your adventure. Choose a scenario, create your character, and let the story unfold.</p>
+      </div>
+
+      <div class="active-games-section">
+        <div class="section-header">
+          <h2 class="section-title">⚔️ Active Adventures</h2>
+          <button id="refresh-games-btn" class="refresh-btn">🔄 Refresh</button>
+        </div>
+        <div id="active-games-container"></div>
+      </div>
+
       <div class="welcome-screen">
         <div class="settings-trigger" title="LLM Settings">⚙️</div>
-        <h1>DnD Full Auto-DM</h1>
-        <p class="subtitle">The AI Dungeon Master awaits your adventure</p>
+        <h2>Create Your Own Adventure</h2>
+        <p class="subtitle">Start a new game and invite friends to join</p>
 
         <div class="options">
           <button id="create-game-btn" class="primary">Create New Game</button>
           <div class="divider">OR</div>
           <div class="join-form">
-            <input type="text" id="game-id-input" placeholder="Enter Game ID">
+            <input type="text" id="game-id-input" placeholder="Enter Game ID to join">
             <button id="join-game-btn">Join Game</button>
           </div>
         </div>
@@ -106,6 +119,9 @@ export class CharacterCreator {
     `;
 
     document.getElementById("create-game-btn")?.addEventListener("click", () => this.showScenarioSelection());
+    document.getElementById("refresh-games-btn")?.addEventListener("click", () => {
+      (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
+    });
     document.getElementById("join-game-btn")?.addEventListener("click", () => {
       const gameId = (document.getElementById("game-id-input") as HTMLInputElement).value.trim();
       if (gameId) window.location.href = `?game=${gameId}`;
@@ -113,6 +129,9 @@ export class CharacterCreator {
     document.querySelector(".settings-trigger")?.addEventListener("click", () => {
       (window as unknown as { app: { showSettingsModal: () => void } }).app?.showSettingsModal();
     });
+
+    // Fetch active games on load
+    (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
   }
 
   private showScenarioSelection(): void {
