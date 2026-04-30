@@ -21,6 +21,7 @@ class App {
 
     wsManager.connect();
     this.setupWebSocketHandlers();
+    this.attachGlobalEventDelegation(); // once — covers settings, copy-link, modal close
 
     if (this.gameId && !gameState.currentPlayer) {
       this.showJoinForm();
@@ -257,15 +258,42 @@ class App {
     const actionContainer = document.getElementById("action-container");
     if (actionContainer) new ActionBar(actionContainer);
 
-    // Copy link — event delegation on header for durability across DOM swaps
-    document.querySelector(".game-header")?.addEventListener("click", (e) => {
+  }
+
+  // Event delegation — attached once on document body, survives all DOM swaps
+  private attachGlobalEventDelegation(): void {
+    if ((this as unknown as { _globalDelegated: boolean })._globalDelegated) return;
+    (this as unknown as { _globalDelegated: boolean })._globalDelegated = true;
+
+    document.body.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
+
+      // Settings button — in-game header or join form
+      if (target.id === "settings-btn") {
+        this.showSettingsModal();
+        return;
+      }
+
+      // Copy link button
       if (target.id === "copy-link-btn") {
         navigator.clipboard.writeText(window.location.href).then(() => {
           this.showNotification("Link copied!", "success");
         });
-      } else if (target.id === "settings-btn") {
-        this.showSettingsModal();
+        return;
+      }
+
+      // Settings modal close — overlay or ✕ button
+      const closeTarget = target.closest("[data-action='close']") as HTMLElement | null;
+      if (closeTarget) {
+        const modal = closeTarget.closest(".settings-modal") as HTMLElement | null;
+        modal?.remove();
+        return;
+      }
+
+      // Settings modal — clicking overlay closes it
+      if (target.classList.contains("settings-overlay")) {
+        target.parentElement?.remove();
+        return;
       }
     });
   }
