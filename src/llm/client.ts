@@ -10,8 +10,9 @@ export class LLMClient {
   private model: string;
 
   constructor(baseUrl: string, apiKey: string | null, model: string) {
-    this.baseUrl = baseUrl.replace(/\/(chat|models).*$/, "");
-    if (!this.baseUrl.endsWith("/v1")) this.baseUrl += "/v1";
+    // Normalize base URL — strip ALL trailing path segments, then append /v1
+    let normalized = baseUrl.replace(/\/[^/]+$/, "");
+    this.baseUrl = normalized + "/v1";
     this.apiKey = apiKey;
     this.model = model;
   }

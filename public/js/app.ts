@@ -480,6 +480,17 @@ class App {
     this.loadConfig().then(async config => {
       urlInput.value = config.llmBaseUrl;
       keyInput.value = config.llmApiKey;
+      // Sync preset dropdown to match saved URL, or fall back to Custom
+      const presetIdx = endpointPresets.findIndex(p => p.url === config.llmBaseUrl);
+      if (presetIdx >= 0) {
+        (document.getElementById("preset-select") as HTMLSelectElement).value = String(presetIdx);
+      } else {
+        // URL doesn't match any preset — switch to Custom
+        const customIdx = endpointPresets.findIndex(p => p.name === "Custom");
+        if (customIdx >= 0) {
+          (document.getElementById("preset-select") as HTMLSelectElement).value = String(customIdx);
+        }
+      }
       // Auto-fetch models using current config
       await this.autoFetchModels(config.llmBaseUrl, config.llmApiKey, modelSelect, modelStatus);
       // If a model is already saved, select it

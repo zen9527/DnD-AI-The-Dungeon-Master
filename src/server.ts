@@ -73,13 +73,16 @@ app.post("/api/config", (req, res) => {
 });
 
 app.get("/api/config/models", async (req, res) => {
-  const baseUrl = req.query.url as string;
+  let baseUrl = req.query.url as string;
   const apiKey = req.query.key as string;
 
   if (!baseUrl) {
     res.json({ models: [] });
     return;
   }
+
+  // Normalize base URL — strip trailing segment, append /v1 (same logic as LLMClient)
+  baseUrl = baseUrl.replace(/\/[^/]+$/, "") + "/v1";
 
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -113,11 +116,14 @@ app.post("/api/config/test", async (req, res) => {
 
   const { llmBaseUrl: testBaseUrl, llmApiKey: testApiKey, llmModel: testModel } = parsed.data;
 
+  // Normalize base URL — strip trailing segment, append /v1 (same logic as LLMClient)
+  let normalizedTestUrl = testBaseUrl.replace(/\/[^/]+$/, "") + "/v1";
+
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (testApiKey) headers["Authorization"] = `Bearer ${testApiKey}`;
 
-    const response = await fetch(`${testBaseUrl}/chat/completions`, {
+    const response = await fetch(`${normalizedTestUrl}/chat/completions`, {
       method: "POST",
       headers,
       body: JSON.stringify({
