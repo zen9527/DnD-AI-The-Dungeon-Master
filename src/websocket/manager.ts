@@ -3,6 +3,16 @@ import { Server as HttpServer } from "http";
 import type { IncomingMessage } from "http";
 import type { MessageType, WebSocketMessage, Player, Attributes } from "../types/index.js";
 import { gameStore } from "../game/store.js";
+
+// Hit dice by class (D&D 5e standard)
+function getHitDiceForClass(characterClass: string): number {
+  const hdMap: Record<string, number> = {
+    Barbarian: 4, Fighter: 3, Paladin: 3, Ranger: 3,
+    Cleric: 2, Druid: 2, Monk: 2, Rogue: 2,
+    Sorcerer: 1, Warlock: 1, Wizard: 1, Bard: 1,
+  };
+  return hdMap[characterClass] || 1;
+}
 import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
@@ -113,6 +123,9 @@ export class WebSocketManager {
       spells: [],
       inventory: [],
       conditions: [],
+      hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
     };
 
     const scenario = (payload.scenario as string) || "dungeon";
@@ -218,6 +231,9 @@ export class WebSocketManager {
       spells: [],
       inventory: [],
       conditions: [],
+      hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
     };
 
     gameStore.joinGame(p.gameId, player);

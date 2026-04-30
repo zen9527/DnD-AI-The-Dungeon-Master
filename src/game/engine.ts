@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
-import { rollDice, calculateTotal } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative } from "./rules.js";
+import { rollDice, calculateTotal, calculateModifier } from "./dice.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
@@ -97,6 +97,31 @@ export class GameEngine {
     const player = this._game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
 
+    // ---- Handle special D&D 5e actions before LLM processing ----
+    const actionLower = payload.action.toLowerCase();
+
+    // Short rest: roll hit dice for healing, recover spell slots & hit dice
+    if (actionLower.includes("short rest") || actionLower.includes("rest")) {
+      return this.handleShortRest(player, playerId, callbacks);
+    }
+
+    // Use potion of healing
+    if (actionLower.includes("drink potion") || actionLower.includes("use potion") || actionLower.includes("potion of healing")) {
+      const hitDiceRoll = rollHitDice(player);
+      const healed = hitDiceRoll.healed;
+      player.hp = Math.min(player.maxHp, player.hp + healed);
+
+      const narrativeMsg: ChatMessage = {
+        id: generateId(),
+        content: `You drink a Potion of Healing and recover ${healed} HP. (HP now: ${player.hp}/${player.maxHp})`,
+        type: "event",
+        timestamp: Date.now(),
+      };
+      this._game.chatHistory.push(narrativeMsg);
+
+      // Still send to LLM for atmospheric response
+    }
+
     let target: NPC | undefined;
     if (payload.target) {
       const targetName = payload.target as string;
@@ -128,11 +153,19 @@ export class GameEngine {
       ? `Combat active. ${this._game.npcs.length} NPC(s) present. Round ${this._round}.`
       : `No active combat.`;
 
+    // Calculate passive scores for DM reference
+    const passivePerception = calculatePassiveScore(player, "Perception");
+    const passiveInsight = calculatePassiveScore(player, "Insight");
+    const hitDiceAvailable = (player.hitDice?.total || 0) - (player.hitDice?.used || 0);
+
+    // Extend combat status with D&D 5e mechanics info
+    const extendedStatus = `${combatStatus} Passive Perception: ${passivePerception}. Hit Dice available: ${hitDiceAvailable}/${player.hitDice?.total || 0}. Death saves: ${player.deathSaves?.successes || 0} successes, ${player.deathSaves?.failures || 0} failures.`;
+
     const actionPrompt = buildActionPrompt(payload.action, {
       currentPlayer: player,
       target,
       diceResult,
-      combatStatus,
+      combatStatus: extendedStatus,
       conversationHistory: this._game.conversationHistory,
       scenario: this._game.scenario as Scenario || "dungeon",
     });
@@ -216,6 +249,65 @@ export class GameEngine {
     if (this._game.chatHistory.length > 100) this._game.chatHistory.shift();
 
     return parsed;
+  }
+
+  // ---- Short Rest (D&D 5e) ----
+
+  private async handleShortRest(player: Player, playerId: string, callbacks: LLMCallbacks): Promise<StreamResult> {
+    const playerIdx = this._game.players.findIndex(p => p.id === playerId);
+    if (playerIdx < 0) throw new Error("Player not found");
+
+    // Roll hit dice for healing (roll 1dHD + CON mod, up to level times)
+    const hdAvailable = (player.hitDice?.total || 0) - (player.hitDice?.used || 0);
+    let totalHealed = 0;
+
+    if (hdAvailable > 0) {
+      // Roll one hit die for short rest healing
+      const healResult = rollHitDice(player);
+      totalHealed = healResult.healed;
+      player.hp = Math.min(player.maxHp, player.hp + totalHealed);
+      this._game.players[playerIdx].hitDice!.used += 1;
+    }
+
+    // Recover spell slots (half of max slots recovered on short rest)
+    if (player.spellSlots) {
+      for (const [key, val] of Object.entries(player.spellSlots)) {
+        const maxForLevel = Math.max(2, player.level - parseInt(key.split("-")[1])); // Simplified max slot calculation
+        this._game.players[playerIdx].spellSlots[key] = Math.min(maxForLevel, val + 1);
+      }
+    }
+
+    // Reset death saves if HP > 0 after rest
+    if (player.hp > 0) {
+      player.deathSaves.successes = 0;
+      player.deathSaves.failures = 0;
+    }
+
+    const narrativeMsg: ChatMessage = {
+      id: generateId(),
+      content: `You take a short rest, tending to your wounds. You roll ${hdAvailable > 0 ? "a hit die and recover" : "but have no hit dice left"} ${totalHealed} HP. (HP now: ${player.hp}/${player.maxHp})`,
+      type: "event",
+      timestamp: Date.now(),
+    };
+    this._game.chatHistory.push(narrativeMsg);
+
+    // Send atmospheric response from DM
+    const restPrompt = `The player takes a short rest. Describe the atmosphere — what they hear, smell, and feel while catching their breath after recent events. Keep it brief (1-2 paragraphs). End with JSON block.`;
+
+    const messages = [
+      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario) },
+      { role: "user" as const, content: restPrompt },
+    ];
+
+    const result = await this.llmClient.streamChat(messages, callbacks, 60000);
+    const parsed = parseLLMResponse(result);
+
+    this._game.conversationHistory.push({ role: "assistant", content: parsed.fullNarrative });
+
+    return {
+      fullNarrative: `${narrativeMsg.content}\n\n${parsed.fullNarrative}`,
+      structured: parsed.structured,
+    };
   }
 
   // ---- Opening Scene ----

@@ -17,6 +17,11 @@ export interface Player {
   spells: Spell[]; // Learned spells with levels
   inventory: Item[]; // Potions and other consumables
   conditions: string[];
+
+  // D&D 5e extended mechanics
+  hitDice: { total: number; used: number }; // Hit dice for short rest healing
+  deathSaves: { successes: number; failures: number }; // Death save tracking (3/3 = dead/stable)
+  xp: number; // Experience points
 }
 
 export type DiceType = 4 | 6 | 8 | 10 | 12 | 20;

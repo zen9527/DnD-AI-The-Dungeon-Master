@@ -136,6 +136,78 @@ function buildDialogueRules(): string {
 }
 
 /**
+ * D&D 5e mechanics: skill checks, saving throws, DCs, passive scores, advantage/disadvantage, conditions.
+ */
+function buildDDDMechanics(): string {
+  return `D&D 5E MECHANICS — Apply these rules when narrating outcomes:
+
+SKILL CHECKS (when player attempts something uncertain):
+- Athletics (STR) → climbing, jumping, wrestling
+- Acrobatics (DEX) → balancing, tumbling, escaping grapples
+- Stealth (DEX) → hiding, moving silently
+- Perception (WIS) → noticing hidden things, hearing distant sounds
+- Investigation (INT) → searching for clues, examining objects closely
+- Insight (WIS) → reading body language, detecting lies
+- Persuasion (CHA) → convincing with charm/reason
+- Intimidation (CHA) → threatening to get compliance
+- Deception (CHA) → lying convincingly
+- Nature/Arcana/Religion/History (INT) → identifying creatures/magic/artifacts
+
+DC DIFFICULTY TABLE — Use these when setting challenges:
+- DC 5 = Very Easy (trivial task)
+- DC 10 = Easy (routine effort)
+- DC 15 = Medium (requires skill and focus)
+- DC 20 = Hard (difficult, needs high stats or luck)
+- DC 25 = Very Hard (nearly impossible for most)
+
+When the player attempts an action that could fail:
+1. Determine which skill applies (e.g., "I search the room" → Perception check)
+2. Set a DC based on difficulty (DC 10 for simple, DC 15-20 for complex)
+3. The dice roll + modifier determines success/failure
+4. Narrate accordingly — high rolls = elegant success, low rolls = failure with consequences
+
+SAVING THROWS (when player must resist an effect):
+- STR save → resist being pushed/knocked down/grappled
+- DEX save → dodge fireball/arrow/trap, avoid falling
+- CON save → resist poison/disease/exhaustion, maintain concentration on a spell
+- INT save → resist psychic damage/confusion/mind control
+- WIS save → resist fear/spell effects/charm/divination
+- CHA save → resist illusion/frightening appearance
+
+When an NPC or trap forces a save: describe the effect, then narrate based on success/failure.
+Example: "The dragon exhales a torrent of flame! (DEX save DC 15)" — Success = half damage, Dodge aside. Failure = engulfed in fire.
+
+PASSIVE SCORES (DM uses these without rolling):
+- Passive Perception = what the player notices automatically without actively searching
+- If NPC stealth > player passive perception → player doesn't notice the hidden creature
+- Use this for surprise encounters and hidden clues
+
+ADVANTAGE / DISADVANTAGE:
+- Advantage = roll 2d20, take higher (helpful ally, clear target, prepared)
+- Disadvantage = roll 2d20, take lower (obscured vision, surprised, injured)
+- Narrate these naturally: "The goblin is distracted — you have advantage on your attack."
+
+CONDITIONS (apply mechanical effects):
+- Poisoned → disadvantage on attack rolls and ability checks
+- Blinded → auto-fail Perception (sight), attacks against have advantage
+- Charmed → can't attack the charmer, charmer has advantage on social checks
+- Frightened → disadvantage on checks while source is visible, may flee
+- Grappled → speed becomes 0, can't move voluntarily
+- Prone → disadvantage on attack rolls, melee attacks against have advantage
+
+SHORT REST MECHANICS:
+- When player says "short rest" or "rest": they recover hit dice (roll HD + CON mod for healing)
+- They also recover some spell slots and can reset death saves if HP > 0
+- Narrate the atmosphere during their rest — what they hear, smell, feel
+
+DEATH SAVES:
+- When player reaches 0 HP → they fall unconscious and start rolling death saves
+- Each turn at 0HP: roll d20. 10+ = success, 9 or less = failure, natural 20 = recover 1 HP
+- 3 successes = stable (no longer dying). 3 failures = dead.
+- Narrate the struggle between life and death dramatically`;
+}
+
+/**
  * Active level logic: reactive default with proactive triggers.
  */
 function buildActiveLevelLogic(): string {
@@ -263,6 +335,8 @@ export function buildSystemPrompt(scenario: Scenario = "dungeon"): string {
     "",
     buildDialogueRules(),
     "",
+    buildDDDMechanics(),
+    "",
     buildVisualEnhancement(),
     "",
     buildActiveLevelLogic(),
@@ -292,10 +366,10 @@ export function buildActionPrompt(
 SCENARIO TONE: ${SCENARIO_TONES[context.scenario].tone}
 
 Player stats:
-- HP: ${player.hp}/${player.maxHp}
-- AC: ${player.ac}
+- HP: ${player.hp}/${player.maxHp} | AC: ${player.ac}
 - Attributes: Str=${player.attributes.str} Dex=${player.attributes.dex} Con=${player.attributes.con} Int=${player.attributes.int} Wis=${player.attributes.wis} Cha=${player.attributes.cha}
 - Conditions: ${player.conditions.length ? player.conditions.join(", ") : "none"}
+- Hit Dice: ${player.hitDice?.total || 0}/${player.hitDice?.used || 0} used | Death Saves: ${player.deathSaves?.successes || 0} successes, ${player.deathSaves?.failures || 0} failures
 
 Scenario: ${scenarioDescriptions[context.scenario].label} — ${scenarioDescriptions[context.scenario].description}
 
