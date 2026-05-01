@@ -120,6 +120,7 @@ export type MessageType =
   | 'LIST_GAMES'
   | 'PLAYER_ACTION'
   | 'PLAYER_CHAT'
+  | 'SET_LOCALE'
   | 'DICE_ROLL'
   | 'NPC_CREATE'
   | 'EVENT_CREATE'
@@ -136,6 +137,7 @@ export type MessageType =
   | 'STREAM_CHUNK'
   | 'STREAM_END'
   | 'STREAM_ERROR'
+  | 'LOCALE_UPDATED'
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

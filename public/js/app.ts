@@ -354,10 +354,14 @@ class App {
     const actionContainer = document.getElementById("action-container");
     if (actionContainer) new ActionBar(actionContainer);
 
-    // Language selector change handler
+    // Language selector change handler (in-game)
     document.getElementById("locale-select")?.addEventListener("change", () => {
       const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
       setLocale(newLocale);
+      // Send locale update to server (no reload needed for DM language)
+      if (this.wsManager) {
+        this.wsManager.send({ type: "SET_LOCALE", payload: { locale: newLocale } });
+      }
       location.reload();
     });
 

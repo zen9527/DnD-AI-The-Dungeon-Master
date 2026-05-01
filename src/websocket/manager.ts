@@ -3,6 +3,8 @@ import { Server as HttpServer } from "http";
 import type { IncomingMessage } from "http";
 import type { MessageType, WebSocketMessage, Player, Attributes } from "../types/index.js";
 import { gameStore } from "../game/store.js";
+import { buildSystemPrompt } from "../llm/prompts.js";
+import { type Scenario } from "../../shared/schemas/scenario.js";
 
 // Hit dice by class (D&D 5e standard)
 function getHitDiceForClass(characterClass: string): number {
@@ -83,6 +85,9 @@ export class WebSocketManager {
         break;
       case "CHAT_MESSAGE":
         this.handleChatMessage(ws, client!, payload);
+        break;
+      case "SET_LOCALE":
+        this.handleSetLocale(ws, client!, payload);
         break;
       case "DICE_ROLL":
         this.handleDiceRoll(ws, client!, payload);
@@ -332,10 +337,43 @@ export class WebSocketManager {
     }
 
     engine.addChatMessage(client.playerId, parsed.data.content);
-    this.broadcastToGame(engine.id, "CHAT_MESSAGE", { 
+    this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
       message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
       gameState: engine.game  // Send full game state to ensure consistency
     });
+  }
+
+  private handleSetLocale(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player) {
+      this.sendError(ws, "Player not found");
+      return;
+    }
+
+    const newLocale = (payload.locale as string) || "en-US";
+    player.locale = newLocale;
+
+    // Update system prompt in conversation history with new locale
+    const scenario = (engine.game.scenario as Scenario) || "dungeon";
+    if (engine.game.conversationHistory.length > 0) {
+      engine.game.conversationHistory[0] = {
+        role: "system",
+        content: buildSystemPrompt(scenario, newLocale),
+      };
+    }
+
+    this.send(ws, "LOCALE_UPDATED", { locale: newLocale });
   }
 
   private handleDiceRoll(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {

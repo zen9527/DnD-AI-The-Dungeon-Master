@@ -204,7 +204,7 @@ export class GameEngine {
     }
 
     const messages = [
-      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario) },
+      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US") },
       { role: "user" as const, content: actionPrompt },
     ];
 
@@ -305,7 +305,7 @@ export class GameEngine {
     const restPrompt = `The player takes a short rest. Describe the atmosphere — what they hear, smell, and feel while catching their breath after recent events. Keep it brief (1-2 paragraphs). End with JSON block.`;
 
     const messages = [
-      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario) },
+      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US") },
       { role: "user" as const, content: restPrompt },
     ];
 
@@ -341,7 +341,7 @@ Describe the opening scene: where the player is, what they see, hear, and feel. 
 Keep it to 2-4 paragraphs. End with the JSON block.`;
 
     const messages = [
-      { role: "system" as const, content: buildSystemPrompt(scenario) },
+      { role: "system" as const, content: buildSystemPrompt(scenario, player.locale || "en-US") },
       { role: "user" as const, content: openingPrompt },
     ];
 
