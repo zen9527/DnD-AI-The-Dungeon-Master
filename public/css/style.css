@@ -897,3 +897,29 @@ hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
   pointer-events: none;
   z-index: 1;
 }
+
+/* Language Selector */
+.locale-selector {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #444);
+  background: var(--bg-secondary, #1e1e2e);
+  color: var(--text-primary, #cdd6f4);
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.locale-selector:hover {
+  border-color: var(--accent-gold, #f9e2af);
+}
+
+.locale-selector:focus {
+  border-color: var(--accent-primary, #89b4fa);
+  box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.3);
+}
