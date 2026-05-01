@@ -86,6 +86,9 @@ function generateDefaultCharacterName(characterClass: string, race: string): str
 export class CharacterCreator {
   private element: HTMLElement | null = null;
   private selectedScenario: string = "dungeon";
+  // Store handler references for cleanup (fixes event listener leak)
+  private raceChangeHandler: (() => void) | null = null;
+  private classChangeHandler: (() => void) | null = null;
 
   constructor() {
     this.element = document.getElementById("app");
@@ -206,8 +209,9 @@ export class CharacterCreator {
   }
 
   private showCreateForm(): void {
-    const races = raceOptions.map(r => `<option value="${r}">${r}</option>`).join("");
-    const classes = classOptions.map(c => `<option value="${c}">${c}</option>`).join("");
+    // Use localized race/class names for dropdown display
+    const races = raceOptions.map(r => `<option value="${r}">${t(`race.${r.toLowerCase()}`)}</option>`).join("");
+    const classes = classOptions.map(c => `<option value="${c}">${t(`class.${c.toLowerCase()}`)}</option>`).join("");
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
@@ -239,6 +243,13 @@ export class CharacterCreator {
               <select id="character-class">${classes}</select>
             </label>
           </div>
+          
+          <!-- Race/Class Description Display -->
+          <div class="selection-description">
+            <div id="race-description" class="desc-box race-desc"></div>
+            <div id="class-description" class="desc-box class-desc"></div>
+          </div>
+          
           <button type="button" id="auto-fill-btn" class="secondary">${t("auto_fill.btn")}</button>
           <label>${t("player_name.label")}
             <input type="text" id="player-name" placeholder="${t("player_name.placeholder")}" required>
@@ -276,14 +287,77 @@ export class CharacterCreator {
     const classSelect = document.getElementById("character-class") as HTMLSelectElement;
     const autoFillBtn = document.getElementById("auto-fill-btn") as HTMLButtonElement;
 
-    raceSelect.addEventListener("change", () => this.autoFillAttributesAndName());
-    classSelect.addEventListener("change", () => this.autoFillAttributesAndName());
+    // Create named handlers for cleanup (fixes event listener leak)
+    this.raceChangeHandler = () => {
+      this.autoFillAttributesAndName();
+      this.showRaceDescription(raceSelect.value);
+    };
+    this.classChangeHandler = () => {
+      this.autoFillAttributesAndName();
+      this.showClassDescription(classSelect.value);
+    };
+
+    // Remove old handlers first to prevent accumulation
+    raceSelect.removeEventListener("change", this.raceChangeHandler as EventListener);
+    classSelect.removeEventListener("change", this.classChangeHandler as EventListener);
+    
+    // Add fresh handlers
+    raceSelect.addEventListener("change", this.raceChangeHandler!);
+    classSelect.addEventListener("change", this.classChangeHandler!);
     autoFillBtn?.addEventListener("click", () => this.autoFillAttributesAndName());
+
+    // Show initial descriptions for default selections
+    if (raceSelect.value) this.showRaceDescription(raceSelect.value);
+    if (classSelect.value) this.showClassDescription(classSelect.value);
 
     document.getElementById("create-game-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       this.createGame();
     });
+  }
+
+  private showRaceDescription(race: string): void {
+    const descBox = document.getElementById("race-description");
+    if (!descBox) return;
+    
+    // Map display name to locale key (e.g., "Half-Elf" -> "half-elf")
+    const keySuffix = race.toLowerCase().replace(/ /g, "-").replace(/\./g, "");
+    const desc = t(`race.${keySuffix}.description`, { defaultValue: "" });
+    
+    if (desc && desc !== `race.${keySuffix}.description`) {
+      descBox.innerHTML = `<strong>${t(`race.${keySuffix}`)}</strong><br>${desc}`;
+    } else {
+      // Try alternative key format
+      const altKey = race.toLowerCase();
+      const altDesc = t(`race.${altKey}.description`, { defaultValue: "" });
+      if (altDesc && altDesc !== `race.${altKey}.description`) {
+        descBox.innerHTML = `<strong>${t(`race.${altKey}`)}</strong><br>${altDesc}`;
+      } else {
+        descBox.innerHTML = "";
+      }
+    }
+  }
+
+  private showClassDescription(characterClass: string): void {
+    const descBox = document.getElementById("class-description");
+    if (!descBox) return;
+    
+    // Map display name to locale key (e.g., "Half-Orc" -> "half-orc")
+    const keySuffix = characterClass.toLowerCase().replace(/ /g, "-").replace(/\./g, "");
+    const desc = t(`class.${keySuffix}.description`, { defaultValue: "" });
+    
+    if (desc && desc !== `class.${keySuffix}.description`) {
+      descBox.innerHTML = `<strong>${t(`class.${keySuffix}`)}</strong><br>${desc}`;
+    } else {
+      // Try alternative key format
+      const altKey = characterClass.toLowerCase();
+      const altDesc = t(`class.${altKey}.description`, { defaultValue: "" });
+      if (altDesc && altDesc !== `class.${altKey}.description`) {
+        descBox.innerHTML = `<strong>${t(`class.${altKey}`)}</strong><br>${altDesc}`;
+      } else {
+        descBox.innerHTML = "";
+      }
+    }
   }
 
   private createGame(): void {

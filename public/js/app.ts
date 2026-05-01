@@ -99,8 +99,8 @@ class App {
   }
 
   private showJoinForm(): void {
-    const races = ["Human", "Elf", "Dwarf", "Halfling", "Dragonborn", "Half-Elf", "Gnome", "Half-Orc"].map(r => `<option value="${r}">${r}</option>`).join("");
-    const classes = ["Fighter", "Wizard", "Rogue", "Cleric", "Barbarian", "Paladin", "Ranger", "Sorcerer"].map(c => `<option value="${c}">${c}</option>`).join("");
+    const races = raceOptions.map(r => `<option value="${r}">${t(`race.${r.toLowerCase()}`)}</option>`).join("");
+    const classes = classOptions.map(c => `<option value="${c}">${t(`class.${c.toLowerCase()}`)}</option>`).join("");
 
     document.getElementById("app")!.innerHTML = `
       <div class="welcome-screen">
@@ -239,8 +239,8 @@ class App {
       gameState.clearStreamBuffer();
       const isOffline = p.message.includes("unreachable") || p.message.includes("ECONNREFUSED");
       const content = isOffline
-        ? `⚠️ DM unavailable — ${p.message}. Check that LM Studio is running and restart the server.`
-        : p.fallbackNarrative || "The DM's voice fades...";
+        ? t("dm_offline.notification", { message: p.message })
+        : p.fallbackNarrative || t("stream_error.fallback");
       gameState.addChatMessage({
         id: "stream-error",
         content,
@@ -268,12 +268,12 @@ class App {
 
     wsManager.on("NPC_CREATED", (payload) => {
       const p = payload as { npc: { name: string; description: string; role: string } };
-      this.showNotification(`New NPC: ${this.escapeHtml(p.npc.name)} (${this.escapeHtml(p.npc.role)})`, "info");
+      this.showNotification(t("npc_created.notification", { name: this.escapeHtml(p.npc.name), role: this.escapeHtml(p.npc.role) }), "info");
     });
 
     wsManager.on("ERROR", (payload) => {
       const p = payload as { message: string };
-      this.showNotification(`Error: ${p.message}`, "error");
+      this.showNotification(t("error.notification", { message: p.message }), "error");
     });
   }
 
@@ -298,7 +298,7 @@ class App {
           <h2>${this.escapeHtml(game.name)}</h2>
           <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
           <button id="settings-btn" title="${t("settings.title")}">⚙️ ${t("settings.save_btn")}</button>
-          <button id="copy-link-btn" title="Copy link">📋</button>
+          <button id="copy-link-btn" title="${t("copy_link.tooltip")}">📋</button>
         </header>
         <div class="main-content">
           <aside class="players-panel">
@@ -321,7 +321,7 @@ class App {
                 <li>
                   <div class="player-info">
                     <span class="character-name">${this.escapeHtml(p.characterName)}</span>
-                    <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} Lv.${p.level}</span>
+                    <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} ${t("level.abbreviation")}${p.level}</span>
                   </div>
                   ${p.hp !== undefined && p.maxHp > 0 ? `
                     <div class="hp-bar-container">
@@ -447,7 +447,7 @@ class App {
 
     const el = document.createElement("div");
     const isDMNarrative = message.type === "narrative" || !message.playerName;
-    const senderName = isDMNarrative ? "🧙 AI Dungeon Master" : (message.characterName || message.playerName || "Unknown");
+    const senderName = isDMNarrative ? t("dm.name") : (message.characterName || message.playerName || "Unknown");
     el.className = `message ${message.type} ${!isDMNarrative && message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
     el.innerHTML = `
       <div class="message-header">
@@ -500,7 +500,7 @@ class App {
       if (!response.ok) throw new Error("Test failed");
       return response.json();
     } catch (error) {
-      return { connected: false, message: error instanceof Error ? error.message : "Unknown error" };
+      return { connected: false, message: error instanceof Error ? error.message : t("error.unknown") };
     }
   }
 
@@ -526,7 +526,7 @@ class App {
       if (!response.ok) throw new Error("Failed to fetch models");
       return response.json();
     } catch (error) {
-      return { models: [], error: error instanceof Error ? error.message : "Unknown error" };
+      return { models: [], error: error instanceof Error ? error.message : t("error.unknown") };
     }
   }
 
@@ -553,7 +553,7 @@ class App {
           </label>
           <label>
             ${t("settings.api_key")}
-            <input type="password" id="config-key" placeholder="Leave empty for local models">
+            <input type="password" id="config-key" placeholder="${t("settings.api_key_placeholder")}">
           </label>
           <label>
             ${t("settings.model")}

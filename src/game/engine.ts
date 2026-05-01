@@ -6,6 +6,7 @@ import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
 import type { Game, Player, NPC, ChatMessage, PlayerActionPayload, StreamResult } from "../types/index.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
+import { getLocalizedMessage } from "../utils/locale-loader.js";
 
 export class GameEngine {
   private _game: Game;
@@ -64,7 +65,7 @@ export class GameEngine {
     this._currentInitiativeIndex = 0;
     this._round = 1;
 
-    const narrative = `Initiative rolled! Order:\n${initiative.map((entry, i) => {
+    const narrative = `${getLocalizedMessage("en-US", "initiative.rolled")}\n${initiative.map((entry, i) => {
       const name = entry.playerId
         ? this._game.players.find(p => p.id === entry.playerId)?.characterName
         : this._game.npcs.find(n => n.id === entry.npcId)?.name;
@@ -115,7 +116,10 @@ export class GameEngine {
 
       const narrativeMsg: ChatMessage = {
         id: generateId(),
-        content: `You drink a Potion of Healing and recover ${healed} HP. (HP now: ${player.hp}/${player.maxHp})`,
+        content: getLocalizedMessage(player.locale || "en-US", "event.potion_healing")
+          .replace("{healed}", healed.toString())
+          .replace("{hp}", player.hp.toString())
+          .replace("{maxHp}", player.maxHp.toString()),
         type: "event",
         timestamp: Date.now(),
       };
@@ -288,7 +292,10 @@ export class GameEngine {
 
     const narrativeMsg: ChatMessage = {
       id: generateId(),
-      content: `You take a short rest, tending to your wounds. You roll ${hdAvailable > 0 ? "a hit die and recover" : "but have no hit dice left"} ${totalHealed} HP. (HP now: ${player.hp}/${player.maxHp})`,
+      content: getLocalizedMessage(player.locale || "en-US", "event.short_rest")
+        .replace("{healed}", totalHealed.toString())
+        .replace("{hp}", player.hp.toString())
+        .replace("{maxHp}", player.maxHp.toString()),
       type: "event",
       timestamp: Date.now(),
     };
