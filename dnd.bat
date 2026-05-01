@@ -8,11 +8,13 @@ REM ============================================
 set PORT=3000
 set SCRIPT_DIR=%~dp0
 
-if "%~1"=="" goto :usage
+REM Double-click with no args defaults to start
+if "%~1"=="" goto :cmd_start
 if /i "%~1"=="start"   goto :cmd_start
 if /i "%~1"=="stop"    goto :cmd_stop
 if /i "%~1"=="restart" goto :cmd_restart
 if /i "%~1"=="status"  goto :cmd_status
+if /i "%~1"=="help"    goto :usage
 
 echo ERROR: Unknown command '%~1'
 echo.
@@ -26,16 +28,14 @@ echo.
 echo Usage: dnd.bat ^<command^>
 echo.
 echo   Commands:
-echo     start     Build and start the server
+echo     start     Build and start the server (default, also on double-click)
 echo     stop      Stop the running server
 echo     restart   Stop and start the server
 echo     status    Check if server is running
+echo     help      Show this message
 echo.
-echo   Aliases:
-echo     start.bat  -^> dnd.bat start
-echo     stop.bat   -^> dnd.bat stop
-echo.
-exit /b 1
+pause
+exit /b 0
 
 :cmd_start
 echo ============================================
