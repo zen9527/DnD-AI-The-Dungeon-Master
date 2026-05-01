@@ -52,3 +52,6 @@ export type { Scenario } from "./schemas/scenario.js";
 export { configSchema, endpointPresets } from "./schemas/config.js";
 export type { ConfigInput } from "./schemas/config.js";
 export type { EndpointPreset } from "./schemas/config.js";
+
+export { SUPPORTED_LOCALES, LOCALE_DISPLAY, LOCALE_NATIVE, localeSchema } from "./schemas/locale.js";
+export type { SupportedLocale } from "./schemas/locale.js";

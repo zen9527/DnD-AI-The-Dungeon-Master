@@ -22,6 +22,7 @@ export interface Player {
   hitDice: { total: number; used: number }; // Hit dice for short rest healing
   deathSaves: { successes: number; failures: number }; // Death save tracking (3/3 = dead/stable)
   xp: number; // Experience points
+  locale: string; // Preferred language for UI and DM narrative (e.g., "en-US", "zh-CN")
 }
 
 export type DiceType = 4 | 6 | 8 | 10 | 12 | 20;

@@ -126,6 +126,7 @@ export class WebSocketManager {
       hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
       deathSaves: { successes: 0, failures: 0 },
       xp: 0,
+      locale: (payload.locale as string) || "en-US",
     };
 
     const scenario = (payload.scenario as string) || "dungeon";
@@ -234,6 +235,7 @@ export class WebSocketManager {
       hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
       deathSaves: { successes: 0, failures: 0 },
       xp: 0,
+      locale: (payload.locale as string) || "en-US",
     };
 
     gameStore.joinGame(p.gameId, player);
