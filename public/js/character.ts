@@ -1,4 +1,5 @@
 import { wsManager } from "./websocket.js";
+import { getLocale, setLocale, t, SUPPORTED_LOCALES } from "./i18n.js";
 import { raceOptions, classOptions, scenarioOptions, scenarioDescriptions } from "../../shared/schemas/game.js";
 
 interface Attributes { str: number; dex: number; con: number; int: number; wis: number; cha: number };
@@ -125,29 +126,30 @@ export class CharacterCreator {
   private showForm(): void {
     this.element!.innerHTML = `
       <div class="hero-section">
+        ${this.renderLocaleDropdown()}
         <h1 class="hero-title">🎲 DnD Full Auto-DM</h1>
-        <p class="hero-subtitle">The AI Dungeon Master awaits your adventure. Choose a scenario, create your character, and let the story unfold.</p>
+        <p class="hero-subtitle">${t("hero.subtitle")}</p>
       </div>
 
       <div class="active-games-section">
         <div class="section-header">
-          <h2 class="section-title">⚔️ Active Adventures</h2>
-          <button id="refresh-games-btn" class="refresh-btn">🔄 Refresh</button>
+          <h2 class="section-title">${t("active_games.title")}</h2>
+          <button id="refresh-games-btn" class="refresh-btn">${t("active_games.refresh")}</button>
         </div>
         <div id="active-games-container"></div>
       </div>
 
       <div class="welcome-screen">
-        <div class="settings-trigger" title="LLM Settings">⚙️</div>
-        <h2>Create Your Own Adventure</h2>
-        <p class="subtitle">Start a new game and invite friends to join</p>
+        <div class="settings-trigger" title="${t("settings.title")}">⚙️</div>
+        <h2>${t("create_own.title")}</h2>
+        <p class="subtitle">${t("create_own.subtitle")}</p>
 
         <div class="options">
-          <button id="create-game-btn" class="primary">Create New Game</button>
-          <div class="divider">OR</div>
+          <button id="create-game-btn" class="primary">${t("create_game.btn")}</button>
+          <div class="divider">${t("or.divider")}</div>
           <div class="join-form">
-            <input type="text" id="game-id-input" placeholder="Enter Game ID to join">
-            <button id="join-game-btn">Join Game</button>
+            <input type="text" id="game-id-input" placeholder="${t("join_form.placeholder")}">
+            <button id="join-game-btn">${t("join_form.btn")}</button>
           </div>
         </div>
       </div>
@@ -165,8 +167,29 @@ export class CharacterCreator {
       (window as unknown as { app: { showSettingsModal: () => void } }).app?.showSettingsModal();
     });
 
+    // Language selector change handler
+    document.getElementById("locale-select")?.addEventListener("change", () => {
+      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
+      setLocale(newLocale);
+      location.reload();
+    });
+
     // Fetch active games on load
     (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
+  }
+
+  private renderLocaleDropdown(): string {
+    const current = getLocale();
+    return `<select id="locale-select" class="locale-selector">
+      ${SUPPORTED_LOCALES.map(l => `<option value="${l}" ${l === current ? 'selected' : ''}>${this.getLocaleName(l)}</option>`).join("")}
+    </select>`;
+  }
+
+  private getLocaleName(locale: string): string {
+    const names: Record<string, string> = {
+      "en-US": "English", "zh-CN": "简体中文", "ja-JP": "日本語", "es-ES": "Español", "ko-KR": "한국어",
+    };
+    return names[locale] || locale;
   }
 
   private showScenarioSelection(): void {
@@ -183,14 +206,21 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        <h2>Choose Your Adventure</h2>
-        <p class="subtitle">Select a scenario for the Dungeon Master</p>
+        ${this.renderLocaleDropdown()}
+        <h2>${t("choose_adventure.title")}</h2>
+        <p class="subtitle">${t("choose_adventure.subtitle")}</p>
         <div class="scenario-grid">${cards}</div>
         <div class="form-actions">
-          <button type="button" id="cancel-btn">Back</button>
+          <button type="button" id="cancel-btn">${t("back.btn")}</button>
         </div>
       </div>
     `;
+
+    document.getElementById("locale-select")?.addEventListener("change", () => {
+      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
+      setLocale(newLocale);
+      location.reload();
+    });
 
     document.getElementById("cancel-btn")?.addEventListener("click", () => this.showForm());
 
@@ -210,13 +240,14 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        <h2>Create New Game</h2>
+        ${this.renderLocaleDropdown()}
+        <h2>${t("create_game_page.title")}</h2>
         <p class="subtitle">Scenario: ${scenarioDescriptions[this.selectedScenario as keyof typeof scenarioDescriptions].icon} ${scenarioDescriptions[this.selectedScenario as keyof typeof scenarioDefinitions].label}</p>
         <form id="create-game-form">
-          <label>Game Name
-            <input type="text" id="game-name" placeholder="The Lost Temple" required>
+          <label>${t("game_name.label")}
+            <input type="text" id="game-name" placeholder="${t("game_name.placeholder")}" required>
           </label>
-          <label>Max Players
+          <label>${t("max_players.label")}
             <select id="max-players">
               <option value="2">2</option>
               <option value="3">3</option>
@@ -228,23 +259,23 @@ export class CharacterCreator {
             </select>
           </label>
           <hr>
-          <h3>Your Character</h3>
+          <h3>${t("your_character.title")}</h3>
           <div class="form-row">
-            <label>Race
+            <label>${t("race.label")}
               <select id="race">${races}</select>
             </label>
-            <label>Class
+            <label>${t("class.label")}
               <select id="character-class">${classes}</select>
             </label>
           </div>
-          <button type="button" id="auto-fill-btn" class="secondary">Auto-Generate Attributes & Name</button>
-          <label>Player Name
-            <input type="text" id="player-name" placeholder="Your name" required>
+          <button type="button" id="auto-fill-btn" class="secondary">${t("auto_fill.btn")}</button>
+          <label>${t("player_name.label")}
+            <input type="text" id="player-name" placeholder="${t("player_name.placeholder")}" required>
           </label>
-          <label>Character Name
-            <input type="text" id="character-name" placeholder="Character name" required>
+          <label>${t("character_name.label")}
+            <input type="text" id="character-name" placeholder="${t("character_name.placeholder")}" required>
           </label>
-          <h3>Attributes (3-18 each)</h3>
+          <h3>${t("attributes.title")}</h3>
           <div class="attributes-grid">
             <label>STR <input type="number" id="attr-str" min="3" max="18" value="10"></label>
             <label>DEX <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
@@ -254,24 +285,30 @@ export class CharacterCreator {
             <label>CHA <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
           </div>
           <div class="form-actions">
-            <button type="submit" class="primary">Create Game</button>
-            <button type="button" id="back-btn">Back</button>
+            <button type="submit" class="primary">${t("create_game.btn")}</button>
+            <button type="button" id="back-btn">${t("back.btn")}</button>
           </div>
         </form>
       </div>
     `;
 
+    document.getElementById("locale-select")?.addEventListener("change", () => {
+      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
+      setLocale(newLocale);
+      location.reload();
+    });
+
     document.getElementById("back-btn")?.addEventListener("click", () => this.showScenarioSelection());
-    
+
     // Auto-fill on class/race change
     const raceSelect = document.getElementById("race") as HTMLSelectElement;
     const classSelect = document.getElementById("character-class") as HTMLSelectElement;
     const autoFillBtn = document.getElementById("auto-fill-btn") as HTMLButtonElement;
-    
+
     raceSelect.addEventListener("change", () => this.autoFillAttributesAndName());
     classSelect.addEventListener("change", () => this.autoFillAttributesAndName());
     autoFillBtn?.addEventListener("click", () => this.autoFillAttributesAndName());
-    
+
     document.getElementById("create-game-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       this.createGame();
@@ -295,6 +332,7 @@ export class CharacterCreator {
         wis: parseInt((document.getElementById("attr-wis") as HTMLInputElement).value),
         cha: parseInt((document.getElementById("attr-cha") as HTMLInputElement).value),
       },
+      locale: getLocale(),
     };
 
     wsManager.send({ type: "CREATE_GAME", payload });
