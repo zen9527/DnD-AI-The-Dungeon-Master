@@ -3,6 +3,7 @@ import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { CharacterCreator } from "./character.js";
 import { ActionBar } from "./action-bar.js";
+import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES } from "./i18n.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import type { Player, ChatMessage, Game, StreamResult, EndpointPreset } from "../../shared/index.js";
@@ -16,6 +17,9 @@ class App {
   }
 
   private async init(): Promise<void> {
+    // Initialize i18n — restore locale from localStorage
+    initI18n();
+
     const urlParams = new URLSearchParams(window.location.search);
     this.gameId = urlParams.get("game");
 
@@ -51,8 +55,8 @@ class App {
     if (games.length === 0) {
       container.innerHTML = `
         <div class="no-games">
-          <span class="no-games-icon">🏰</span>
-          <p>No active adventures yet. Be the first to begin!</p>
+          <span class="no-games-icon">${t("active_games.no_games.icon")}</span>
+          <p>${t("active_games.no_games.text")}</p>
         </div>
       `;
       return;
@@ -63,7 +67,7 @@ class App {
       const desc = scenarioDescriptions[scenarioKey] || scenarioDescriptions.dungeon;
       const isFull = g.players >= g.maxPlayers;
       const statusClass = isFull ? "status-full" : "status-open";
-      const statusText = isFull ? "Full" : `${g.players}/${g.maxPlayers} players`;
+      const statusText = isFull ? t("active_games.full") : t("active_games.players", { current: g.players, max: g.maxPlayers });
 
       return `
         <div class="game-card ${isFull ? 'full' : ''}" data-game-id="${this.escapeHtml(g.id)}">
@@ -75,7 +79,7 @@ class App {
           <div class="game-card-body">
             <span class="game-scenario-label">${desc.label}</span>
             <button class="join-game-btn ${isFull ? 'disabled' : ''}" data-game-id="${this.escapeHtml(g.id)}" ${isFull ? 'disabled' : ''}>
-              ${isFull ? "Game Full" : "Join Adventure"}
+              ${isFull ? t("active_games.full") : t("active_games.join")}
             </button>
           </div>
         </div>
@@ -100,14 +104,15 @@ class App {
 
     document.getElementById("app")!.innerHTML = `
       <div class="welcome-screen">
-        <div class="settings-trigger" title="LLM Settings">⚙️</div>
-        <h2>Join Game</h2>
+        ${this.renderLocaleDropdown()}
+        <div class="settings-trigger" title="${t("settings.title")}">⚙️</div>
+        <h2>${t("join_game_page.title")}</h2>
         <form id="join-form">
-          <label>Player Name <input type="text" id="player-name" required></label>
-          <label>Character Name <input type="text" id="character-name" required></label>
-          <label>Race <select id="race">${races}</select></label>
-          <label>Class <select id="character-class">${classes}</select></label>
-          <h3>Attributes (3-18 each)</h3>
+          <label>${t("player_name.label")} <input type="text" id="player-name" required></label>
+          <label>${t("character_name.label")} <input type="text" id="character-name" required></label>
+          <label>${t("race.label")} <select id="race">${races}</select></label>
+          <label>${t("class.label")} <select id="character-class">${classes}</select></label>
+          <h3>${t("attributes.title")}</h3>
           <div class="attributes-grid">
             <label>STR <input type="number" id="attr-str" min="3" max="18" value="10"></label>
             <label>DEX <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
@@ -116,12 +121,19 @@ class App {
             <label>WIS <input type="number" id="attr-wis" min="3" max="18" value="10"></label>
             <label>CHA <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
           </div>
-          <button type="submit" class="primary">Join Game</button>
+          <button type="submit" class="primary">${t("join_form.btn")}</button>
         </form>
       </div>
     `;
 
     document.querySelector(".settings-trigger")?.addEventListener("click", () => this.showSettingsModal());
+
+    // Language selector change handler
+    document.getElementById("locale-select")?.addEventListener("change", () => {
+      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
+      setLocale(newLocale);
+      location.reload();
+    });
 
     document.getElementById("join-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -141,9 +153,24 @@ class App {
             wis: parseInt((document.getElementById("attr-wis") as HTMLInputElement).value),
             cha: parseInt((document.getElementById("attr-cha") as HTMLInputElement).value),
           },
+          locale: getLocale(),
         },
       });
     });
+  }
+
+  private renderLocaleDropdown(): string {
+    const current = getLocale();
+    return `<select id="locale-select" class="locale-selector">
+      ${SUPPORTED_LOCALES.map(l => `<option value="${l}" ${l === current ? 'selected' : ''}>${this.getLocaleName(l)}</option>`).join("")}
+    </select>`;
+  }
+
+  private getLocaleName(locale: string): string {
+    const names: Record<string, string> = {
+      "en-US": "English", "zh-CN": "简体中文", "ja-JP": "日本語", "es-ES": "Español", "ko-KR": "한국어",
+    };
+    return names[locale] || locale;
   }
 
   private setupWebSocketHandlers(): void {
@@ -152,7 +179,7 @@ class App {
     });
 
     wsManager.on("disconnect", () => {
-      this.showNotification("Disconnected from server. Reconnecting...", "error");
+      this.showNotification(t("disconnect.notification"), "error");
     });
 
     wsManager.on("GAME_CREATED", (payload) => {
@@ -163,7 +190,7 @@ class App {
       if (dmPlayer) gameState.setCurrentPlayer(dmPlayer);
       window.history.replaceState({}, "", `?game=${this.gameId}`);
       this.showGameUI();
-      this.showNotification(`Game created! Share: ${window.location.href}`, "success");
+      this.showNotification(t("game_created.notification", { url: window.location.href }), "success");
     });
 
     wsManager.on("PLAYER_JOINED", (payload) => {
@@ -260,27 +287,30 @@ class App {
     const container = document.getElementById("app");
     if (!container) return;
 
+    const dmStatusText = t("dm_status.active", { count: game.players?.length || 0 });
+
     container.innerHTML = `
       <div class="game-interface">
+        ${this.renderLocaleDropdown()}
         <header class="game-header">
           <h2>${this.escapeHtml(game.name)}</h2>
           <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
-          <button id="settings-btn" title="LLM Settings">⚙️ Settings</button>
-          <button id="copy-link-btn" title="Copy link">📋 Copy Link</button>
+          <button id="settings-btn" title="${t("settings.title")}">⚙️ ${t("settings.save_btn")}</button>
+          <button id="copy-link-btn" title="Copy link">📋</button>
         </header>
         <div class="main-content">
           <aside class="players-panel">
-            <h3>Players (${game.players?.length || 0}/${game.maxPlayers})</h3>
+            <h3>${t("players.title")} (${game.players?.length || 0}/${game.maxPlayers})</h3>
             <ul id="players-list">
               <!-- Dedicated DM Card -->
               <li class="dm-card">
-                <span class="badge-dm">🧙 AI Dungeon Master</span>
+                <span class="badge-dm">${t("dm.name")}</span>
                 <div class="player-info">
                   <span class="character-name" style="color:var(--accent-gold)">Storyteller</span>
                   <span class="player-detail">${this.escapeHtml(scenarioLabel)}</span>
                 </div>
                 <div class="dm-status">
-                  <span class="status-dot"></span> Active — ${game.players?.length || 0} player(s) in session
+                  <span class="status-dot"></span> ${dmStatusText}
                 </div>
               </li>
 
@@ -322,6 +352,13 @@ class App {
     const actionContainer = document.getElementById("action-container");
     if (actionContainer) new ActionBar(actionContainer);
 
+    // Language selector change handler
+    document.getElementById("locale-select")?.addEventListener("change", () => {
+      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
+      setLocale(newLocale);
+      location.reload();
+    });
+
   }
 
   // Event delegation — attached once on document body, survives all DOM swaps
@@ -341,7 +378,7 @@ class App {
       // Copy link button
       if (target.id === "copy-link-btn") {
         navigator.clipboard.writeText(window.location.href).then(() => {
-          this.showNotification("Link copied!", "success");
+          this.showNotification(t("link_copied.notification"), "success");
         });
         return;
       }
@@ -500,31 +537,31 @@ class App {
       <div class="settings-overlay" data-action="close"></div>
       <div class="settings-panel">
         <div class="settings-header">
-          <h3>⚙️ LLM Settings</h3>
+          <h3>⚙️ ${t("settings.title")}</h3>
           <button class="close-btn" data-action="close">✕</button>
         </div>
         <form id="settings-form">
           <label>
-            Endpoint Preset
+            ${t("settings.endpoint_preset")}
             <select id="preset-select">${presets}</select>
           </label>
           <label>
-            API URL
+            ${t("settings.api_url")}
             <input type="text" id="config-url" placeholder="http://localhost:1234/v1" required>
           </label>
           <label>
-            API Key
+            ${t("settings.api_key")}
             <input type="password" id="config-key" placeholder="Leave empty for local models">
           </label>
           <label>
-            Model
-            <select id="config-model-select"><option value="">— Fetch models —</option></select>
-            <small id="model-status" style="color:#888;font-size:0.8rem;margin-top:4px;display:block">Enter URL & key, then click "Fetch Models"</small>
+            ${t("settings.model")}
+            <select id="config-model-select"><option value="">${t("settings.model_placeholder")}</option></select>
+            <small id="model-status" style="color:#888;font-size:0.8rem;margin-top:4px;display:block">${t("settings.enter_url_key")}</small>
           </label>
           <div class="settings-actions">
-            <button type="button" id="fetch-models-btn" class="secondary">Fetch Models</button>
-            <button type="button" id="test-btn" class="secondary">Test Connection</button>
-            <button type="submit" class="primary">Save</button>
+            <button type="button" id="fetch-models-btn" class="secondary">${t("settings.fetch_models_btn")}</button>
+            <button type="button" id="test-btn" class="secondary">${t("settings.test_connection_btn")}</button>
+            <button type="submit" class="primary">${t("settings.save_btn")}</button>
           </div>
           <div id="settings-result" class="settings-result"></div>
         </form>
@@ -568,8 +605,8 @@ class App {
       if (preset) {
         urlInput.value = preset.url;
         keyInput.value = preset.apiKey;
-        modelSelect.innerHTML = '<option value="">— Fetch models —</option>';
-        if (modelStatus) modelStatus.textContent = 'Enter URL & key, then click "Fetch Models"';
+        modelSelect.innerHTML = `<option value="">${t("settings.model_placeholder")}</option>`;
+        if (modelStatus) modelStatus.textContent = t("settings.enter_url_key");
         if (preset.url && preset.apiKey) {
           await this.autoFetchModels(urlInput.value, keyInput.value, modelSelect, modelStatus);
         }
@@ -592,7 +629,7 @@ class App {
       const resultDiv = document.getElementById("settings-result");
       if (resultDiv) {
         resultDiv.className = `settings-result ${result.connected ? "success" : "error"}`;
-        resultDiv.textContent = result.connected ? "✅ Connected!" : `❌ ${result.message}`;
+        resultDiv.textContent = result.connected ? t("settings.test_connected") : t("settings.test_error", { message: result.message });
       }
     });
 
@@ -608,7 +645,7 @@ class App {
       const resultDiv = document.getElementById("settings-result");
       if (resultDiv) {
         resultDiv.className = `settings-result ${saved ? "success" : "error"}`;
-        resultDiv.textContent = saved ? "✅ Saved! Restart server to apply." : "❌ Save failed";
+        resultDiv.textContent = saved ? t("settings.save_success") : t("settings.save_error");
       }
     });
 
@@ -626,31 +663,31 @@ class App {
   ): Promise<{ models: string[]; error: string | null }> {
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
-      if (statusEl) statusEl.textContent = "Enter an API URL first";
+      if (statusEl) statusEl.textContent = t("settings.fetch_no_url");
       return { models: [], error: "No URL" };
     }
 
-    if (statusEl) statusEl.textContent = "Fetching models...";
-    modelSelect.innerHTML = '<option value="">— Loading —</option>';
+    if (statusEl) statusEl.textContent = t("settings.fetch_models.loading");
+    modelSelect.innerHTML = `<option value="">${t("settings.loading_models")}</option>`;
 
     const result = await this.fetchModels(trimmedUrl, apiKey.trim());
 
     if (result.error) {
-      if (statusEl) statusEl.textContent = `❌ ${result.error}`;
-      modelSelect.innerHTML = '<option value="">— Failed —</option>';
+      if (statusEl) statusEl.textContent = t("settings.fetch_failed", { error: result.error });
+      modelSelect.innerHTML = `<option value="">${t("settings.failed_models")}</option>`;
       return result;
     }
 
     if (result.models.length === 0) {
-      if (statusEl) statusEl.textContent = "No models found at this endpoint";
-      modelSelect.innerHTML = '<option value="">— No models —</option>';
+      if (statusEl) statusEl.textContent = t("settings.fetch_no_models");
+      modelSelect.innerHTML = `<option value="">${t("settings.no_models")}</option>`;
       return result;
     }
 
-    modelSelect.innerHTML = '<option value="">— Select a model —</option>' +
+    modelSelect.innerHTML = `<option value="">${t("settings.select_model")}</option>` +
       result.models.map(m => `<option value="${m}">${m}</option>`).join("");
 
-    if (statusEl) statusEl.textContent = `✅ ${result.models.length} model(s) available`;
+    if (statusEl) statusEl.textContent = t("settings.fetch_success", { count: result.models.length });
     return result;
   }
 }
