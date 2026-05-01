@@ -28,9 +28,11 @@ export class GameEngine {
     this._currentInitiativeIndex = 0;
     this._round = 1;
 
+    // Use the first player's locale for DM narrative language (default: English)
+    const creatorLocale = this._game.players?.[0]?.locale || "en-US";
     this._game.conversationHistory.push({
       role: "system",
-      content: buildSystemPrompt(this._game.scenario as Scenario || "dungeon"),
+      content: buildSystemPrompt(this._game.scenario as Scenario || "dungeon", creatorLocale),
     });
   }
 
@@ -168,6 +170,7 @@ export class GameEngine {
       combatStatus: extendedStatus,
       conversationHistory: this._game.conversationHistory,
       scenario: this._game.scenario as Scenario || "dungeon",
+      locale: player.locale || "en-US",
     });
 
     // Deduct spell slot if player is using a known spell

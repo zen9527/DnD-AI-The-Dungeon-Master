@@ -280,6 +280,18 @@ IMPORTANT: Emojis should FEEL natural to the scene. A horror dungeon might use ð
 }
 
 /**
+ * Language directive for DM narrative output.
+ */
+function buildLanguageDirective(locale: string): string {
+  const langNames: Record<string, string> = {
+    "en-US": "English", "zh-CN": "Chinese (Simplified)", "ja-JP": "Japanese",
+    "es-ES": "Spanish", "ko-KR": "Korean",
+  };
+  const language = langNames[locale] || "English";
+  return `LANGUAGE: Respond in ${language}. All narrative text, NPC dialogue, and descriptions should be written in ${language}. Keep D&D terminology (HP, AC, DC, saving throw) recognizable but translate surrounding prose naturally.`;
+}
+
+/**
  * Structured output format with field descriptions.
  */
 function buildOutputFormat(): string {
@@ -325,7 +337,7 @@ ALWAYS include the JSON block. It must be valid JSON between the ---JSON--- mark
 // PUBLIC API â€” Combined system prompt and action prompt builders
 // ============================================================================
 
-export function buildSystemPrompt(scenario: Scenario = "dungeon"): string {
+export function buildSystemPrompt(scenario: Scenario = "dungeon", locale: string = "en-US"): string {
   return [
     buildCoreIdentity(),
     "",
@@ -343,6 +355,8 @@ export function buildSystemPrompt(scenario: Scenario = "dungeon"): string {
     "",
     buildAdaptivePacing(),
     "",
+    buildLanguageDirective(locale),
+    "",
     buildOutputFormat()
   ].join('\n\n');
 }
@@ -356,12 +370,20 @@ export function buildActionPrompt(
     combatStatus: string;
     conversationHistory: { role: string; content: string }[];
     scenario: Scenario;
+    locale?: string;
   }
 ): string {
   const player = context.currentPlayer;
   const target = context.target;
 
-  let prompt = `Player "${player.characterName}" (${player.characterClass}, ${player.race}, Lv.${player.level}) says: "${action}"
+  // Language directive for action response
+  const langNames: Record<string, string> = {
+    "en-US": "English", "zh-CN": "Chinese (Simplified)", "ja-JP": "Japanese",
+    "es-ES": "Spanish", "ko-KR": "Korean",
+  };
+  const language = langNames[context.locale || "en-US"] || "English";
+
+  let prompt = `Respond in ${language}.\n\nPlayer "${player.characterName}" (${player.characterClass}, ${player.race}, Lv.${player.level}) says: "${action}"
 
 SCENARIO TONE: ${SCENARIO_TONES[context.scenario].tone}
 
