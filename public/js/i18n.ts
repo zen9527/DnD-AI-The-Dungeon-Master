@@ -63,3 +63,58 @@ export function getLocaleDisplayName(locale: SupportedLocale): string {
 
 /** Array of supported locale codes */
 export const SUPPORTED_LOCALES = Object.keys(LOCALES) as SupportedLocale[];
+
+/** Get localized scenario descriptions for the current locale */
+export function getLocalizedScenarios(): Record<string, { label: string; icon: string; description: string }> {
+  const localeData = LOCALES[currentLocale] as Record<string, unknown>;
+  const enData = en as Record<string, unknown>;
+
+  return {
+    dungeon: {
+      label: (localeData["scenario.dungeon.label"] ?? enData["scenario.dungeon.label"]) as string,
+      icon: "🏰",
+      description: (localeData["scenario.dungeon.description"] ?? enData["scenario.dungeon.description"]) as string,
+    },
+    wilderness: {
+      label: (localeData["scenario.wilderness.label"] ?? enData["scenario.wilderness.label"]) as string,
+      icon: "🌲",
+      description: (localeData["scenario.wilderness.description"] ?? enData["scenario.wilderness.description"]) as string,
+    },
+    intrigue: {
+      label: (localeData["scenario.intrigue.label"] ?? enData["scenario.intrigue.label"]) as string,
+      icon: "🗡️",
+      description: (localeData["scenario.intrigue.description"] ?? enData["scenario.intrigue.description"]) as string,
+    },
+    horror: {
+      label: (localeData["scenario.horror.label"] ?? enData["scenario.horror.label"]) as string,
+      icon: "🌑",
+      description: (localeData["scenario.horror.description"] ?? enData["scenario.horror.description"]) as string,
+    },
+    epic: {
+      label: (localeData["scenario.epic.label"] ?? enData["scenario.epic.label"]) as string,
+      icon: "⚔️",
+      description: (localeData["scenario.epic.description"] ?? enData["scenario.epic.description"]) as string,
+    },
+    sea: {
+      label: (localeData["scenario.sea.label"] ?? enData["scenario.sea.label"]) as string,
+      icon: "⛵",
+      description: (localeData["scenario.sea.description"] ?? enData["scenario.sea.description"]) as string,
+    },
+  };
+}
+
+/** Get localized name data for a specific race in the current locale */
+export function getLocalizedNames(race: string): { firstNames: string[]; lastParts: string[] } {
+  const localeData = LOCALES[currentLocale] as Record<string, unknown>;
+  const enData = en as Record<string, unknown>;
+
+  // Map race names to JSON key (e.g., "Half-Elf" → "half-elf")
+  const raceKey = race.toLowerCase().replace(" ", "-");
+  const firstKey = `name.${raceKey}.first`;
+  const lastKey = `name.${raceKey}.last`;
+
+  return {
+    firstNames: (localeData[firstKey] ?? enData[firstKey]) as string[] || [],
+    lastParts: (localeData[lastKey] ?? enData[lastKey]) as string[] || [],
+  };
+}

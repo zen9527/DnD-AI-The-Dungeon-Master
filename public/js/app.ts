@@ -3,7 +3,7 @@ import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { CharacterCreator } from "./character.js";
 import { ActionBar } from "./action-bar.js";
-import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES } from "./i18n.js";
+import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios } from "./i18n.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import type { Player, ChatMessage, Game, StreamResult, EndpointPreset } from "../../shared/index.js";
@@ -63,8 +63,8 @@ class App {
     }
 
     container.innerHTML = games.map(g => {
-      const scenarioKey = g.scenario as keyof typeof scenarioDescriptions;
-      const desc = scenarioDescriptions[scenarioKey] || scenarioDescriptions.dungeon;
+      const localizedScenarios = getLocalizedScenarios();
+      const desc = localizedScenarios[g.scenario] || localizedScenarios.dungeon;
       const isFull = g.players >= g.maxPlayers;
       const statusClass = isFull ? "status-full" : "status-open";
       const statusText = isFull ? t("active_games.full") : t("active_games.players", { current: g.players, max: g.maxPlayers });
@@ -282,7 +282,9 @@ class App {
     const player = gameState.currentPlayer || game?.players?.[0];
     if (!game || !player) return;
 
-    const scenarioLabel = (game.scenario as Scenario) ? `${scenarioDescriptions[game.scenario as Scenario].icon} ${scenarioDescriptions[game.scenario as Scenario].label}` : "Unknown";
+    const localizedScenarios = getLocalizedScenarios();
+    const scenarioDesc = localizedScenarios[game.scenario] || localizedScenarios.dungeon;
+    const scenarioLabel = `${scenarioDesc.icon} ${scenarioDesc.label}`;
 
     const container = document.getElementById("app");
     if (!container) return;
