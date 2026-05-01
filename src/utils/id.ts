@@ -7,11 +7,3 @@ export function generateId(): string {
   const randomPart = Math.random().toString(36).substring(2, 9);
   return `${timestamp}${randomPart}`;
 }
-
-/**
- * Generate a short, readable game ID (e.g., "abc123")
- * @returns Short unique ID
- */
-export function generateGameId(): string {
-  return Math.random().toString(36).substring(2, 8);
-}

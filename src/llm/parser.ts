@@ -40,26 +40,3 @@ function createFallbackResult(): StructuredResult {
     },
   };
 }
-
-/**
- * Extract new spells learned from LLM response content.
- * Called by engine to parse spell discoveries from the structured JSON block.
- */
-export function extractSpellsFromResponse(content: string): Array<{ name: string; level: number }> {
-  const jsonMatch = content.match(/---JSON---\s*([\s\S]*?)\s*---JSON---/);
-  if (!jsonMatch) return [];
-
-  try {
-    const data = JSON.parse(jsonMatch[1]) as Record<string, unknown>;
-    const newSpellsRaw = (data.newSpells || []) as Array<{ name: string; level: number }>;
-    
-    // Validate each spell entry — must have name and valid level (1-9)
-    return newSpellsRaw.filter(s => 
-      typeof s.name === 'string' && 
-      typeof s.level === 'number' && 
-      s.level >= 1 && s.level <= 9
-    ).map(s => ({ name: s.name, level: s.level }));
-  } catch {
-    return [];
-  }
-}
