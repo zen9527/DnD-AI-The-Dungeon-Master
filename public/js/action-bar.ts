@@ -1,14 +1,15 @@
 import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
+import { t } from "./i18n.js";
 
-// Static preset actions (always available)
+// Static preset actions (always available) — labels use t() for translation, action text stays English for LLM understanding
 const STATIC_PRESETS = [
-  { label: "⚔️ Attack", action: "I attack my target" },
-  { label: "🔍 Search", action: "I search the area carefully" },
-  { label: "💬 Talk", action: "I try to talk to my target" },
-  { label: "🏃 Hide", action: "I try to hide" },
-  { label: "🧠 Use Intelligence", action: "I use my intelligence to figure this out" },
-  { label: "🛡️ Defend", action: "I take a defensive stance" },
+  { label: () => t("action.attack"), action: "I attack my target" },
+  { label: () => t("action.search"), action: "I search the area carefully" },
+  { label: () => t("action.talk"), action: "I try to talk to my target" },
+  { label: () => t("action.hide"), action: "I try to hide" },
+  { label: () => t("action.intelligence"), action: "I use my intelligence to figure this out" },
+  { label: () => t("action.defend"), action: "I take a defensive stance" },
 ];
 
 export class ActionBar {
@@ -47,10 +48,10 @@ export class ActionBar {
     const spells = game?.players
       .find(p => p.id === player.id)?.spells || [];
 
-    // Build static preset buttons HTML
+    // Build static preset buttons HTML — label is a function that returns translated string
     let presetsHtml = "";
     for (const preset of STATIC_PRESETS) {
-      presetsHtml += `<button class="preset-btn" data-action="${this.escapeHtml(preset.action)}">${preset.label}</button>`;
+      presetsHtml += `<button class="preset-btn" data-action="${this.escapeHtml(preset.action)}">${preset.label()}</button>`;
     }
 
     // Build potion buttons — only shown if player has potions available
@@ -82,14 +83,14 @@ export class ActionBar {
       spellsHtml = `
         <div class="spell-selector">
           <select id="spell-select" title="Cast a spell">
-            <option value="">📖 Cast Spell...</option>
+            <option value="">${t("spell.cast_placeholder")}</option>
             ${dropdownOptions}
           </select>
         </div>
       `;
     }
 
-    // Assemble the action bar HTML
+      // Assemble the action bar HTML
     this.element!.innerHTML = `
       <div class="preset-actions">${presetsHtml}</div>
       <div class="dynamic-actions">
@@ -97,8 +98,8 @@ export class ActionBar {
         ${spellsHtml}
       </div>
       <div class="free-text">
-        <input type="text" id="action-input" placeholder="Or describe your action freely...">
-        <button id="action-submit" class="primary">Act</button>
+        <input type="text" id="action-input" placeholder="${t("action.placeholder")}">
+        <button id="action-submit" class="primary">${t("action.submit")}</button>
       </div>
     `;
 
