@@ -1,7 +1,7 @@
 {
-  "name": "dnd-offline-multiplayer",
+  "name": "dnd-ai-the-dungeon-master",
   "version": "0.2.0",
-  "description": "Offline multiplayer D&D game with AI Dungeon Master",
+  "description": "AI-powered D&D Dungeon Master with multi-language support",
   "type": "module",
   "scripts": {
     "build:backend": "tsc",

@@ -155,7 +155,7 @@ app.get("/api/games", (_req, res) => {
 
 server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
-  console.log(`DnD Full Auto-DM Server running at http://${HOST}:${PORT}`);
+  console.log(`DnD AI: The Dungeon Master running at http://${HOST}:${PORT}`);
   console.log(`LLM: ${llmBaseUrl} (${llmModel})`);
   console.log(`Press Ctrl+C to stop`);
   console.log(`============================================`);

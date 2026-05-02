@@ -1,4 +1,4 @@
-# 🎲 DnD Multiplayer — LLM-Powered Adaptive Dungeon Master
+# 🎲 DnD AI: The Dungeon Master — AI-Powered Adaptive Dungeon Master
 
 A next-generation tabletop RPG experience where **AI acts as your adaptive Dungeon Master**, delivering dynamic storytelling that responds to player choices in real-time. Built with WebSocket-powered multiplayer support and sophisticated LLM-driven narrative generation. Supports 5 languages (English, Chinese Simplified, Japanese, Spanish, Korean) for both UI and DM narratives.
 

@@ -1,10 +1,10 @@
 @echo off
 REM ============================================
-REM DnD Full Auto-DM - Stop Script
+REM DnD AI: The Dungeon Master - Stop Script
 REM ============================================
 
 echo ============================================
-echo DnD Full Auto-DM Server
+echo DnD AI: The Dungeon Master
 echo ============================================
 echo.
 
