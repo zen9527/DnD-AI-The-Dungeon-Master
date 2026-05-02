@@ -100,7 +100,7 @@ export class CharacterCreator {
     this.element!.innerHTML = `
       <div class="hero-section">
         ${this.renderLocaleDropdown()}
-        <h1 class="hero-title">🎲 DnD Full Auto-DM</h1>
+        <h1 class="hero-title">🎲 DnD AI: The Dungeon Master</h1>
         <p class="hero-subtitle">${t("hero.subtitle")}</p>
       </div>
 

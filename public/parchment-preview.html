@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DnD Parchment Enhanced Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700;900&family=MedievalSharp&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #1e160e;
+    --bg-panel: #2e2212;
+    --accent-gold: #d4a843;
+    --accent-gold-light: #e8c060;
+    --text-primary: #e8d5a0;
+    --text-muted: #8a7a5a;
+    --border-color: #4a3828;
+    --border-strong: #6a5030;
+    --player-green: #5ade90;
+    --dm-purple: #b79bfa;
+    --dice-gold: #ffc840;
+    --error-red: #e04040;
+    --parchment-light: #f0ddb0;
+    --parchment-dark: #d0b880;
+    --ink-black: #1e160e;
+    --ink-brown: #4a3828;
+    --fire-wax: #a03010;
+    --warm-glow: rgba(212, 168, 67, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ===== Strong Parchment Texture Overlay ===== */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(212, 168, 67, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(212, 168, 67, 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(212, 168, 67, 0.04) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ===== Strong Vignette ===== */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%);
+    pointer-events: none;
+    z-index: 9997;
+  }
+
+  /* ===== Title Styles ===== */
+  .title-main {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--accent-gold);
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: 4px;
+    text-shadow:
+      0 0 20px rgba(212, 168, 67, 0.4),
+      0 0 40px rgba(212, 168, 67, 0.2),
+      3px 3px 6px rgba(0, 0, 0, 0.6),
+      0 0 60px rgba(212, 168, 67, 0.1);
+    animation: candleFlicker 4s ease-in-out infinite;
+  }
+
+  @keyframes candleFlicker {
+    0%, 100% { 
+      text-shadow: 0 0 20px rgba(212, 168, 67, 0.4), 0 0 40px rgba(212, 168, 67, 0.2), 3px 3px 6px rgba(0, 0, 0, 0.6); 
+    }
+    25% { 
+      text-shadow: 0 0 30px rgba(212, 168, 67, 0.5), 0 0 50px rgba(212, 168, 67, 0.25), 3px 3px 6px rgba(0, 0, 0, 0.6); 
+    }
+    50% { 
+      text-shadow: 0 0 15px rgba(212, 168, 67, 0.3), 0 0 35px rgba(212, 168, 67, 0.15), 3px 3px 6px rgba(0, 0, 0, 0.6); 
+    }
+    75% { 
+      text-shadow: 0 0 25px rgba(212, 168, 67, 0.45), 0 0 45px rgba(212, 168, 67, 0.2), 3px 3px 6px rgba(0, 0, 0, 0.6); 
+    }
+  }
+
+  .title-sub {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ===== Decorative Divider ===== */
+  .divider-ornate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 40px 0;
+    color: var(--accent-gold);
+    font-size: 1.5rem;
+  }
+
+  .divider-ornate::before,
+  .divider-ornate::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+  }
+
+  /* ===== Strong Parchment Card ===== */
+  .parchment-card {
+    background: 
+      linear-gradient(135deg, rgba(240,221,176,0.12) 0%, rgba(208,184,128,0.08) 100%);
+    border: 3px solid var(--border-color);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.08),
+      0 6px 16px rgba(0, 0, 0, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .parchment-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper)' opacity='0.06'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .parchment-card:hover {
+    border-color: var(--accent-gold);
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.12),
+      0 8px 20px rgba(0, 0, 0, 0.5),
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      0 0 25px rgba(212, 168, 67, 0.15);
+  }
+
+  /* ===== Wax Seal ===== */
+  .wax-seal {
+    width: 36px;
+    height: 36px;
+    background: radial-gradient(circle, var(--fire-wax) 0%, #702000 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.9rem;
+    font-weight: bold;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.2),
+      inset 0 -3px 6px rgba(0,0,0,0.3),
+      0 3px 6px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  .wax-seal::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px; right: 3px; bottom: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+  }
+
+  /* ===== Buttons ===== */
+  .btn-parchment {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 14px 28px;
+    background: linear-gradient(180deg, var(--bg-panel) 0%, #1a1408 100%);
+    border: 3px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.06),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      0 3px 6px rgba(0,0,0,0.4);
+  }
+
+  .btn-parchment:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.06),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      0 3px 6px rgba(0,0,0,0.4),
+      0 0 16px rgba(212, 168, 67, 0.25);
+  }
+
+  .btn-parchment:active {
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.35),
+      inset 0 -2px 4px rgba(0,0,0,0.25),
+      0 2px 4px rgba(0,0,0,0.4);
+  }
+
+  .btn-parchment.primary {
+    background: linear-gradient(180deg, var(--accent-gold) 0%, #b09030 100%);
+    color: var(--bg-primary);
+    border-color: var(--accent-gold-light);
+  }
+
+  .btn-parchment.primary:hover {
+    background: linear-gradient(180deg, var(--accent-gold-light) 0%, var(--accent-gold) 100%);
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.25),
+      inset 0 -3px 6px rgba(0,0,0,0.1),
+      0 3px 6px rgba(0,0,0,0.4),
+      0 0 20px rgba(212, 168, 67, 0.5);
+  }
+
+  /* ===== Game Card ===== */
+  .game-card {
+    background: 
+      linear-gradient(135deg, rgba(240,221,176,0.12) 0%, rgba(208,184,128,0.08) 100%);
+    border: 3px solid var(--border-color);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 20px;
+    position: relative;
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.08),
+      0 6px 16px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .game-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper)' opacity='0.06'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .game-card:hover {
+    border-color: var(--accent-gold);
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.12),
+      0 8px 20px rgba(0, 0, 0, 0.5),
+      0 0 25px rgba(212, 168, 67, 0.15);
+  }
+
+  .game-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .game-card-header h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .status-badge {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    border: 2px solid;
+  }
+
+  .status-open {
+    background: rgba(90, 222, 144, 0.12);
+    color: var(--player-green);
+    border-color: rgba(90, 222, 144, 0.3);
+  }
+
+  .status-full {
+    background: rgba(224, 64, 64, 0.12);
+    color: #fca5a5;
+    border-color: rgba(224, 64, 64, 0.3);
+  }
+
+  /* ===== Scenario Card ===== */
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    max-width: 550px;
+    margin: 24px auto;
+  }
+
+  .scenario-card {
+    background: 
+      linear-gradient(135deg, rgba(240,221,176,0.12) 0%, rgba(208,184,128,0.08) 100%);
+    border: 3px solid var(--border-color);
+    border-radius: 6px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.08),
+      0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .scenario-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper)' opacity='0.06'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .scenario-card:hover {
+    border-color: var(--accent-gold);
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.12),
+      0 8px 20px rgba(0, 0, 0, 0.5),
+      0 0 25px rgba(212, 168, 67, 0.15);
+    transform: translateY(-3px);
+  }
+
+  .scenario-card.selected {
+    border-color: var(--accent-gold);
+    background: linear-gradient(135deg, rgba(240,221,176,0.2) 0%, rgba(208,184,128,0.15) 100%);
+    box-shadow:
+      inset 0 0 40px rgba(212, 168, 67, 0.15),
+      0 8px 20px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(212, 168, 67, 0.25);
+  }
+
+  .scenario-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+  }
+
+  .scenario-label {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    color: var(--accent-gold);
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .scenario-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  /* ===== Chat Message ===== */
+  .message {
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    background: 
+      linear-gradient(135deg, rgba(240,221,176,0.1) 0%, rgba(208,184,128,0.07) 100%);
+    border-left: 5px solid var(--accent-gold);
+    border-radius: 6px;
+    position: relative;
+    box-shadow:
+      inset 0 0 30px rgba(212, 168, 67, 0.05),
+      0 3px 8px rgba(0, 0, 0, 0.25);
+    line-height: 1.8;
+  }
+
+  .message::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .message.narrative {
+    background: linear-gradient(135deg, rgba(240,221,176,0.15) 0%, rgba(208,184,128,0.12) 100%);
+    border-left-color: var(--accent-gold);
+  }
+
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+  }
+
+  .message-header strong {
+    font-family: 'Cinzel', serif;
+    color: var(--accent-gold);
+    text-shadow: 0 0 10px rgba(212, 168, 67, 0.3);
+  }
+
+  .message-content {
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+
+  /* ===== HP Bar ===== */
+  .hp-bar-container {
+    margin-bottom: 16px;
+  }
+
+  .hp-bar-label {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .hp-bar-track {
+    background: linear-gradient(180deg, #1a1408 0%, #0e0a04 100%);
+    border: 3px solid var(--border-color);
+    border-radius: 6px;
+    height: 22px;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.6),
+      0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .hp-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease;
+    position: relative;
+    background: linear-gradient(90deg, #5ade90 0%, #90e050 100%);
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.15);
+  }
+
+  .hp-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(0,0,0,0.15) 100%);
+  }
+
+  .hp-bar-fill.mid {
+    background: linear-gradient(90deg, #ffc840 0%, #f0a020 100%);
+  }
+
+  .hp-bar-fill.low {
+    background: linear-gradient(90deg, #f07070 0%, #e04040 100%);
+  }
+
+  .hp-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+    z-index: 1;
+  }
+
+  /* ===== Form ===== */
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  .form-label {
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-family: 'MedievalSharp', cursive;
+    font-size: 1.15rem;
+    background: 
+      linear-gradient(180deg, rgba(240,221,176,0.1) 0%, rgba(208,184,128,0.07) 100%);
+    border: 3px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.4),
+      0 2px 4px rgba(0,0,0,0.25);
+    transition: all 0.2s ease;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow:
+      inset 0 3px 6px rgba(0,0,0,0.4),
+      0 2px 4px rgba(0,0,0,0.25),
+      0 0 16px rgba(212, 168, 67, 0.25);
+  }
+
+  .form-input::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ===== Demo Layout ===== */
+  .demo-container {
+    max-width: 950px;
+    margin: 0 auto;
+    padding: 50px 24px;
+  }
+
+  .demo-section {
+    margin-bottom: 60px;
+    padding: 28px;
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .demo-section:last-child { border-bottom: none; }
+
+  .demo-label {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 24px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .demo-center { text-align: center; }
+  .demo-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .demo-grid { display: grid; gap: 20px; }
+
+  /* ===== Ink Splatter Effect ===== */
+  .ink-splatter {
+    position: relative;
+  }
+
+  .ink-splatter::after {
+    content: '✦';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    color: var(--accent-gold);
+    font-size: 1.5rem;
+    opacity: 0.7;
+    text-shadow: 0 0 8px rgba(212, 168, 67, 0.4);
+  }
+
+</style>
+</head>
+<body>
+<div class="demo-container">
+
+  <!-- Title Section -->
+  <div style="text-align:center; padding:50px 0 40px;">
+    <h1 class="title-main">DnD AI: The Dungeon Master</h1>
+    <p class="title-sub">Your Ancient Campaign Journal Awaits</p>
+  </div>
+
+  <!-- Buttons -->
+  <div class="demo-section">
+    <div class="demo-label">Buttons</div>
+    <div class="demo-row demo-center">
+      <button class="btn-parchment">Default</button>
+      <button class="btn-parchment primary">Create Game</button>
+      <button class="btn-parchment">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Game Cards -->
+  <div class="demo-section">
+    <div class="demo-label">Game Cards</div>
+    <div class="game-card ink-splatter">
+      <div class="game-card-header">
+        <span style="font-size:2rem;">🏰</span>
+        <h3>Dragon's Keep</h3>
+        <span class="status-badge status-open">Open</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.95rem; color:var(--text-muted);">Dungeon • 1/4 players</span>
+        <button class="btn-parchment" style="font-size:0.95rem; padding:10px 20px;">Join</button>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-card-header">
+        <span style="font-size:2rem;">🌲</span>
+        <h3>Whispering Woods</h3>
+        <span class="status-badge status-full">Full</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.95rem; color:var(--text-muted);">Wilderness • 3/3 players</span>
+        <button class="btn-parchment" style="font-size:0.95rem; padding:10px 20px; opacity:0.5; cursor:default;">Full</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario Cards -->
+  <div class="demo-section">
+    <div class="demo-label">Scenario Selection</div>
+    <div class="scenario-grid">
+      <div class="scenario-card">
+        <div class="scenario-icon">🏰</div>
+        <div class="scenario-label">Dungeon</div>
+        <div class="scenario-desc">Dark corridors and ancient treasures</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-icon">🌲</div>
+        <div class="scenario-label">Wilderness</div>
+        <div class="scenario-desc">Untamed lands and hidden paths</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-icon">🎭</div>
+        <div class="scenario-label">Intrigue</div>
+        <div class="scenario-desc">Political schemes and secret alliances</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-icon">🌊</div>
+        <div class="scenario-label">Sea</div>
+        <div class="scenario-desc">Stormy seas and pirate adventures</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="demo-section">
+    <div class="demo-label">Chat Messages</div>
+    <div class="message narrative">
+      <div class="message-header">
+        <strong>🧙 DM</strong>
+        <span style="color:var(--text-muted); font-size:0.85rem;">12:34</span>
+      </div>
+      <div class="message-content">You stand before the ancient gate. The air smells of damp stone and old magic. Faint whispers echo from beyond...</div>
+    </div>
+    <div class="message" style="border-left-color: var(--player-green);">
+      <div class="message-header">
+        <strong style="color: var(--player-green);">Thorin Ironforge</strong>
+        <span style="color:var(--text-muted); font-size:0.85rem;">12:35</span>
+      </div>
+      <div class="message-content">I kick the gate open!</div>
+    </div>
+    <div class="message" style="border-left-color: var(--dice-gold);">
+      <div class="message-header">
+        <strong style="color: var(--dice-gold);">🎲 Dice Roll</strong>
+        <span style="color:var(--text-muted); font-size:0.85rem;">12:35</span>
+      </div>
+      <div class="message-content">d20 + 3 = <strong>17</strong> — Hit!</div>
+    </div>
+  </div>
+
+  <!-- HP Bars -->
+  <div class="demo-section">
+    <div class="demo-label">HP Bars</div>
+    <div style="max-width:350px; margin:0 auto;">
+      <div class="hp-bar-container">
+        <div class="hp-bar-label">Thorin Ironforge — HP: 45/45</div>
+        <div class="hp-bar-track">
+          <div class="hp-bar-fill high" style="width:100%;"></div>
+          <span class="hp-bar-text">45 / 45</span>
+        </div>
+      </div>
+      <div class="hp-bar-container">
+        <div class="hp-bar-label">Elara Moonwhisper — HP: 18/32</div>
+        <div class="hp-bar-track">
+          <div class="hp-bar-fill mid" style="width:56%;"></div>
+          <span class="hp-bar-text">18 / 32</span>
+        </div>
+      </div>
+      <div class="hp-bar-container">
+        <div class="hp-bar-label">Grimjaw — HP: 5/20</div>
+        <div class="hp-bar-track">
+          <div class="hp-bar-fill low" style="width:25%;"></div>
+          <span class="hp-bar-text">5 / 20</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="demo-section">
+    <div class="demo-label">Character Form</div>
+    <div style="max-width:400px; margin:0 auto; text-align:left;">
+      <div class="form-group">
+        <label class="form-label">Character Name</label>
+        <input type="text" class="form-input" placeholder="Enter name...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Race</label>
+        <select class="form-input">
+          <option>Human</option>
+          <option>Elf</option>
+          <option>Dwarf</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:16px; justify-content:center; margin-top:28px;">
+        <button class="btn-parchment primary">Create</button>
+        <button class="btn-parchment">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decorative Divider -->
+  <div class="divider-ornate">❧</div>
+
+  <!-- Footer -->
+  <div style="text-align:center; padding:30px 0; color:var(--text-muted); font-size:1rem; font-style:italic; font-family: 'MedievalSharp', cursive;">
+    "All that is gold does not glitter, not all those who wander are lost."
+  </div>
+
+</div>
+</body>
+</html>

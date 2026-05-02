@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DnD Pixel Art Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0f0f1a;
+    --bg-panel: #1a1a2e;
+    --bg-card: #16213e;
+    --border-pixel: #533483;
+    --border-gold: #c9a84c;
+    --text-primary: #e0d4b8;
+    --text-muted: #7a7a9e;
+    --accent-gold: #f0c040;
+    --accent-gold-bright: #ffd700;
+    --player-green: #4ade80;
+    --dm-purple: #a78bfa;
+    --dice-gold: #fbbf24;
+    --error-red: #dc2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* CRT Scanlines Overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.15) 2px,
+      rgba(0, 0, 0, 0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* CRT Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.5) 100%);
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ===== Pixel Font Headers ===== */
+  .pixel-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 1.4rem;
+    color: var(--accent-gold-bright);
+    text-shadow:
+      2px 2px 0 #000,
+      0 0 10px rgba(255, 215, 0, 0.3);
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .pixel-subtitle {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-shadow: 1px 1px 0 #000;
+    margin-bottom: 24px;
+  }
+
+  /* ===== Pixel Border Utility ===== */
+  .pixel-border {
+    border: 3px solid var(--border-pixel);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5);
+  }
+
+  .pixel-border-gold {
+    border: 3px solid var(--border-gold);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5);
+  }
+
+  /* ===== Hero Section ===== */
+  .hero-section {
+    text-align: center;
+    padding: 60px 20px 40px;
+    background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-dark) 100%);
+    border-bottom: 3px solid var(--border-pixel);
+  }
+
+  /* ===== Pixel Button ===== */
+  .pixel-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.65rem;
+    padding: 12px 20px;
+    border: 3px solid var(--border-pixel);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5);
+    transition: all 0.1s;
+    text-transform: uppercase;
+  }
+
+  .pixel-btn:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5),
+      0 0 10px rgba(240, 192, 64, 0.2);
+  }
+
+  .pixel-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      2px 2px 0 rgba(0,0,0,0.5);
+  }
+
+  .pixel-btn.primary {
+    background: var(--accent-gold);
+    color: var(--bg-dark);
+    border-color: var(--accent-gold-bright);
+    font-weight: bold;
+  }
+
+  .pixel-btn.primary:hover {
+    background: var(--accent-gold-bright);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.2),
+      inset -2px -2px 0 rgba(0,0,0,0.1),
+      4px 4px 0 rgba(0,0,0,0.5),
+      0 0 15px rgba(255, 215, 0, 0.4);
+  }
+
+  /* ===== Game Card ===== */
+  .game-card {
+    background: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .game-card:hover {
+    border-color: var(--accent-gold);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5),
+      0 0 12px rgba(240, 192, 64, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .game-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .game-card-header h3 {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  /* ===== Scenario Card ===== */
+  .scenario-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+  }
+
+  .scenario-card {
+    padding: 16px;
+    background: var(--bg-card);
+    border: 3px solid var(--border-pixel);
+    cursor: pointer;
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5);
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .scenario-card:hover {
+    border-color: var(--accent-gold);
+    transform: translateY(-2px);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5),
+      0 0 12px rgba(240, 192, 64, 0.15);
+  }
+
+  .scenario-card.selected {
+    border-color: var(--accent-gold);
+    background: rgba(201, 168, 76, 0.1);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      4px 4px 0 rgba(0,0,0,0.5),
+      0 0 15px rgba(240, 192, 64, 0.3);
+  }
+
+  /* ===== Chat Message ===== */
+  .message {
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--bg-card);
+    border-left: 4px solid var(--accent-gold);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.03),
+      inset -2px -2px 0 rgba(0,0,0,0.2),
+      2px 2px 0 rgba(0,0,0,0.3);
+    line-height: 1.6;
+  }
+
+  .message.narrative {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-left-color: var(--accent-gold);
+  }
+
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+  }
+
+  .message-header strong { color: var(--accent-gold); }
+
+  /* ===== HP Bar ===== */
+  .hp-bar-track {
+    background: var(--bg-dark);
+    border: 2px solid var(--border-pixel);
+    height: 16px;
+    overflow: hidden;
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,0.5);
+  }
+
+  .hp-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease;
+    background: linear-gradient(90deg, #4ade80, #a3e635);
+    image-rendering: pixelated;
+  }
+
+  .hp-bar-fill.mid {
+    background: linear-gradient(90deg, #facc15, #f59e0b);
+  }
+
+  .hp-bar-fill.low {
+    background: linear-gradient(90deg, #f87171, #dc2626);
+  }
+
+  /* ===== Form Input ===== */
+  form input, form select {
+    padding: 8px 12px;
+    border: 3px solid var(--border-pixel);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    box-shadow:
+      inset 2px 2px 0 rgba(0,0,0,0.5),
+      2px 2px 0 rgba(0,0,0,0.3);
+  }
+
+  form input:focus, form select:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow:
+      inset 2px 2px 0 rgba(0,0,0,0.5),
+      2px 2px 0 rgba(0,0,0,0.3),
+      0 0 8px rgba(240, 192, 64, 0.2);
+  }
+
+  /* ===== Settings Modal ===== */
+  .settings-panel {
+    background: var(--bg-card);
+    border: 3px solid var(--accent-gold);
+    box-shadow:
+      inset 2px 2px 0 rgba(255,255,255,0.05),
+      inset -2px -2px 0 rgba(0,0,0,0.3),
+      6px 6px 0 rgba(0,0,0,0.5);
+  }
+
+  /* ===== Animations ===== */
+  @keyframes pixelFlicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+  }
+
+  .pixel-flicker {
+    animation: pixelFlicker 3s ease-in-out infinite;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .game-card { animation: fadeInUp 0.3s ease forwards; }
+
+  /* ===== Section Header ===== */
+  .section-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    color: var(--accent-gold);
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  /* ===== Layout ===== */
+  .active-games-section {
+    padding: 30px 20px 40px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .welcome-screen {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  /* ===== Demo Layout ===== */
+  .demo-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .demo-section {
+    margin-bottom: 40px;
+    padding: 20px;
+    border-bottom: 2px dashed var(--border-pixel);
+  }
+
+  .demo-section:last-child { border-bottom: none; }
+
+  .demo-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    text-shadow: 1px 1px 0 #000;
+  }
+
+  .demo-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .demo-center { text-align: center; }
+</style>
+</head>
+<body>
+<div class="demo-container">
+
+  <!-- CRT Scanline + Vignette visible on entire page -->
+
+  <div style="text-align:center; padding:40px 0;">
+    <h1 class="pixel-title pixel-flicker">DnD AI: The Dungeon Master</h1>
+    <p class="pixel-subtitle">Press Start to Begin Your Adventure</p>
+  </div>
+
+  <!-- Button Styles -->
+  <div class="demo-section">
+    <div class="demo-label">Buttons</div>
+    <div class="demo-row demo-center">
+      <button class="pixel-btn">Default</button>
+      <button class="pixel-btn primary">Primary</button>
+      <button class="pixel-btn">Secondary</button>
+    </div>
+  </div>
+
+  <!-- Game Cards -->
+  <div class="demo-section">
+    <div class="demo-label">Game Cards</div>
+    <div class="game-card">
+      <div class="game-card-header">
+        <span style="font-size:1.2rem;">🏰</span>
+        <h3>Dragon's Keep</h3>
+        <span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:#064e3b; color:#4ade80;">Open</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.8rem; color:var(--text-muted);">Dungeon - 1/4 players</span>
+        <button class="pixel-btn" style="font-size:0.55rem; padding:8px 12px;">Join</button>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-card-header">
+        <span style="font-size:1.2rem;">🌲</span>
+        <h3>Whispering Woods</h3>
+        <span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:#7f1d1d; color:#fca5a5;">Full</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.8rem; color:var(--text-muted);">Wilderness - 3/3 players</span>
+        <button class="pixel-btn" style="font-size:0.55rem; padding:8px 12px; opacity:0.5; cursor:default;">Full</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario Cards -->
+  <div class="demo-section">
+    <div class="demo-label">Scenario Selection</div>
+    <div class="demo-grid">
+      <div class="scenario-card">
+        <div style="font-size:2rem; margin-bottom:6px;">🏰</div>
+        <div style="font-weight:bold; color:var(--accent-gold); font-size:0.95rem;">Dungeon</div>
+        <div style="color:var(--text-muted); font-size:0.8rem;">Dark corridors and ancient treasures</div>
+      </div>
+      <div class="scenario-card">
+        <div style="font-size:2rem; margin-bottom:6px;">🌲</div>
+        <div style="font-weight:bold; color:var(--accent-gold); font-size:0.95rem;">Wilderness</div>
+        <div style="color:var(--text-muted); font-size:0.8rem;">Untamed lands and hidden paths</div>
+      </div>
+      <div class="scenario-card">
+        <div style="font-size:2rem; margin-bottom:6px;">🎭</div>
+        <div style="font-weight:bold; color:var(--accent-gold); font-size:0.95rem;">Intrigue</div>
+        <div style="color:var(--text-muted); font-size:0.8rem;">Political schemes and secret alliances</div>
+      </div>
+      <div class="scenario-card">
+        <div style="font-size:2rem; margin-bottom:6px;">🌊</div>
+        <div style="font-weight:bold; color:var(--accent-gold); font-size:0.95rem;">Sea</div>
+        <div style="color:var(--text-muted); font-size:0.8rem;">Stormy seas and pirate adventures</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Messages -->
+  <div class="demo-section">
+    <div class="demo-label">Chat Messages</div>
+    <div class="message narrative">
+      <div class="message-header">
+        <strong>DM</strong>
+        <span style="color:var(--text-muted); font-size:0.75rem;">12:34</span>
+      </div>
+      <div style="font-size:0.85rem;">You stand before the ancient gate. The air smells of damp stone and old magic. Faint whispers echo from beyond...</div>
+    </div>
+    <div class="message" style="border-left-color: var(--player-green);">
+      <div class="message-header">
+        <strong style="color: var(--player-green);">Thorin Ironforge</strong>
+        <span style="color:var(--text-muted); font-size:0.75rem;">12:35</span>
+      </div>
+      <div style="font-size:0.85rem;">I kick the gate open!</div>
+    </div>
+    <div class="message" style="border-left-color: var(--dice-gold);">
+      <div class="message-header">
+        <strong style="color: var(--dice-gold);">Dice Roll</strong>
+        <span style="color:var(--text-muted); font-size:0.75rem;">12:35</span>
+      </div>
+      <div style="font-size:0.85rem;">d20 + 3 = <strong>17</strong> - Hit!</div>
+    </div>
+  </div>
+
+  <!-- HP Bar -->
+  <div class="demo-section">
+    <div class="demo-label">HP Bars</div>
+    <div style="max-width:300px; margin:0 auto;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.8rem; color:var(--text-primary); margin-bottom:4px;">Thorin Ironforge - HP: 45/45</div>
+        <div class="hp-bar-track"><div class="hp-bar-fill high" style="width:100%;"></div></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:0.8rem; color:var(--text-primary); margin-bottom:4px;">Elara Moonwhisper - HP: 18/32</div>
+        <div class="hp-bar-track"><div class="hp-bar-fill mid" style="width:56%;"></div></div>
+      </div>
+      <div>
+        <div style="font-size:0.8rem; color:var(--text-primary); margin-bottom:4px;">Grimjaw - HP: 5/20</div>
+        <div class="hp-bar-track"><div class="hp-bar-fill low" style="width:25%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="demo-section">
+    <div class="demo-label">Character Form</div>
+    <div style="max-width:350px; margin:0 auto; text-align:left;">
+      <div style="margin-bottom:15px;">
+        <label style="display:block; margin-bottom:8px; font-size:0.95rem; color:var(--text-primary);">Character Name</label>
+        <input type="text" placeholder="Enter name..." style="width:100%;">
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="display:block; margin-bottom:8px; font-size:0.95rem; color:var(--text-primary);">Race</label>
+        <select style="width:100%;">
+          <option>Human</option>
+          <option>Elf</option>
+          <option>Dwarf</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+        <button class="pixel-btn primary">Create</button>
+        <button class="pixel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

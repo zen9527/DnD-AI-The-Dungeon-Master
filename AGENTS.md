@@ -1,4 +1,4 @@
-# DnD Full Auto-DM Project Specifics
+# DnD AI: The Dungeon Master Project Specifics
 
 ## Tech Stack
 - **Backend**: Node.js + TypeScript + Express + ws (WebSocket)
