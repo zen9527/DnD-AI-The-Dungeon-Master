@@ -330,13 +330,15 @@ export class GameEngine {
 
     const scenario = (this._game.scenario as Scenario) || "dungeon";
 
+    const locale = player.locale || "en-US";
+    const whatDoYouDo = getLocalizedMessage(locale, "opening.what_do_you_do");
     const openingPrompt = `You are the Dungeon Master. This is the opening scene of a new adventure.
 
 SCENARIO: ${scenarioDescriptions[scenario].label} — ${scenarioDescriptions[scenario].description}
 
 Player "${player.characterName}" (${player.characterClass}, ${player.race}, Lv.${player.level}) has just arrived. Their attributes: Str=${player.attributes.str} Dex=${player.attributes.dex} Con=${player.attributes.con} Int=${player.attributes.int} Wis=${player.attributes.wis} Cha=${player.attributes.cha}.
 
-Describe the opening scene: where the player is, what they see, hear, and feel. Introduce the atmosphere and hint at the adventure ahead. Set the mood. DO NOT ask for an action — just describe the scene and end with "What do you do?"
+Describe the opening scene: where the player is, what they see, hear, and feel. Introduce the atmosphere and hint at the adventure ahead. Set the mood. DO NOT ask for an action — just describe the scene and end with "${whatDoYouDo}"
 
 Keep it to 2-4 paragraphs. End with the JSON block.`;
 

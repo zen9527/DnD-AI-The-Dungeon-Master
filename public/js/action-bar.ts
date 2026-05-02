@@ -2,14 +2,14 @@ import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { t } from "./i18n.js";
 
-// Static preset actions (always available) — labels use t() for translation, action text stays English for LLM understanding
+// Static preset actions (always available) — both label and action text are localized
 const STATIC_PRESETS = [
-  { label: () => t("action.attack"), action: "I attack my target" },
-  { label: () => t("action.search"), action: "I search the area carefully" },
-  { label: () => t("action.talk"), action: "I try to talk to my target" },
-  { label: () => t("action.hide"), action: "I try to hide" },
-  { label: () => t("action.intelligence"), action: "I use my intelligence to figure this out" },
-  { label: () => t("action.defend"), action: "I take a defensive stance" },
+  { label: () => t("action.attack"), action: () => t("action.attack_text") },
+  { label: () => t("action.search"), action: () => t("action.search_text") },
+  { label: () => t("action.talk"), action: () => t("action.talk_text") },
+  { label: () => t("action.hide"), action: () => t("action.hide_text") },
+  { label: () => t("action.intelligence"), action: () => t("action.intelligence_text") },
+  { label: () => t("action.defend"), action: () => t("action.defend_text") },
 ];
 
 export class ActionBar {
@@ -48,10 +48,10 @@ export class ActionBar {
     const spells = game?.players
       .find(p => p.id === player.id)?.spells || [];
 
-    // Build static preset buttons HTML — label is a function that returns translated string
+    // Build static preset buttons HTML — label and action are both functions returning translated strings
     let presetsHtml = "";
     for (const preset of STATIC_PRESETS) {
-      presetsHtml += `<button class="preset-btn" data-action="${this.escapeHtml(preset.action)}">${preset.label()}</button>`;
+      presetsHtml += `<button class="preset-btn" data-action="${this.escapeHtml(preset.action())}">${preset.label()}</button>`;
     }
 
     // Build potion buttons — only shown if player has potions available
@@ -107,21 +107,21 @@ export class ActionBar {
   }
 
   private attachDynamicListeners(): void {
-    // Potion buttons — send as free-text action "I use <name>"
+    // Potion buttons — send as free-text action "I use <name>" (localized)
     this.element!.querySelectorAll(".potion-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const name = btn.getAttribute("data-action") || "";
-        this.sendAction(`I use ${name}`);
+        this.sendAction(t("action.use_item", { name }));
       });
     });
 
-    // Spell dropdown — send as free-text action when changed
+    // Spell dropdown — send as free-text action when changed (localized)
     const spellSelect = document.getElementById("spell-select") as HTMLSelectElement;
     if (spellSelect) {
       spellSelect.addEventListener("change", () => {
         const selectedSpell = spellSelect.value;
         if (selectedSpell) {
-          this.sendAction(`I cast ${this.escapeHtml(selectedSpell)}`);
+          this.sendAction(t("action.cast_spell", { spellName: selectedSpell }));
           // Reset dropdown after selection so it's ready for next use
           setTimeout(() => { spellSelect.value = ""; }, 100);
         }
