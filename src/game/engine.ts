@@ -167,25 +167,26 @@ export class GameEngine {
     // Extend combat status with D&D 5e mechanics info
     const extendedStatus = `${combatStatus} Passive Perception: ${passivePerception}. Hit Dice available: ${hitDiceAvailable}/${player.hitDice?.total || 0}. Death saves: ${player.deathSaves?.successes || 0} successes, ${player.deathSaves?.failures || 0} failures.`;
 
-    const actionPrompt = buildActionPrompt(payload.action, {
+    // Build the action context (stats, dice, combat status, etc.) — NO conversation history here
+    const actionContext = buildActionPrompt(payload.action, {
       currentPlayer: player,
       target,
       diceResult,
       combatStatus: extendedStatus,
-      conversationHistory: this._game.conversationHistory,
+      conversationHistory: [], // History is sent as separate messages below
       scenario: this._game.scenario as Scenario || "dungeon",
       locale: player.locale || "en-US",
     });
 
     // Deduct spell slot if player is using a known spell
     const usedSpell = player.spells?.find(
-      s => actionPrompt.toLowerCase().includes(s.name.toLowerCase())
+      s => actionContext.toLowerCase().includes(s.name.toLowerCase())
     );
-    
+
     if (usedSpell) {
       const key = `level-${usedSpell.level}`;
       const currentSlots = player.spellSlots[key] || 0;
-      
+
       if (currentSlots > 0) {
         // Deduct one slot from this player's spell slots
         const playerIdx = this._game.players.findIndex(p => p.id === playerId);
@@ -194,7 +195,7 @@ export class GameEngine {
             this._game.players[playerIdx].spellSlots = {};
           }
           this._game.players[playerIdx].spellSlots[key] = currentSlots - 1;
-          
+
           console.log(`[Engine] Deducted spell slot: ${usedSpell.name} (level-${usedSpell.level}, remaining: ${currentSlots - 1})`);
         }
       } else {
@@ -203,20 +204,37 @@ export class GameEngine {
       }
     }
 
-    const messages = [
-      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US") },
-      { role: "user" as const, content: actionPrompt },
+    // Build messages: system prompt + conversation history + current action
+    // This gives the LLM full context of previous turns so the story progresses naturally
+    const systemPrompt = buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US");
+    const maxHistoryTurns = 8; // Keep last 8 turns (16 messages) for context
+    const historyStartIdx = Math.max(1, this._game.conversationHistory.length - (maxHistoryTurns * 2));
+
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: systemPrompt },
+      // Include conversation history as proper message pairs (skip index 0 = system message)
+      ...this._game.conversationHistory.slice(historyStartIdx).map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+      // Current player action as the final user message
+      { role: "user", content: actionContext },
     ];
 
     const result = await this.llmClient.streamChat(messages, callbacks, 60000);
 
     const parsed = parseLLMResponse(result);
 
-    this._game.conversationHistory.push({ role: "user", content: actionPrompt });
+    this._game.conversationHistory.push({ role: "user", content: actionContext });
     this._game.conversationHistory.push({ role: "assistant", content: parsed.fullNarrative });
 
-    if (this._game.conversationHistory.length > 20) {
-      this._game.conversationHistory = this._game.conversationHistory.slice(-20);
+    // Trim old history to control token usage, but always keep the system message (index 0)
+    const maxHistoryLength = 30; // ~15 turns of conversation
+    if (this._game.conversationHistory.length > maxHistoryLength) {
+      this._game.conversationHistory = [
+        this._game.conversationHistory[0], // Keep system message
+        ...this._game.conversationHistory.slice(-(maxHistoryLength - 1)),
+      ];
     }
 
     if (parsed.structured.creatureHp) {
@@ -301,17 +319,24 @@ export class GameEngine {
     };
     this._game.chatHistory.push(narrativeMsg);
 
-    // Send atmospheric response from DM
+    // Send atmospheric response from DM — include conversation history for continuity
     const restPrompt = `The player takes a short rest. Describe the atmosphere — what they hear, smell, and feel while catching their breath after recent events. Keep it brief (1-2 paragraphs). End with JSON block.`;
 
-    const messages = [
-      { role: "system" as const, content: buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US") },
-      { role: "user" as const, content: restPrompt },
+    const maxHistoryTurns = 8;
+    const historyStartIdx = Math.max(1, this._game.conversationHistory.length - (maxHistoryTurns * 2));
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US") },
+      ...this._game.conversationHistory.slice(historyStartIdx).map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      })),
+      { role: "user", content: restPrompt },
     ];
 
     const result = await this.llmClient.streamChat(messages, callbacks, 60000);
     const parsed = parseLLMResponse(result);
 
+    this._game.conversationHistory.push({ role: "user", content: restPrompt });
     this._game.conversationHistory.push({ role: "assistant", content: parsed.fullNarrative });
 
     return {

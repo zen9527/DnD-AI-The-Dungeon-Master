@@ -245,7 +245,7 @@ describe('buildActionPrompt', () => {
     expect(prompt).toContain('+ 0 = 14');
   });
 
-  it('includes recent conversation history', () => {
+  it('does not embed conversation history in prompt (handled by engine as message pairs)', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Human',
       characterClass: 'Barbarian', level: 1, attributes: { str: 18, dex: 12, con: 16, int: 8, wis: 10, cha: 8 },
@@ -262,11 +262,14 @@ describe('buildActionPrompt', () => {
       currentPlayer: mockPlayer, combatStatus: 'Exploration', conversationHistory: history, scenario: 'dungeon'
     });
 
-    expect(prompt).toContain('Recent conversation');
-    expect(prompt).toContain('dimly lit cavern');
+    // Conversation history is now sent as proper message pairs by the engine,
+    // so the action prompt should NOT contain "Recent conversation" text
+    expect(prompt).not.toContain('Recent conversation');
+    expect(prompt).not.toContain('dimly lit cavern');
+    expect(prompt).toContain('I read the runes aloud');
   });
 
-  it('truncates long conversation messages at 200 chars', () => {
+  it('ignores conversationHistory parameter (backward compat)', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Human',
       characterClass: 'Barbarian', level: 1, attributes: { str: 18, dex: 12, con: 16, int: 8, wis: 10, cha: 8 },
@@ -282,35 +285,25 @@ describe('buildActionPrompt', () => {
       currentPlayer: mockPlayer, combatStatus: 'Exploration', conversationHistory: history, scenario: 'dungeon'
     });
 
-    // Each message line is truncated at 200 chars via substring(0, 200)
-    const lines = prompt.split('\n');
-    for (const line of lines) {
-      if (line.startsWith('[system]:')) {
-        expect(line.length).toBeLessThanOrEqual(210); // '[system]: ' prefix + 200 chars (+ possible \r on Windows)
-      }
-    }
+    // Long history content should NOT appear in the prompt
+    expect(prompt).not.toContain(longContent);
+    expect(prompt).toContain('I look around');
   });
 
-  it('only includes last messages from history when too many', () => {
+  it('works correctly with empty conversation history', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Human',
       characterClass: 'Barbarian', level: 1, attributes: { str: 18, dex: 12, con: 16, int: 8, wis: 10, cha: 8 },
       hp: 14, maxHp: 14, ac: 13, proficiencyBonus: 2, spellSlots: {}, spells: [], inventory: [], conditions: []
     };
 
-    const history = Array.from({ length: 20 }, (_, i) => ({
-      role: (i % 2 === 0 ? 'system' : 'user') as string,
-      content: `Message ${i}`
-    }));
-
     const prompt = buildActionPrompt('I act', {
-      currentPlayer: mockPlayer, combatStatus: 'Combat', conversationHistory: history, scenario: 'dungeon'
+      currentPlayer: mockPlayer, combatStatus: 'Combat', conversationHistory: [], scenario: 'dungeon'
     });
 
-    expect(prompt).toContain('Recent conversation');
-    // Should only include last 10 messages (slice(-10))
-    const messageCount = prompt.split('\n').filter(l => l.startsWith('[system]:') || l.startsWith('[user]:') || l.startsWith('[assistant]:')).length;
-    expect(messageCount).toBeLessThanOrEqual(10);
+    expect(prompt).not.toContain('Recent conversation');
+    expect(prompt).toContain('I act');
+    expect(prompt).toContain('Combat');
   });
 
   it('includes combat status in prompt', () => {

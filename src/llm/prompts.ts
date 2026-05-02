@@ -368,7 +368,7 @@ export function buildActionPrompt(
     target?: NPC;
     diceResult?: DiceRoll;
     combatStatus: string;
-    conversationHistory: { role: string; content: string }[];
+    conversationHistory?: { role: string; content: string }[]; // Kept for backward compat, no longer used
     scenario: Scenario;
     locale?: string;
   }
@@ -430,17 +430,7 @@ When narrating outcomes, make the player feel their choices and stats MATTER —
 `;
   }
 
-  prompt += `Combat status: ${context.combatStatus}
-
-`;
-
-  if (context.conversationHistory.length > 0) {
-    prompt += `Recent conversation (last 5 turns):\n`;
-    const recent = context.conversationHistory.slice(-10);
-    for (const msg of recent) {
-      prompt += `[${msg.role}]: ${msg.content.substring(0, 200)}\n`;
-    }
-  }
+  prompt += `Combat status: ${context.combatStatus}`;
 
   return prompt;
 }
