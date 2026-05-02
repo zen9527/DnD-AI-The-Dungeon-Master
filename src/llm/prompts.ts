@@ -383,54 +383,20 @@ export function buildActionPrompt(
   };
   const language = langNames[context.locale || "en-US"] || "English";
 
-  let prompt = `Respond in ${language}.\n\nPlayer "${player.characterName}" (${player.characterClass}, ${player.race}, Lv.${player.level}) says: "${action}"
-
-SCENARIO TONE: ${SCENARIO_TONES[context.scenario].tone}
-
-Player stats:
-- HP: ${player.hp}/${player.maxHp} | AC: ${player.ac}
-- Attributes: Str=${player.attributes.str} Dex=${player.attributes.dex} Con=${player.attributes.con} Int=${player.attributes.int} Wis=${player.attributes.wis} Cha=${player.attributes.cha}
-- Conditions: ${player.conditions.length ? player.conditions.join(", ") : "none"}
-- Hit Dice: ${player.hitDice?.total || 0}/${player.hitDice?.used || 0} used | Death Saves: ${player.deathSaves?.successes || 0} successes, ${player.deathSaves?.failures || 0} failures
-
-Scenario: ${scenarioDescriptions[context.scenario].label} — ${scenarioDescriptions[context.scenario].description}
-
-STAT-DRIVEN NARRATIVE (IMPORTANT):
-Factor the player's attributes into how their action plays out in the world. High stats make actions more impactful; low stats introduce complications or narrow escapes. Examples:
-- STR 16+ Barbarian punches → devastating impact, enemy stumbles back, bones crack
-- STR 8 Wizard punches → feeble thud, barely makes a dent, but catches enemy off-guard
-- DEX 17 Rogue sneaks → silent as shadow, passes unnoticed even through torchlight
-- DEX 6 Paladin sneaks → clanking armor, scuffing boots — needs luck or distraction to succeed
-- INT 18 Wizard examines runes → instantly recognizes ancient dwarven script and its meaning
-- INT 8 Barbarian examines runes → sees "weird markings" but misses the hidden warning
-- WIS 17 Druid senses danger → feels the air grow heavy, notices subtle shifts in shadows
-- WIS 6 Sorcerer senses danger → oblivious to creeping threat until it's too close
-- CHA 18 Bard persuades NPC → charming words melt hostility into reluctant alliance
-- CHA 7 Fighter persuades NPC → gruff demands earn a glare and a dismissive wave
-
-Race bonuses matter: Elves see in dim light, Dwarves resist poison/illness, Halflings get lucky breaks.
-Class abilities matter: Fighters are trained combatants, Wizards manipulate arcane forces, Rogues exploit weaknesses.
-
-When narrating outcomes, make the player feel their choices and stats MATTER — not just dice numbers.`;
+  // Lightweight action prompt — player stats are in WORLD STATE, not repeated here
+  let prompt = `Player "${player.characterName}" (${player.characterClass}, ${player.race}, Lv.${player.level}) says: "${action}"`;
 
   if (target) {
-    prompt += `Target: "${target.name}"
-- HP: ${target.hp}/${target.maxHp}
-- AC: ${target.ac}
-- Attributes: Str=${target.attributes.str} Dex=${target.attributes.dex} Con=${target.attributes.con} Int=${target.attributes.int} Wis=${target.attributes.wis} Cha=${target.attributes.cha}
-
-`;
-  } else if (player.spells.length > 0) {
-    prompt += `Known spells:\n${player.spells.map(s => `- ${s.name} (${s.level}-level)`).join('\n')}\n\n`;
+    prompt += `\nTarget: "${target.name}" HP ${target.hp}/${target.maxHp} AC ${target.ac}`;
   }
 
   if (context.diceResult) {
-    prompt += `Dice roll: ${context.diceResult.count}d${context.diceResult.diceType} = [${context.diceResult.rolls.join(", ")}] + ${context.diceResult.modifier} = ${context.diceResult.total}
-
-`;
+    prompt += `\nDice: ${context.diceResult.count}d${context.diceResult.diceType} = [${context.diceResult.rolls.join(", ")}] + ${context.diceResult.modifier} = ${context.diceResult.total}`;
   }
 
-  prompt += `Combat status: ${context.combatStatus}`;
+  if (player.spells.length > 0) {
+    prompt += `\nSpells: ${player.spells.map(s => s.name).join(", ")}`;
+  }
 
   return prompt;
 }

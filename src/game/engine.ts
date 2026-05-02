@@ -14,6 +14,12 @@ export class GameEngine {
   private _currentInitiativeIndex: number;
   private _round: number;
 
+  // Story summary: rolling digest of key events for long-term memory
+  // Updated every few turns to keep the DM aware of the big picture
+  private _storySummary: string = "";
+  private _turnCount: number = 0;
+  private readonly SUMMARY_INTERVAL = 5; // Update summary every N turns
+
   constructor(
     gameData: Omit<Game, "createdAt" | "conversationHistory">,
     llmBaseUrl: string,
@@ -90,6 +96,81 @@ export class GameEngine {
     if (this._currentInitiativeIndex === 0) this._round++;
   }
 
+  // ---- World State (compact game state for LLM context) ----
+
+  /**
+   * Build a compact world state string (~100 tokens) that gives the DM
+   * current game state without repeating full player stats every turn.
+   */
+  private buildWorldState(player: Player): string {
+    const npcLines = this._game.npcs.map(n =>
+      `  - ${n.name}: HP ${n.hp}/${n.maxHp} AC ${n.ac} [${n.role}]`
+    );
+    const npcSection = this._game.npcs.length > 0
+      ? `NPCs present:\n${npcLines.join('\n')}`
+      : "NPCs present: none";
+
+    return `WORLD STATE:
+Player: ${player.characterName} HP ${player.hp}/${player.maxHp} AC ${player.ac}
+${npcSection}
+Combat: ${this._game.npcs.length > 0 ? `Active - Round ${this._round}` : "None"}`;
+  }
+
+  // ---- Story Summary (long-term memory) ----
+
+  /**
+   * Update the story summary by asking LLM to condense recent events.
+   * This gives the DM a "big picture" understanding of the adventure.
+   * Called every SUMMARY_INTERVAL turns.
+   */
+  private async updateStorySummary(player: Player): Promise<void> {
+    // Get recent conversation for summarization
+    const recentHistory = this._game.conversationHistory.slice(-10);
+    const historyText = recentHistory.map(m => `[${m.role}]: ${m.content.substring(0, 300)}`).join('\n');
+
+    const locale = player.locale || "en-US";
+    const langNames: Record<string, string> = {
+      "en-US": "English", "zh-CN": "Chinese (Simplified)", "ja-JP": "Japanese",
+      "es-ES": "Spanish", "ko-KR": "Korean",
+    };
+    const language = langNames[locale] || "English";
+
+    const summaryPrompt = `You are summarizing a D&D adventure for the Dungeon Master's reference.
+${this._storySummary ? `CURRENT SUMMARY:\n${this._storySummary}\n\n` : ""}RECENT EVENTS:\n${historyText}
+
+Write a concise adventure summary in ${language} (max 200 words). Include:
+- Key locations visited and current location
+- Important NPCs met (allies, enemies, their status)
+- Major decisions and their consequences
+- Current objectives or threats
+
+Format as bullet points. Keep it factual, not narrative.`;
+
+    try {
+      const summaryMessages = [
+        { role: "system" as const, content: `You are a D&D adventure summarizer. Respond in ${language}. Be concise.` },
+        { role: "user" as const, content: summaryPrompt },
+      ];
+      const summaryResult = await this.llmClient.streamChat(summaryMessages, {
+        onChunk: () => {}, // Silent - don't stream summary updates to client
+        onEnd: (content) => {
+          this._storySummary = content.trim();
+          console.log(`[Engine] Story summary updated (${content.length} chars)`);
+        },
+        onError: (err) => {
+          console.warn(`[Engine] Story summary update failed: ${err.message}`);
+        },
+      }, 30000);
+      // Fallback: if streamChat returns content, use it
+      if (summaryResult && !this._storySummary) {
+        this._storySummary = summaryResult.trim();
+      }
+    } catch {
+      // Summary update is best-effort, don't fail the turn
+      console.warn(`[Engine] Story summary update skipped`);
+    }
+  }
+
   // ---- Player Action ----
 
   async handlePlayerAction(
@@ -159,21 +240,12 @@ export class GameEngine {
       ? `Combat active. ${this._game.npcs.length} NPC(s) present. Round ${this._round}.`
       : `No active combat.`;
 
-    // Calculate passive scores for DM reference
-    const passivePerception = calculatePassiveScore(player, "Perception");
-    const passiveInsight = calculatePassiveScore(player, "Insight");
-    const hitDiceAvailable = (player.hitDice?.total || 0) - (player.hitDice?.used || 0);
-
-    // Extend combat status with D&D 5e mechanics info
-    const extendedStatus = `${combatStatus} Passive Perception: ${passivePerception}. Hit Dice available: ${hitDiceAvailable}/${player.hitDice?.total || 0}. Death saves: ${player.deathSaves?.successes || 0} successes, ${player.deathSaves?.failures || 0} failures.`;
-
-    // Build the action context (stats, dice, combat status, etc.) — NO conversation history here
+    // Build the action context — lightweight, no player stats (they're in world state)
     const actionContext = buildActionPrompt(payload.action, {
       currentPlayer: player,
       target,
       diceResult,
-      combatStatus: extendedStatus,
-      conversationHistory: [], // History is sent as separate messages below
+      combatStatus,
       scenario: this._game.scenario as Scenario || "dungeon",
       locale: player.locale || "en-US",
     });
@@ -204,22 +276,46 @@ export class GameEngine {
       }
     }
 
-    // Build messages: system prompt + conversation history + current action
-    // This gives the LLM full context of previous turns so the story progresses naturally
+    // Build messages: system + story summary + world state + recent history + action
+    // Story summary gives long-term memory, recent history gives short-term context
     const systemPrompt = buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US");
-    const maxHistoryTurns = 8; // Keep last 8 turns (16 messages) for context
+    const worldState = this.buildWorldState(player);
+    const maxHistoryTurns = 4; // Only 4 recent turns needed — summary covers the rest
     const historyStartIdx = Math.max(1, this._game.conversationHistory.length - (maxHistoryTurns * 2));
 
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       { role: "system", content: systemPrompt },
-      // Include conversation history as proper message pairs (skip index 0 = system message)
-      ...this._game.conversationHistory.slice(historyStartIdx).map(msg => ({
+    ];
+
+    // Story summary: gives DM the "big picture" of the adventure
+    if (this._storySummary) {
+      messages.push({
+        role: "user",
+        content: `ADVENTURE SUMMARY (key events so far):\n${this._storySummary}`,
+      });
+      messages.push({
+        role: "assistant",
+        content: "Understood. I'll keep this context in mind as the adventure continues.",
+      });
+    }
+
+    // World state: compact current game state
+    messages.push({
+      role: "user",
+      content: worldState,
+    });
+
+    // Recent conversation history (last 4 turns)
+    const recentHistory = this._game.conversationHistory.slice(historyStartIdx);
+    if (recentHistory.length > 0) {
+      messages.push(...recentHistory.map(msg => ({
         role: msg.role as "user" | "assistant",
         content: msg.content,
-      })),
-      // Current player action as the final user message
-      { role: "user", content: actionContext },
-    ];
+      })));
+    }
+
+    // Current player action as the final user message
+    messages.push({ role: "user", content: actionContext });
 
     const result = await this.llmClient.streamChat(messages, callbacks, 60000);
 
@@ -229,12 +325,20 @@ export class GameEngine {
     this._game.conversationHistory.push({ role: "assistant", content: parsed.fullNarrative });
 
     // Trim old history to control token usage, but always keep the system message (index 0)
-    const maxHistoryLength = 30; // ~15 turns of conversation
+    const maxHistoryLength = 20; // ~10 turns stored in memory
     if (this._game.conversationHistory.length > maxHistoryLength) {
       this._game.conversationHistory = [
         this._game.conversationHistory[0], // Keep system message
         ...this._game.conversationHistory.slice(-(maxHistoryLength - 1)),
       ];
+    }
+
+    // Update story summary periodically (every SUMMARY_INTERVAL turns)
+    this._turnCount++;
+    if (this._turnCount >= this.SUMMARY_INTERVAL) {
+      this._turnCount = 0;
+      // Update summary in background (don't await — don't block the response)
+      this.updateStorySummary(player).catch(() => {});
     }
 
     if (parsed.structured.creatureHp) {
@@ -319,19 +423,26 @@ export class GameEngine {
     };
     this._game.chatHistory.push(narrativeMsg);
 
-    // Send atmospheric response from DM — include conversation history for continuity
+    // Send atmospheric response from DM — include story summary + recent history
     const restPrompt = `The player takes a short rest. Describe the atmosphere — what they hear, smell, and feel while catching their breath after recent events. Keep it brief (1-2 paragraphs). End with JSON block.`;
 
-    const maxHistoryTurns = 8;
+    const maxHistoryTurns = 4;
     const historyStartIdx = Math.max(1, this._game.conversationHistory.length - (maxHistoryTurns * 2));
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       { role: "system", content: buildSystemPrompt(this._game.scenario as Scenario, player.locale || "en-US") },
-      ...this._game.conversationHistory.slice(historyStartIdx).map(msg => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-      })),
-      { role: "user", content: restPrompt },
     ];
+
+    if (this._storySummary) {
+      messages.push({ role: "user", content: `ADVENTURE SUMMARY:\n${this._storySummary}` });
+      messages.push({ role: "assistant", content: "Understood." });
+    }
+
+    messages.push({ role: "user", content: this.buildWorldState(player) });
+    messages.push(...this._game.conversationHistory.slice(historyStartIdx).map(msg => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content,
+    })));
+    messages.push({ role: "user", content: restPrompt });
 
     const result = await this.llmClient.streamChat(messages, callbacks, 60000);
     const parsed = parseLLMResponse(result);
@@ -369,6 +480,8 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
 
     const messages = [
       { role: "system" as const, content: buildSystemPrompt(scenario, player.locale || "en-US") },
+      { role: "user" as const, content: this.buildWorldState(player) },
+      { role: "assistant" as const, content: "Understood. Here is the opening scene:" },
       { role: "user" as const, content: openingPrompt },
     ];
 

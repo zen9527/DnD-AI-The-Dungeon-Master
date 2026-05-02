@@ -118,7 +118,7 @@ describe('buildActionPrompt', () => {
     expect(prompt).toContain('Lv.3');
   });
 
-  it('includes player stats (HP, AC, attributes)', () => {
+  it('is lightweight — player stats are in WORLD STATE, not action prompt', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TestPlayer', characterName: 'Aldric', isDM: false, race: 'Human',
       characterClass: 'Fighter', level: 3, attributes: { str: 16, dex: 12, con: 14, int: 10, wis: 8, cha: 12 },
@@ -129,58 +129,35 @@ describe('buildActionPrompt', () => {
       currentPlayer: mockPlayer, combatStatus: 'Combat', conversationHistory: [], scenario: 'dungeon'
     });
 
-    expect(prompt).toContain('HP: 25/30');
-    expect(prompt).toContain('AC: 16');
-    expect(prompt).toContain('Str=16');
-    expect(prompt).toContain('Dex=12');
-    expect(prompt).toContain('Con=14');
+    // Action prompt is now lightweight — stats are in world state
+    expect(prompt).toContain('Aldric');
+    expect(prompt).toContain('Fighter');
+    expect(prompt).toContain('I attack');
+    // Should NOT contain full stat block (that's in world state)
+    expect(prompt).not.toContain('Str=16');
+    expect(prompt).not.toContain('HP: 25/30');
   });
 
-  it('includes player conditions when present', () => {
+  it('includes spells when player has them', () => {
     const mockPlayer: Player = {
-      id: 'p1', name: 'TestPlayer', characterName: 'Aldric', isDM: false, race: 'Human',
-      characterClass: 'Fighter', level: 3, attributes: { str: 16, dex: 12, con: 14, int: 10, wis: 8, cha: 12 },
-      hp: 25, maxHp: 30, ac: 16, proficiencyBonus: 2, spellSlots: {}, spells: [], inventory: [], conditions: ['poisoned']
+      id: 'p1', name: 'TestPlayer', characterName: 'Merlin', isDM: false, race: 'Elf',
+      characterClass: 'Wizard', level: 5, attributes: { str: 8, dex: 14, con: 12, int: 18, wis: 10, cha: 6 },
+      hp: 28, maxHp: 32, ac: 12, proficiencyBonus: 3,
+      spellSlots: { 'level-1': 2, 'level-2': 1 },
+      spells: [{ name: 'Fireball', level: 3 }, { name: 'Magic Missile', level: 1 }],
+      inventory: [], conditions: []
     };
 
-    const prompt = buildActionPrompt('I attack', {
+    const prompt = buildActionPrompt('I cast a spell', {
       currentPlayer: mockPlayer, combatStatus: 'Combat', conversationHistory: [], scenario: 'dungeon'
     });
 
-    expect(prompt).toContain('Conditions');
-    expect(prompt).toContain('poisoned');
+    expect(prompt).toContain('Spells:');
+    expect(prompt).toContain('Fireball');
+    expect(prompt).toContain('Magic Missile');
   });
 
-  it('shows "none" for conditions when empty', () => {
-    const mockPlayer: Player = {
-      id: 'p1', name: 'TestPlayer', characterName: 'Aldric', isDM: false, race: 'Human',
-      characterClass: 'Fighter', level: 3, attributes: { str: 16, dex: 12, con: 14, int: 10, wis: 8, cha: 12 },
-      hp: 25, maxHp: 30, ac: 16, proficiencyBonus: 2, spellSlots: {}, spells: [], inventory: [], conditions: []
-    };
-
-    const prompt = buildActionPrompt('I attack', {
-      currentPlayer: mockPlayer, combatStatus: 'Combat', conversationHistory: [], scenario: 'dungeon'
-    });
-
-    expect(prompt).toContain('Conditions');
-  });
-
-  it('includes scenario tone reference with label and description', () => {
-    const mockPlayer: Player = {
-      id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Elf',
-      characterClass: 'Rogue', level: 2, attributes: { str: 10, dex: 16, con: 12, int: 12, wis: 14, cha: 10 },
-      hp: 15, maxHp: 18, ac: 14, proficiencyBonus: 2, spellSlots: {}, spells: [], inventory: [], conditions: []
-    };
-
-    const prompt = buildActionPrompt('I sneak past', {
-      currentPlayer: mockPlayer, combatStatus: 'Exploration', conversationHistory: [], scenario: 'horror'
-    });
-
-    expect(prompt).toContain('Horror & Mystery');
-    expect(prompt).toMatch(/(fog-shroudd|strange occurrence)/i);
-  });
-
-  it('includes target NPC details when provided', () => {
+  it('includes target NPC details when provided (compact format)', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Human',
       characterClass: 'Cleric', level: 4, attributes: { str: 12, dex: 10, con: 14, int: 14, wis: 16, cha: 12 },
@@ -197,12 +174,12 @@ describe('buildActionPrompt', () => {
     });
 
     expect(prompt).toContain('Zombie Guard');
-    expect(prompt).toContain('HP: 8/8');
-    expect(prompt).toContain('AC: 9');
+    expect(prompt).toContain('HP 8/8');
+    expect(prompt).toContain('AC 9');
     expect(prompt).toMatch(/Target:/i);
   });
 
-  it('includes dice roll result when provided', () => {
+  it('includes dice roll result when provided (compact format)', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Human',
       characterClass: 'Wizard', level: 5, attributes: { str: 8, dex: 14, con: 12, int: 18, wis: 10, cha: 6 },
@@ -218,7 +195,7 @@ describe('buildActionPrompt', () => {
       currentPlayer: mockPlayer, diceResult, combatStatus: 'Combat — Round 5', conversationHistory: [], scenario: 'dungeon'
     });
 
-    expect(prompt).toContain('Dice roll');
+    expect(prompt).toContain('Dice:');
     expect(prompt).toContain('[17]');
     expect(prompt).toContain('+ 3 = 20');
     expect(prompt).toMatch(/1d20/i);
@@ -303,10 +280,11 @@ describe('buildActionPrompt', () => {
 
     expect(prompt).not.toContain('Recent conversation');
     expect(prompt).toContain('I act');
-    expect(prompt).toContain('Combat');
+    // Combat status is in WORLD STATE, not action prompt
+    expect(prompt).not.toContain('Combat');
   });
 
-  it('includes combat status in prompt', () => {
+  it('combat status is in WORLD STATE, not action prompt', () => {
     const mockPlayer: Player = {
       id: 'p1', name: 'TP', characterName: 'Char', isDM: false, race: 'Human',
       characterClass: 'Ranger', level: 3, attributes: { str: 14, dex: 16, con: 12, int: 10, wis: 14, cha: 8 },
@@ -317,8 +295,9 @@ describe('buildActionPrompt', () => {
       currentPlayer: mockPlayer, combatStatus: 'Combat — Round 7: Goblin Horde engaged', conversationHistory: [], scenario: 'wilderness'
     });
 
-    expect(prompt).toContain('Combat status');
-    expect(prompt).toContain('Round 7');
+    // Combat status is in WORLD STATE, not action prompt
+    expect(prompt).not.toContain('Combat status');
+    expect(prompt).toContain('I shoot');
   });
 
   it('is deterministic for same inputs', () => {
