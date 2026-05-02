@@ -5,6 +5,7 @@ import type { MessageType, WebSocketMessage, Player, Attributes } from "../types
 import { gameStore } from "../game/store.js";
 import { buildSystemPrompt } from "../llm/prompts.js";
 import { type Scenario } from "../../shared/schemas/scenario.js";
+import { getLocalizedMessage } from "../utils/locale-loader.js";
 
 // Hit dice by class (D&D 5e standard)
 function getHitDiceForClass(characterClass: string): number {
@@ -148,7 +149,8 @@ export class WebSocketManager {
     this.send(ws, "GAME_CREATED", { gameId: engine.id, game: engine.game });
 
     // Generate opening scene via LLM (delay + retry)
-    this.send(ws, "STREAM_CHUNK", { content: "The Dungeon Master prepares the world...", isFinal: false });
+    const locale = player.locale || "en-US";
+    this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(locale, "status.dm_preparing"), isFinal: false });
 
     setTimeout(() => {
       console.log(`[OpeningScene] Attempting generation (game: ${engine.id})`);
@@ -176,9 +178,12 @@ export class WebSocketManager {
                 setTimeout(() => tryGenerate(), 3000);
               } else {
                 console.error(`[OpeningScene] Failed after ${attempt} attempts:`, error.message);
+                const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
+                // Persist fallback narrative to chatHistory so it survives page refresh
+                engine.addEvent("DM", fallback);
                 this.broadcastToGame(engine!.id, "STREAM_ERROR", {
                   message: error.message,
-                  fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+                  fallbackNarrative: fallback,
                 });
               }
             },
@@ -194,9 +199,11 @@ export class WebSocketManager {
         } catch (error) {
           if (!(error instanceof Error && error.message.includes("Failed after"))) {
             console.error(`[OpeningScene] Unexpected error:`, error);
+            const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
+            engine.addEvent("DM", fallback);
             this.broadcastToGame(engine.id, "STREAM_ERROR", {
               message: error instanceof Error ? error.message : "Unknown error",
-              fallbackNarrative: `The world forms around "${player.characterName}"... The adventure begins.`,
+              fallbackNarrative: fallback,
             });
           }
         }
@@ -246,13 +253,54 @@ export class WebSocketManager {
     gameStore.joinGame(p.gameId, player);
     this.clients.set(ws, { id: this.clients.get(ws)!.id, gameId: engine.id, playerId: player.id });
 
+    // Send join notification to all players
+    const joinLocale = player.locale || "en-US";
+    const joinMsg = getLocalizedMessage(joinLocale, "player_joined.notification").replace("{name}", player.characterName);
+    engine.addEvent("Player Joined", `${player.characterName} has joined the adventure`);
+    this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
+      message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
+      gameState: engine.game,
+    });
+
+    // Send game state to the joining player
     this.send(ws, "PLAYER_JOINED", {
       gameId: engine.id,
       player,
       gameState: engine.game,
     });
 
+    // Broadcast updated state to other players (excluding the joining player)
     this.broadcastToGame(engine.id, "PLAYER_JOINED", { player, gameState: engine.game }, ws);
+
+    // If this is the first player joining (DM already in game), generate a welcome scene from DM
+    if (engine.game.players.length > 1 && engine.game.chatHistory.length <= 1) {
+      // DM is already in the game but no opening scene yet — generate one for the new player
+      const dmPlayer = engine.game.players.find(pl => pl.isDM);
+      if (dmPlayer) {
+        this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(joinLocale, "status.dm_preparing"), isFinal: false });
+        setTimeout(() => {
+          engine.generateOpeningScene({
+            onChunk: (chunk: string) => {
+              this.broadcastToGame(engine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+            },
+            onEnd: () => {},
+            onError: (error: Error) => {
+              const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
+              engine.addEvent("DM", fallback);
+              this.broadcastToGame(engine.id, "STREAM_ERROR", {
+                message: error.message,
+                fallbackNarrative: fallback,
+              });
+            },
+          }).then((result) => {
+            this.broadcastToGame(engine.id, "STREAM_END", {
+              fullNarrative: result.fullNarrative,
+              structured: engine.game,
+            });
+          }).catch(() => {});
+        }, 2000);
+      }
+    }
   }
 
   private handleListGames(ws: WebSocket): void {
@@ -286,7 +334,9 @@ export class WebSocketManager {
       gameState: engine.game
     });
 
-    this.send(ws, "STREAM_CHUNK", { content: "The DM considers your action...", isFinal: false });
+    const playerAction = engine.game.players.find(p => p.id === client.playerId);
+    const actionLocale = playerAction?.locale || "en-US";
+    this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(actionLocale, "status.dm_considers"), isFinal: false });
 
     // Await complete generation then broadcast with updated state
     try {
@@ -298,9 +348,11 @@ export class WebSocketManager {
           // Don't use this - we'll broadcast after state updates complete
         },
         onError: (error: Error) => {
+          const fallback = `You attempt: "${actionPayload.action}". The result is uncertain...`;
+          engine.addEvent("DM", fallback);
           this.broadcastToGame(engine!.id, "STREAM_ERROR", {
             message: error.message,
-            fallbackNarrative: `You attempt: "${actionPayload.action}". The result is uncertain...`,
+            fallbackNarrative: fallback,
           });
         },
       });

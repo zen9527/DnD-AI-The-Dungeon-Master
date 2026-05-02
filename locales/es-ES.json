@@ -159,5 +159,18 @@
   "initiative.rolled": "¡Iniciativa lanzada! Orden:",
   "event.potion_healing": "Bebes una Poción de Curación y recuperas {healed} PG. (PG ahora: {hp}/{maxHp})",
   "event.short_rest": "Tomas un descanso corto, curando tus heridas. {hdAvailable > 0 ? 'Lanzas un dado de golpe y recuperas' : 'pero no te quedan dados de golpe'}{totalHealed} PG. (PG ahora: {hp}/{maxHp})",
-  "error.unknown": "Error desconocido"
+  "error.unknown": "Error desconocido",
+  "attributes.str": "FUE",
+  "attributes.dex": "DES",
+  "attributes.con": "CON",
+  "attributes.int": "INT",
+  "attributes.wis": "SAB",
+  "attributes.cha": "CAR",
+  "character.fallback_name": "{characterClass} de {race}",
+  "scenario.prefix": "Escenario: ",
+  "dm.storyteller_name": "Narrador",
+  "player.unknown": "Desconocido",
+  "dm_error.notification": "Error del DM: {message}",
+  "spell.cast_tooltip": "Lanzar hechizo",
+  "player_joined.notification": "¡{name} se ha unido a la aventura!"
 }

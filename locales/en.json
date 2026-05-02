@@ -159,5 +159,18 @@
   "initiative.rolled": "Initiative rolled! Order:",
   "event.potion_healing": "You drink a Potion of Healing and recover {healed} HP. (HP now: {hp}/{maxHp})",
   "event.short_rest": "You take a short rest, tending to your wounds. You roll {hdAvailable > 0 ? 'a hit die and recover' : 'but have no hit dice left'} {totalHealed} HP. (HP now: {hp}/{maxHp})",
-  "error.unknown": "Unknown error"
+  "error.unknown": "Unknown error",
+  "attributes.str": "STR",
+  "attributes.dex": "DEX",
+  "attributes.con": "CON",
+  "attributes.int": "INT",
+  "attributes.wis": "WIS",
+  "attributes.cha": "CHA",
+  "character.fallback_name": "{characterClass} of {race}",
+  "scenario.prefix": "Scenario: ",
+  "dm.storyteller_name": "Storyteller",
+  "player.unknown": "Unknown",
+  "dm_error.notification": "DM error: {message}",
+  "spell.cast_tooltip": "Cast a spell",
+  "player_joined.notification": "{name} has joined the adventure!"
 }

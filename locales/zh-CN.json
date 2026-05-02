@@ -159,5 +159,18 @@
   "initiative.rolled": "先攻掷骰！顺序:",
   "event.potion_healing": "你喝下一瓶治疗药水，恢复了{healed}点生命值。(当前HP: {hp}/{maxHp})",
   "event.short_rest": "你进行了一次短休，包扎伤口。{hdAvailable > 0 ? '投掷一个生命骰恢复了' : '但没有剩余的生命骰'}{totalHealed}点生命值。(当前HP: {hp}/{maxHp})",
-  "error.unknown": "未知错误"
+  "error.unknown": "未知错误",
+  "attributes.str": "力量",
+  "attributes.dex": "敏捷",
+  "attributes.con": "体质",
+  "attributes.int": "智力",
+  "attributes.wis": "感知",
+  "attributes.cha": "魅力",
+  "character.fallback_name": "{race} 的 {characterClass}",
+  "scenario.prefix": "场景: ",
+  "dm.storyteller_name": "说书人",
+  "player.unknown": "未知",
+  "dm_error.notification": "DM 错误: {message}",
+  "spell.cast_tooltip": "施放法术",
+  "player_joined.notification": "{name} 加入了冒险！"
 }

@@ -68,7 +68,7 @@ function generateDefaultCharacterName(characterClass: string, race: string): str
 
   // Fallback to English if no names found for this race in current locale
   if (raceData.firstNames.length === 0 || raceData.lastParts.length === 0) {
-    return `${characterClass} of ${race}`;
+    return t("character.fallback_name", { characterClass, race });
   }
 
   // Use class name to seed a deterministic but varied selection
@@ -217,7 +217,7 @@ export class CharacterCreator {
       <div class="welcome-screen">
         ${this.renderLocaleDropdown()}
         <h2>${t("create_game_page.title")}</h2>
-        <p class="subtitle">Scenario: ${getLocalizedScenarios()[this.selectedScenario]?.icon ?? "🏰"} ${getLocalizedScenarios()[this.selectedScenario]?.label ?? this.selectedScenario}</p>
+        <p class="subtitle">${t("scenario.prefix")}${getLocalizedScenarios()[this.selectedScenario]?.icon ?? "🏰"} ${getLocalizedScenarios()[this.selectedScenario]?.label ?? this.selectedScenario}</p>
         <form id="create-game-form">
           <label>${t("game_name.label")}
             <input type="text" id="game-name" placeholder="${t("game_name.placeholder")}" required>
@@ -259,12 +259,12 @@ export class CharacterCreator {
           </label>
           <h3>${t("attributes.title")}</h3>
           <div class="attributes-grid">
-            <label>STR <input type="number" id="attr-str" min="3" max="18" value="10"></label>
-            <label>DEX <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
-            <label>CON <input type="number" id="attr-con" min="3" max="18" value="10"></label>
-            <label>INT <input type="number" id="attr-int" min="3" max="18" value="10"></label>
-            <label>WIS <input type="number" id="attr-wis" min="3" max="18" value="10"></label>
-            <label>CHA <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
+            <label>${t("attributes.str")} <input type="number" id="attr-str" min="3" max="18" value="10"></label>
+            <label>${t("attributes.dex")} <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
+            <label>${t("attributes.con")} <input type="number" id="attr-con" min="3" max="18" value="10"></label>
+            <label>${t("attributes.int")} <input type="number" id="attr-int" min="3" max="18" value="10"></label>
+            <label>${t("attributes.wis")} <input type="number" id="attr-wis" min="3" max="18" value="10"></label>
+            <label>${t("attributes.cha")} <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
           </div>
           <div class="form-actions">
             <button type="submit" class="primary">${t("create_game.btn")}</button>

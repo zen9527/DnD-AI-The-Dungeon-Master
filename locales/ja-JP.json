@@ -159,5 +159,18 @@
   "initiative.rolled": "先攻判定！順序:",
   "event.potion_healing": "治療ポーションを飲み、{healed}HP回復しました。(現在のHP: {hp}/{maxHp})",
   "event.short_rest": "短休を取り、傷の手当てをしました。{hdAvailable > 0 ? 'ヒットダイスを振って' : 'ヒットダイスがないため'}{totalHealed}HP回復しました。(現在のHP: {hp}/{maxHp})",
-  "error.unknown": "不明なエラー"
+  "error.unknown": "不明なエラー",
+  "attributes.str": "力量",
+  "attributes.dex": "敏捷",
+  "attributes.con": "体质",
+  "attributes.int": "知力",
+  "attributes.wis": "知恵",
+  "attributes.cha": "魅力",
+  "character.fallback_name": "{race} の {characterClass}",
+  "scenario.prefix": "シナリオ: ",
+  "dm.storyteller_name": "語り部",
+  "player.unknown": "不明",
+  "dm_error.notification": "DMエラー: {message}",
+  "spell.cast_tooltip": "呪文を発動",
+  "player_joined.notification": "{name} が冒険に参加しました！"
 }

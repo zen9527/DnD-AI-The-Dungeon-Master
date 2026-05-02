@@ -159,5 +159,18 @@
   "initiative.rolled": "선공 주사위! 순서:",
   "event.potion_healing": "치료 포션을 마시고 {healed} HP를 회복했습니다. (현재 HP: {hp}/{maxHp})",
   "event.short_rest": "짧은 휴식을 취하고 상처를 돌봤습니다. {hdAvailable > 0 ? '히트 주사위를 굴려' : '히트 주사위가 없어'}{totalHealed} HP를 회복했습니다. (현재 HP: {hp}/{maxHp})",
-  "error.unknown": "알 수 없는 오류"
+  "error.unknown": "알 수 없는 오류",
+  "attributes.str": "힘",
+  "attributes.dex": "민첩",
+  "attributes.con": "체력",
+  "attributes.int": "지능",
+  "attributes.wis": "지혜",
+  "attributes.cha": "매력",
+  "character.fallback_name": "{race} 의 {characterClass}",
+  "scenario.prefix": "시나리오: ",
+  "dm.storyteller_name": "서사자",
+  "player.unknown": "알 수 없음",
+  "dm_error.notification": "DM 오류: {message}",
+  "spell.cast_tooltip": "주문 시전",
+  "player_joined.notification": "{name}이(가) 모험에 참가했습니다!"
 }

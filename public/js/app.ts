@@ -114,12 +114,12 @@ class App {
           <label>${t("class.label")} <select id="character-class">${classes}</select></label>
           <h3>${t("attributes.title")}</h3>
           <div class="attributes-grid">
-            <label>STR <input type="number" id="attr-str" min="3" max="18" value="10"></label>
-            <label>DEX <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
-            <label>CON <input type="number" id="attr-con" min="3" max="18" value="10"></label>
-            <label>INT <input type="number" id="attr-int" min="3" max="18" value="10"></label>
-            <label>WIS <input type="number" id="attr-wis" min="3" max="18" value="10"></label>
-            <label>CHA <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
+            <label>${t("attributes.str")} <input type="number" id="attr-str" min="3" max="18" value="10"></label>
+            <label>${t("attributes.dex")} <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
+            <label>${t("attributes.con")} <input type="number" id="attr-con" min="3" max="18" value="10"></label>
+            <label>${t("attributes.int")} <input type="number" id="attr-int" min="3" max="18" value="10"></label>
+            <label>${t("attributes.wis")} <input type="number" id="attr-wis" min="3" max="18" value="10"></label>
+            <label>${t("attributes.cha")} <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
           </div>
           <button type="submit" class="primary">${t("join_form.btn")}</button>
         </form>
@@ -204,8 +204,8 @@ class App {
       const p = payload as { content: string; isFinal: boolean };
       
       // Check if this is a status placeholder message or actual LLM chunk
-      const isStatusMessage = p.content === "The DM considers your action..." || 
-                              p.content === "The Dungeon Master prepares the world...";
+      const isStatusMessage = p.content === t("status.dm_considers") || 
+                              p.content === t("status.dm_preparing");
       
       if (isStatusMessage) {
         // Clear buffer and show only status message temporarily
@@ -248,7 +248,7 @@ class App {
         timestamp: Date.now(),
       });
       this.renderChatMessages();
-      this.showNotification(`DM error: ${p.message}`, "error");
+      this.showNotification(t("dm_error.notification", { message: p.message }), "error");
     });
 
     wsManager.on("CHAT_MESSAGE", (payload) => {
@@ -308,7 +308,7 @@ class App {
               <li class="dm-card">
                 <span class="badge-dm">${t("dm.name")}</span>
                 <div class="player-info">
-                  <span class="character-name" style="color:var(--accent-gold)">Storyteller</span>
+                  <span class="character-name" style="color:var(--accent-gold)">${t("dm.storyteller_name")}</span>
                   <span class="player-detail">${this.escapeHtml(scenarioLabel)}</span>
                 </div>
                 <div class="dm-status">
@@ -451,7 +451,7 @@ class App {
 
     const el = document.createElement("div");
     const isDMNarrative = message.type === "narrative" || !message.playerName;
-    const senderName = isDMNarrative ? t("dm.name") : (message.characterName || message.playerName || "Unknown");
+    const senderName = isDMNarrative ? t("dm.name") : (message.characterName || message.playerName || t("player.unknown"));
     el.className = `message ${message.type} ${!isDMNarrative && message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
     el.innerHTML = `
       <div class="message-header">

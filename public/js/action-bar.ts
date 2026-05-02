@@ -73,7 +73,7 @@ export class ActionBar {
 
       let dropdownOptions = "";
       for (const [level, names] of Object.entries(levelGroups)) {
-        dropdownOptions += `<optgroup label="Level ${level}">`;
+        dropdownOptions += `<optgroup label="${t("spell.level_group", { level })}">`;
         for (const name of names) {
           dropdownOptions += `<option value="${this.escapeHtml(name)}">${this.escapeHtml(name)}</option>`;
         }
@@ -82,7 +82,7 @@ export class ActionBar {
 
       spellsHtml = `
         <div class="spell-selector">
-          <select id="spell-select" title="Cast a spell">
+          <select id="spell-select" title="${t("spell.cast_tooltip")}">
             <option value="">${t("spell.cast_placeholder")}</option>
             ${dropdownOptions}
           </select>
