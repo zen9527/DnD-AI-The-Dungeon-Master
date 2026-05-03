@@ -208,11 +208,12 @@ class App {
                               p.content === t("status.dm_preparing");
       
       if (isStatusMessage) {
-        // Clear buffer and show only status message temporarily
+        // Clear buffer completely and show only status message
         gameState.clearStreamBuffer();
         gameState.updateStreamBuffer(p.content);
       } else {
-        // Actual LLM chunk - accumulate into buffer
+        // LLM chunk arrives - clear buffer completely then add content
+        gameState.clearStreamBuffer();
         gameState.updateStreamBuffer(p.content);
       }
       

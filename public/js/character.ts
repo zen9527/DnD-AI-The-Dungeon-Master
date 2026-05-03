@@ -89,6 +89,7 @@ export class CharacterCreator {
   // Store handler references for cleanup (fixes event listener leak)
   private raceChangeHandler: (() => void) | null = null;
   private classChangeHandler: (() => void) | null = null;
+  private isCharacterNameDirty: boolean = false;
 
   constructor() {
     this.element = document.getElementById("app");
@@ -305,6 +306,12 @@ export class CharacterCreator {
     raceSelect.addEventListener("change", this.raceChangeHandler!);
     classSelect.addEventListener("change", this.classChangeHandler!);
     autoFillBtn?.addEventListener("click", () => this.autoFillAttributesAndName());
+    
+    // Track character name edits
+    const characterNameInput = document.getElementById("character-name") as HTMLInputElement;
+    characterNameInput?.addEventListener("input", () => {
+      this.isCharacterNameDirty = true;
+    });
 
     // Show initial descriptions for default selections
     if (raceSelect.value) this.showRaceDescription(raceSelect.value);
@@ -391,9 +398,9 @@ export class CharacterCreator {
     const race = raceSelect.value;
     const characterClass = classSelect.value;
     
-    // Auto-generate character name
+    // Auto-generate character name only if user hasn't edited it
     const generatedName = generateDefaultCharacterName(characterClass, race);
-    if (characterNameInput && !characterNameInput.value) {
+    if (characterNameInput && !this.isCharacterNameDirty) {
       characterNameInput.value = generatedName;
     }
     
@@ -413,6 +420,9 @@ export class CharacterCreator {
     if (intInput) intInput.value = attrs.int.toString();
     if (wisInput) wisInput.value = attrs.wis.toString();
     if (chaInput) chaInput.value = attrs.cha.toString();
+    
+    // Reset dirty flag after auto-fill
+    this.isCharacterNameDirty = false;
     
     // Visual feedback
     const formRow = document.querySelector(".form-row");
