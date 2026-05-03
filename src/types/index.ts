@@ -125,6 +125,7 @@ export type MessageType =
   | 'NPC_CREATE'
   | 'EVENT_CREATE'
   // Server → Client
+  | 'GAME_CONNECTED'
   | 'GAME_CREATED'
   | 'GAME_STATE'
   | 'PLAYER_JOINED'
