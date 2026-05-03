@@ -161,6 +161,13 @@ server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
 });
 
+// Catch unhandled promise rejections for debugging
+process.on("unhandledRejection", (reason, promise) => {
+  console.error(`[Global] Unhandled Rejection at:`, promise);
+  console.error(`[Global] Reason:`, reason instanceof Error ? reason.message : reason);
+  console.error(`[Global] Stack:`, reason instanceof Error ? reason.stack : "N/A");
+});
+
 process.on("SIGINT", () => {
   console.log("\nShutting down server...");
   wsManager.shutdown();

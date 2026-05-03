@@ -54,16 +54,19 @@ export class WebSocketManager {
         console.error(`[WS] Error for ${connectionId}:`, error.message);
       });
 
-      this.send(ws, "GAME_STATE", { message: "Connected to DnD server" });
+      this.send(ws, "GAME_CONNECTED", {});
     });
   }
 
   private handleMessage(ws: WebSocket, data: Buffer): void {
+    const rawStr = data.toString();
+    
     try {
-      const message = JSON.parse(data.toString()) as WebSocketMessage;
+      const message = JSON.parse(rawStr) as WebSocketMessage;
       this.routeMessage(ws, message);
-    } catch {
-      this.sendError(ws, "Invalid message format");
+    } catch (error) {
+      console.error(`[WS] handleMessage error for "${rawStr}":`, error instanceof Error ? error.message : "unknown");
+      this.sendError(ws, `Invalid message format: ${error instanceof Error ? error.message : "parse failed"}`);
     }
   }
 
@@ -112,8 +115,10 @@ export class WebSocketManager {
     }
 
     const p = parsed.data;
+    const clientData = this.clients.get(ws)!;
+
     const player: Player = {
-      id: this.clients.get(ws)!.id,
+      id: clientData.id,
       name: p.playerName,
       characterName: p.characterName,
       isDM: true,
@@ -136,6 +141,7 @@ export class WebSocketManager {
     };
 
     const scenario = (payload.scenario as string) || "dungeon";
+    const locale = (payload.locale as string) || "en-US";
 
     const engine = gameStore.createGame(
       (payload.gameName as string) || "New Adventure",
@@ -144,18 +150,17 @@ export class WebSocketManager {
       player
     );
 
-    this.clients.set(ws, { id: this.clients.get(ws)!.id, gameId: engine.id, playerId: player.id });
+    this.clients.set(ws, { id: clientData.id, gameId: engine.id, playerId: player.id });
 
     this.send(ws, "GAME_CREATED", { gameId: engine.id, game: engine.game });
 
     // Generate opening scene via LLM (delay + retry)
-    const locale = player.locale || "en-US";
     this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(locale, "status.dm_preparing"), isFinal: false });
 
     setTimeout(() => {
       console.log(`[OpeningScene] Attempting generation (game: ${engine.id})`);
       let attempt = 0;
-      
+
       const tryGenerate = async (): Promise<void> => {
         attempt++;
         console.log(`[OpeningScene] Attempt ${attempt} (game: ${engine.id})`);
@@ -172,7 +177,7 @@ export class WebSocketManager {
             onError: (error: Error) => {
               const isConnectionError = error.message.includes("unreachable") || error.message.includes("ECONNREFUSED");
               const isTimeout = error.message.includes("timed out") || error.message.includes("idle timeout");
-              
+
               if (attempt < 4 && (isConnectionError || isTimeout)) {
                 console.log(`[OpeningScene] Attempt ${attempt} failed (${isTimeout ? "timeout" : "connection"}), retrying in 3s...`);
                 setTimeout(() => tryGenerate(), 3000);
@@ -198,7 +203,7 @@ export class WebSocketManager {
 
         } catch (error) {
           if (!(error instanceof Error && error.message.includes("Failed after"))) {
-            console.error(`[OpeningScene] Unexpected error:`, error);
+            console.error(`[OpeningScene] Unexpected error:`, error instanceof Error ? error.message : error);
             const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
             engine.addEvent("DM", fallback);
             this.broadcastToGame(engine.id, "STREAM_ERROR", {
@@ -208,8 +213,10 @@ export class WebSocketManager {
           }
         }
       };
-      
-      tryGenerate();
+
+      tryGenerate().catch((err) => {
+        console.error(`[OpeningScene] Unhandled rejection:`, err instanceof Error ? err.message : err);
+      });
     }, 5000);
   }
 
@@ -329,7 +336,7 @@ export class WebSocketManager {
 
     // Add player's action to chat history immediately (so it shows before DM response)
     engine.addChatMessage(client.playerId, actionPayload.action);
-    this.broadcastToGame(engine.id, "CHAT_MESSAGE", { 
+    this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
       message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
       gameState: engine.game
     });

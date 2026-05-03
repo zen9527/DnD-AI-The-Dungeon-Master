@@ -1,5 +1,5 @@
 // public/js/i18n.ts — Lightweight frontend i18n runtime
-import en from "../../locales/en.json";
+import en from "../../locales/en-US.json";
 import zhCN from "../../locales/zh-CN.json";
 import jaJP from "../../locales/ja-JP.json";
 import esES from "../../locales/es-ES.json";

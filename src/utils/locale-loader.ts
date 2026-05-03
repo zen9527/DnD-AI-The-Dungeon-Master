@@ -2,24 +2,34 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const LOCALES_DIR = path.join(__dirname, "../../locales");
+// Use process.cwd() so it works both in source (ts) and compiled (dist)
+const LOCALES_DIR = path.join(process.cwd(), "locales");
 
 // Cache loaded locale data
 const localeCache: Record<string, Record<string, string>> = {};
 
-export function loadLocale(locale: string): Record<string, string> {
+export function loadLocale(locale: string, visited: Set<string> = new Set()): Record<string, string> {
   if (localeCache[locale]) return localeCache[locale];
-  
+
+  // Recursion guard — prevents infinite loop if fallback chain is broken
+  if (visited.has(locale)) {
+    console.warn(`[Locale] Circular fallback detected for "${locale}", returning empty object`);
+    return {};
+  }
+  visited.add(locale);
+
   const filePath = path.join(LOCALES_DIR, `${locale}.json`);
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
     localeCache[locale] = JSON.parse(raw) as Record<string, string>;
     return localeCache[locale];
   } catch {
-    // Fallback to English
-    return loadLocale("en-US");
+    console.warn(`[Locale] File not found: ${filePath}, falling back to en-US`);
+    if (locale === "en-US") {
+      console.error("[Locale] en-US.json not found! Returning empty locale data.");
+      return {};
+    }
+    return loadLocale("en-US", visited);
   }
 }
 
