@@ -1,11 +1,13 @@
 import { WebSocket, WebSocketServer } from "ws";
 import { Server as HttpServer } from "http";
 import type { IncomingMessage } from "http";
-import type { MessageType, WebSocketMessage, Player, Attributes } from "../types/index.js";
+import type { MessageType, WebSocketMessage, Player, Attributes, ChatMessage } from "../types/index.js";
 import { gameStore } from "../game/store.js";
 import { buildSystemPrompt } from "../llm/prompts.js";
 import { type Scenario } from "../../shared/schemas/scenario.js";
 import { getLocalizedMessage } from "../utils/locale-loader.js";
+import { z } from "zod";
+import { generateId } from "../utils/id.js";
 
 // Hit dice by class (D&D 5e standard)
 function getHitDiceForClass(characterClass: string): number {
@@ -89,6 +91,12 @@ export class WebSocketManager {
         break;
       case "CHAT_MESSAGE":
         this.handleChatMessage(ws, client!, payload);
+        break;
+      case "PLAYER_EMOTE":
+        this.handleEmote(ws, client!, payload);
+        break;
+      case "PRIVATE_CHAT":
+        this.handlePrivateChat(ws, client!, payload);
         break;
       case "SET_LOCALE":
         this.handleSetLocale(ws, client!, payload);
@@ -400,6 +408,113 @@ export class WebSocketManager {
       message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
       gameState: engine.game  // Send full game state to ensure consistency
     });
+  }
+
+  private handleEmote(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Validate emote action
+    const parsed = z.object({ action: z.string().min(1).max(200) }).safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player) {
+      this.sendError(ws, "Player not found");
+      return;
+    }
+
+    // Format emote as "*PlayerName action*"
+    const emoteContent = `*${player.characterName || player.name} ${parsed.data.action}*`;
+    
+    const emoteMsg: ChatMessage = {
+      id: generateId(),
+      playerId: client.playerId,
+      playerName: player.name,
+      characterName: player.characterName,
+      content: emoteContent,
+      type: "emote",
+      timestamp: Date.now(),
+    };
+
+    engine.addChatMessage(client.playerId, emoteContent);
+    this.broadcastToGame(engine.id, "EMOTE_MESSAGE", {
+      message: emoteMsg,
+      gameState: engine.game
+    });
+  }
+
+  private handlePrivateChat(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Validate private chat payload
+    const parsed = z.object({ 
+      targetPlayerId: z.string().min(1),
+      content: z.string().min(1).max(500)
+    }).safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const sender = engine.game.players.find(p => p.id === client.playerId);
+    const target = engine.game.players.find(p => p.id === parsed.data.targetPlayerId);
+    
+    if (!sender) {
+      this.sendError(ws, "Sender not found");
+      return;
+    }
+    if (!target) {
+      this.sendError(ws, "Target player not found");
+      return;
+    }
+
+    const privateMsg: ChatMessage = {
+      id: generateId(),
+      playerId: client.playerId,
+      playerName: sender.name,
+      characterName: sender.characterName,
+      content: `[私聊 to ${target.characterName || target.name}]: ${parsed.data.content}`,
+      type: "text",
+      timestamp: Date.now(),
+    };
+
+    // Send to sender (confirmation)
+    this.send(ws, "PRIVATE_MESSAGE", {
+      message: privateMsg,
+      targetPlayerId: parsed.data.targetPlayerId
+    });
+
+    // Send to target (only they can see it)
+    const targetWs = Array.from(this.clients.entries()).find(
+      ([ws, client]) => client.playerId === parsed.data.targetPlayerId
+    )?.[0];
+    if (targetWs) {
+      this.send(targetWs, "PRIVATE_MESSAGE", {
+        message: privateMsg,
+        senderPlayerId: client.playerId
+      });
+    }
   }
 
   private handleSetLocale(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {

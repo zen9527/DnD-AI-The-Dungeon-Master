@@ -98,7 +98,7 @@ export class ActionBar {
         ${spellsHtml}
       </div>
       <div class="free-text">
-        <input type="text" id="action-input" placeholder="${t("action.placeholder")}">
+        <input type="text" id="action-input" placeholder="${t("action.placeholder")} (/emote text, /pm player message)">
         <button id="action-submit" class="primary">${t("action.submit")}</button>
       </div>
     `;
@@ -152,7 +152,48 @@ export class ActionBar {
   private sendAction(action: string): void {
     if (!action.trim()) return;
     
-    wsManager.send({ type: "PLAYER_ACTION", payload: { action: action.trim() } });
+    const trimmedAction = action.trim();
+    
+    // Parse /emote command - send as PLAYER_EMOTE
+    if (trimmedAction.startsWith("/emote ") || trimmedAction.startsWith("/emote\t")) {
+      const emoteText = trimmedAction.substring(7).trim();
+      if (emoteText) {
+        wsManager.send({ type: "PLAYER_EMOTE", payload: { action: emoteText } });
+      }
+      // Clear input after sending
+      const input = document.getElementById("action-input") as HTMLInputElement;
+      if (input) input.value = "";
+      return;
+    }
+    
+    // Parse /pm or /whisper command - send as PRIVATE_CHAT
+    // Format: /pm <playerName> <message> or /whisper <playerName> <message>
+    const pmMatch = trimmedAction.match(/^\/pm\s+(\S+)\s+(.+)$/i) || trimmedAction.match(/^\/whisper\s+(\S+)\s+(.+)$/i);
+    if (pmMatch) {
+      const targetName = pmMatch[1];
+      const message = pmMatch[2];
+      
+      // Find player by character name or player name
+      const game = gameState.game;
+      const targetPlayer = game?.players.find(p => 
+        p.characterName.toLowerCase() === targetName.toLowerCase() || 
+        p.name.toLowerCase() === targetName.toLowerCase()
+      );
+      
+      if (targetPlayer) {
+        wsManager.send({ type: "PRIVATE_CHAT", payload: { targetPlayerId: targetPlayer.id, content: message } });
+      } else {
+        // Show error - player not found
+        console.warn(`Player "${targetName}" not found`);
+      }
+      // Clear input after sending
+      const input = document.getElementById("action-input") as HTMLInputElement;
+      if (input) input.value = "";
+      return;
+    }
+    
+    // Regular action - send as PLAYER_ACTION
+    wsManager.send({ type: "PLAYER_ACTION", payload: { action: trimmedAction } });
     
     // Clear free text input after sending
     const input = document.getElementById("action-input") as HTMLInputElement;

@@ -501,5 +501,9 @@
   "player_joined.notification": "{name} 加入了冒险！",
   "dice.skill_check": "🎲 {skill} 检定：{total} ({roll} + {mod}) - {result} (DC {dc})",
   "dice.success": "成功",
-  "dice.failure": "失败"
+  "dice.failure": "失败",
+  "emote.format": "*{playerName} {action}*",
+  "private_chat.prefix": "[私聊 to {targetName}]: {content}",
+  "private_chat.sent": "已发送私聊给 {targetName}",
+  "private_chat.received": "收到来自 {senderName} 的私聊"
 }

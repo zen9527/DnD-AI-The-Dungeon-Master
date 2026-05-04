@@ -60,7 +60,7 @@ export interface ChatMessage {
   playerName?: string;
   characterName?: string;
   content: string;
-  type: 'text' | 'roll' | 'npc' | 'event' | 'narrative';
+  type: 'text' | 'roll' | 'npc' | 'event' | 'narrative' | 'emote'; // Added 'emote' type
   timestamp: number;
   diceResult?: DiceRoll; // Auto-rolled dice result for skill checks
 }
@@ -127,6 +127,8 @@ export type MessageType =
   | 'LIST_GAMES'
   | 'PLAYER_ACTION'
   | 'PLAYER_CHAT'
+  | 'PLAYER_EMOTE'        // NEW: Emote command support
+  | 'PRIVATE_CHAT'        // NEW: Private messaging
   | 'SET_LOCALE'
   | 'DICE_ROLL'
   | 'NPC_CREATE'
@@ -139,6 +141,8 @@ export type MessageType =
   | 'PLAYER_LEFT'
   | 'PLAYER_ACTION_RESULT'
   | 'CHAT_MESSAGE'
+  | 'EMOTE_MESSAGE'       // NEW: Emote broadcast
+  | 'PRIVATE_MESSAGE'     // NEW: Private message delivery
   | 'DICE_ROLL_RESULT'
   | 'NPC_CREATED'
   | 'EVENT_CREATED'
@@ -146,6 +150,7 @@ export type MessageType =
   | 'STREAM_END'
   | 'STREAM_ERROR'
   | 'LOCALE_UPDATED'
+  | 'TURN_TIMER'          // NEW: Turn timer notification
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {
@@ -179,6 +184,15 @@ export interface PlayerActionPayload {
 }
 
 export interface ChatMessagePayload {
+  content: string;
+}
+
+export interface EmotePayload {
+  action: string; // e.g., "waves hello", "draws sword"
+}
+
+export interface PrivateChatPayload {
+  targetPlayerId: string;
   content: string;
 }
 

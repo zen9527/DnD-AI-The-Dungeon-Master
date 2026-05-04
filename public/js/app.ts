@@ -300,6 +300,38 @@ class App {
       this.renderChatMessages();
     });
 
+    wsManager.on("EMOTE_MESSAGE", (payload) => {
+      const p = payload as { message: ChatMessage; gameState: Game };
+      
+      // Emote messages are styled differently - use full game state
+      if (p.gameState) {
+        gameState.setGame(p.gameState);
+      } else {
+        gameState.addChatMessage(p.message);
+      }
+      
+      this.renderChatMessages();
+    });
+
+    wsManager.on("PRIVATE_MESSAGE", (payload) => {
+      const p = payload as { message: ChatMessage; targetPlayerId?: string; senderPlayerId?: string };
+      
+      // Add private message to chat history
+      gameState.addChatMessage(p.message);
+      this.renderChatMessages();
+      
+      // Show notification
+      if (p.senderPlayerId) {
+        // Received private message
+        const sender = gameState.game?.players.find(pl => pl.id === p.senderPlayerId);
+        this.showNotification(t("private_chat.received", { senderName: sender?.characterName || "Unknown" }), "info");
+      } else if (p.targetPlayerId) {
+        // Sent private message confirmation
+        const target = gameState.game?.players.find(pl => pl.id === p.targetPlayerId);
+        this.showNotification(t("private_chat.sent", { targetName: target?.characterName || "Unknown" }), "info");
+      }
+    });
+
     wsManager.on("NPC_CREATED", (payload) => {
       const p = payload as { npc: { name: string; description: string; role: string } };
       this.showNotification(t("npc_created.notification", { name: this.escapeHtml(p.npc.name), role: this.escapeHtml(p.npc.role) }), "info");
@@ -485,8 +517,15 @@ class App {
 
     const el = document.createElement("div");
     const isDMNarrative = message.type === "narrative" || !message.playerName;
+    const isEmote = message.type === "emote";
     const senderName = isDMNarrative ? t("dm.name") : (message.characterName || message.playerName || t("player.unknown"));
-    el.className = `message ${message.type} ${!isDMNarrative && message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
+    
+    // Emote messages get special styling
+    if (isEmote) {
+      el.className = `message emote ${message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
+    } else {
+      el.className = `message ${message.type} ${!isDMNarrative && message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
+    }
     
     // Build content - include dice result if present
     let content = this.escapeHtml(message.content);
@@ -504,7 +543,7 @@ class App {
       <div class="message-content">${content}</div>
     `;
     messagesDiv.appendChild(el);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    messagesDiv.scrollTop = messages.scrollHeight;
   }
 
   private showNotification(text: string, type: "success" | "error" | "info"): void {
