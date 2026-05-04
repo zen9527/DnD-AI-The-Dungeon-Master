@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GameEngine } from "../../src/game/engine.js";
+import { calculateCombinedCheck, getCombinedCheckDescription } from "../../src/game/rules.js";
 
 describe("GameEngine turn timer", () => {
   let engine: GameEngine;
@@ -135,5 +136,71 @@ describe("GameEngine turn timer", () => {
     // Advance turn should reset timer to 60
     engine.advanceTurn();
     expect(engine.timerRemaining).toBe(60);
+  });
+});
+
+describe("calculateCombinedCheck", () => {
+  it("should add +2 per additional helper", () => {
+    const mainRoll = 15;
+    const mainMod = 3;
+    const helpers = 2; // 2 other players helping
+    
+    const result = calculateCombinedCheck(mainRoll, mainMod, helpers);
+    // Main: 15 + 3 = 18, Helpers: +2 each = +4, Total: 22
+    expect(result.total).toBe(22);
+    expect(result.helperBonus).toBe(4);
+  });
+
+  it("should handle zero helpers (regular check)", () => {
+    const result = calculateCombinedCheck(12, 5, 0);
+    expect(result.total).toBe(17);
+    expect(result.helperBonus).toBe(0);
+  });
+
+  it("should default DC to 15", () => {
+    const result = calculateCombinedCheck(10, 2, 1);
+    expect(result.dc).toBe(15);
+    expect(result.success).toBe(false); // 10 + 2 + 2 = 14 < 15
+  });
+
+  it("should handle non-proficient helpers (no bonus)", () => {
+    const result = calculateCombinedCheck(10, 2, 2, false);
+    expect(result.helperBonus).toBe(0);
+    expect(result.total).toBe(12); // No helper bonus when not proficient
+  });
+
+  it("should succeed with enough helpers", () => {
+    const result = calculateCombinedCheck(8, 3, 3);
+    // Main: 8 + 3 = 11, Helpers: 3 * 2 = 6, Total: 17 >= 15
+    expect(result.total).toBe(17);
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("getCombinedCheckDescription", () => {
+  it("should describe success with helpers in English", () => {
+    const result = getCombinedCheckDescription("Athletics", 2, true, "en-US");
+    expect(result).toContain("Athletics check");
+    expect(result).toContain("2 helpers");
+    expect(result).toContain("SUCCESS");
+  });
+
+  it("should describe failure with helpers in English", () => {
+    const result = getCombinedCheckDescription("Stealth", 1, false, "en-US");
+    expect(result).toContain("Stealth check");
+    expect(result).toContain("1 helper");
+    expect(result).toContain("FAILURE");
+  });
+
+  it("should describe success in Chinese", () => {
+    const result = getCombinedCheckDescription("运动", 2, true, "zh-CN");
+    expect(result).toContain("运动 检定");
+    expect(result).toContain("成功");
+  });
+
+  it("should handle zero helpers correctly", () => {
+    const result = getCombinedCheckDescription("Perception", 0, true, "en-US");
+    expect(result).toBe("Perception check: SUCCESS");
+    expect(result).not.toContain("helper");
   });
 });

@@ -8,6 +8,7 @@ export const playerActionSchema = z.object({
     modifier: z.number().optional(),
   }).optional(),
   target: z.string().max(100).optional(),
+  helpers: z.array(z.string()).optional(), // NEW - Player IDs helping on this check
 });
 
 export type PlayerActionInput = z.infer<typeof playerActionSchema>;

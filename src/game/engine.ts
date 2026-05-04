@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES } from "./rules.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
@@ -289,7 +289,23 @@ Format as bullet points. Keep it factual, not narrative.`;
         const abilityMod = calculateModifier(player.attributes[skillCheck.ability]);
         const isSkilled = CLASS_SKILL_PROFICIENCIES[player.characterClass]?.includes(skillCheck.skill);
         const proficiency = isSkilled ? calculateProficiencyBonus(player.level) : 0;
-        const finalTotal = d20Total + abilityMod + proficiency;
+        const mainModifier = abilityMod + proficiency;
+
+        // Check if other players are helping
+        const helpers = payload.helpers?.length || 0;
+
+        let finalTotal: number;
+        let helperBonus: number = 0;
+
+        if (helpers > 0) {
+          // Combined check with helpers (+2 per proficient helper)
+          const combinedResult = calculateCombinedCheck(d20Total, mainModifier, helpers);
+          finalTotal = combinedResult.total;
+          helperBonus = combinedResult.helperBonus;
+        } else {
+          // Regular single-player check
+          finalTotal = d20Total + mainModifier;
+        }
 
         diceResult = {
           id: generateId(),
@@ -299,18 +315,23 @@ Format as bullet points. Keep it factual, not narrative.`;
           diceType: 20,
           count: 1,
           rolls: d20Rolls,
-          modifier: abilityMod + proficiency,
+          modifier: mainModifier + helperBonus,
           total: finalTotal,
           isHit: finalTotal >= skillCheck.dc,
           timestamp: Date.now(),
           skillCheck: {
             skill: skillCheck.skill,
             dc: skillCheck.dc,
-            success: finalTotal >= skillCheck.dc
+            success: finalTotal >= skillCheck.dc,
+            helpers: helpers
           } as any
         };
 
-        console.log(`[AutoRoll] ${skillCheck.skill} check: ${finalTotal} vs DC ${skillCheck.dc} = ${finalTotal >= skillCheck.dc ? "SUCCESS" : "FAILURE"}`);
+        if (helpers > 0) {
+          console.log(`[CombinedCheck] ${skillCheck.skill}: ${finalTotal} vs DC ${skillCheck.dc} with ${helpers} helpers (+${helperBonus})`);
+        } else {
+          console.log(`[AutoRoll] ${skillCheck.skill} check: ${finalTotal} vs DC ${skillCheck.dc} = ${finalTotal >= skillCheck.dc ? "SUCCESS" : "FAILURE"}`);
+        }
       }
     }
 

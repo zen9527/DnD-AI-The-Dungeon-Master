@@ -406,3 +406,50 @@ export function applyCondition(player: Player, condition: string): void {
 export function removeCondition(player: Player, condition: string): void {
   player.conditions = player.conditions.filter(c => c !== condition);
 }
+
+// ============================================================================
+// COMBINED SKILL CHECK — Multiple players helping on one check (+2 per helper)
+// ============================================================================
+
+export function calculateCombinedCheck(
+  mainRoll: number,
+  mainModifier: number,
+  helpers: number,
+  allHelpersProficient: boolean = true
+): {
+  total: number;
+  mainTotal: number;
+  helperBonus: number;
+  dc: number;
+  success: boolean;
+} {
+  const mainTotal = mainRoll + mainModifier;
+  const helperBonus = allHelpersProficient ? helpers * 2 : 0;
+  const total = mainTotal + helperBonus;
+  
+  return {
+    total,
+    mainTotal,
+    helperBonus,
+    dc: 15,
+    success: total >= 15
+  };
+}
+
+export function getCombinedCheckDescription(
+  skill: string,
+  helpers: number,
+  success: boolean,
+  locale: string
+): string {
+  const verb = locale === "zh-CN" ? "检定" : "check";
+  const result = success 
+    ? (locale === "zh-CN" ? "成功" : "SUCCESS") 
+    : (locale === "zh-CN" ? "失败" : "FAILURE");
+  
+  if (helpers === 0) {
+    return `${skill} ${verb}: ${result}`;
+  }
+  
+  return `${skill} ${verb} (with ${helpers} helper${helpers > 1 ? "s" : ""}): ${result}`;
+}

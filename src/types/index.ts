@@ -181,6 +181,7 @@ export interface PlayerActionPayload {
   action: string;
   dice?: { type: number; count: number; modifier?: number };
   target?: string;
+  helpers?: string[]; // NEW - Player IDs helping on this check
 }
 
 export interface ChatMessagePayload {
