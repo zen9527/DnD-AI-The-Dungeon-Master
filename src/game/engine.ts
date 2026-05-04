@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
-import { rollDice, calculateTotal, calculateModifier } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY } from "./rules.js";
+import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
@@ -234,6 +234,44 @@ Format as bullet points. Keep it factual, not narrative.`;
 
       const hitCheck = target ? isHit(diceResult.total, player, target, 0) : { hit: true, isCritical: false };
       diceResult.isHit = hitCheck.hit;
+    }
+
+    // ---- Auto-detect action and roll appropriate dice for preset actions ----
+    if (!diceResult) {
+      const skillCheck = getActionSkillCheck(payload.action);
+
+      if (skillCheck && skillCheck.dc > 0) {
+        // Auto-roll the skill check
+        const d20Rolls = rollDice(20, 1);
+        const d20Total = calculateTotal(d20Rolls, 0);
+        
+        // Calculate modifier: ability mod + proficiency bonus (if skilled)
+        const abilityMod = calculateModifier(player.attributes[skillCheck.ability]);
+        const isSkilled = CLASS_SKILL_PROFICIENCIES[player.characterClass]?.includes(skillCheck.skill);
+        const proficiency = isSkilled ? calculateProficiencyBonus(player.level) : 0;
+        const finalTotal = d20Total + abilityMod + proficiency;
+
+        diceResult = {
+          id: generateId(),
+          playerId,
+          playerName: player.name,
+          characterName: player.characterName,
+          diceType: 20,
+          count: 1,
+          rolls: d20Rolls,
+          modifier: abilityMod + proficiency,
+          total: finalTotal,
+          isHit: finalTotal >= skillCheck.dc,
+          timestamp: Date.now(),
+          skillCheck: {
+            skill: skillCheck.skill,
+            dc: skillCheck.dc,
+            success: finalTotal >= skillCheck.dc
+          } as any
+        };
+
+        console.log(`[AutoRoll] ${skillCheck.skill} check: ${finalTotal} vs DC ${skillCheck.dc} = ${finalTotal >= skillCheck.dc ? "SUCCESS" : "FAILURE"}`);
+      }
     }
 
     const combatStatus = this._game.npcs.length > 0

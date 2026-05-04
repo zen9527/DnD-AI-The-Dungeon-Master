@@ -76,6 +76,11 @@ export interface DiceRoll {
   total: number;
   isHit: boolean;
   timestamp: number;
+  skillCheck?: {
+    skill: string;
+    dc: number;
+    success: boolean;
+  };
 }
 
 export interface StructuredResult {
