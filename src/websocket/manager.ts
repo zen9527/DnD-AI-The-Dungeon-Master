@@ -209,6 +209,17 @@ export class WebSocketManager {
             structured: engine.game,  // Public getter returns a fresh snapshot
           });
 
+          // Start timer for the DM after opening scene
+          const dmPlayer = engine.game.players.find(p => p.isDM);
+          if (dmPlayer) {
+            engine.startTimer();
+            this.broadcastToGame(engine.id, "TURN_TIMER", {
+              remaining: engine.timerRemaining,
+              currentPlayerId: dmPlayer.id,
+              characterName: dmPlayer.characterName,
+            });
+          }
+
         } catch (error) {
           if (!(error instanceof Error && error.message.includes("Failed after"))) {
             console.error(`[OpeningScene] Unexpected error:`, error instanceof Error ? error.message : error);
@@ -378,6 +389,16 @@ export class WebSocketManager {
         fullNarrative: parsed.fullNarrative,
         structured: engine.game,  // Public getter returns fresh snapshot after state update
       });
+
+      // Start timer for the new current player (advanceTurn already called in engine)
+      const currentPlayer = engine.getCurrentPlayer();
+      if (currentPlayer) {
+        this.broadcastToGame(engine.id, "TURN_TIMER", {
+          remaining: engine.timerRemaining,
+          currentPlayerId: currentPlayer.id,
+          characterName: currentPlayer.characterName,
+        });
+      }
 
     } catch (error) {
       if (!(error instanceof Error && error.message.includes("You attempt"))) {

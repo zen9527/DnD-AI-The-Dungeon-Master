@@ -20,6 +20,11 @@ export class GameEngine {
   private _turnCount: number = 0;
   private readonly SUMMARY_INTERVAL = 5; // Update summary every N turns
 
+  // Turn timer (seconds remaining for current player)
+  private _timerRemaining: number = 30;
+  private _timerInterval: NodeJS.Timeout | null = null;
+  private readonly DEFAULT_TIMER = 30;
+
   constructor(
     gameData: Omit<Game, "createdAt" | "conversationHistory">,
     llmBaseUrl: string,
@@ -49,6 +54,28 @@ export class GameEngine {
 
   get id(): string { return this._game.id; }
   get name(): string { return this._game.name; }
+  get timerRemaining(): number { return this._timerRemaining; }
+
+  startTimer(): void {
+    if (this._timerInterval) clearInterval(this._timerInterval);
+    
+    this._timerRemaining = this.DEFAULT_TIMER;
+    
+    this._timerInterval = setInterval(() => {
+      this._timerRemaining--;
+      if (this._timerRemaining <= 0) {
+        this._timerRemaining = 0;
+        console.log(`[Timer] Turn timer expired for ${this.getCurrentPlayer()?.characterName}`);
+      }
+    }, 1000);
+  }
+
+  stopTimer(): void {
+    if (this._timerInterval) {
+      clearInterval(this._timerInterval);
+      this._timerInterval = null;
+    }
+  }
 
   // ---- Initiative ----
 
@@ -94,6 +121,9 @@ export class GameEngine {
       : this._game.players as unknown as (NPC | Player)[];
     this._currentInitiativeIndex = (this._currentInitiativeIndex + 1) % allEntities.length;
     if (this._currentInitiativeIndex === 0) this._round++;
+    
+    // Reset timer for new player
+    this.startTimer();
   }
 
   // ---- World State (compact game state for LLM context) ----
@@ -402,6 +432,24 @@ Format as bullet points. Keep it factual, not narrative.`;
 
     if (parsed.structured.newNPCs) {
       this._game.npcs.push(...parsed.structured.newNPCs);
+    }
+
+    // Include auto-rolled dice result in the response
+    if (diceResult) {
+      parsed.structured.diceResult = diceResult;
+      
+      // Also add a chat message with the dice result for display
+      const diceMsg: ChatMessage = {
+        id: generateId(),
+        playerId,
+        playerName: player.name,
+        characterName: player.characterName,
+        content: "", // Empty content, dice result will be shown separately
+        type: "roll",
+        timestamp: Date.now(),
+        diceResult: diceResult
+      };
+      this._game.chatHistory.push(diceMsg);
     }
 
     this.advanceTurn();

@@ -155,6 +155,10 @@
   "status.dm_considers": "The DM considers your action...",
   "status.dm_preparing": "The Dungeon Master prepares the world...",
 
+  "timer.remaining": "{seconds}s remaining",
+  "timer.warning": "⚠️ {seconds}s left!",
+  "timer.expired": "⏰ Time's up!",
+
   "dice.skill_check": "🎲 {skill} Check: {total} ({roll} + {mod}) - {result} (DC {dc})",
   "dice.success": "SUCCESS",
   "dice.failure": "FAILURE",
