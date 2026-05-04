@@ -6,7 +6,40 @@ import { ActionBar } from "./action-bar.js";
 import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios } from "./i18n.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
-import type { Player, ChatMessage, Game, StreamResult, EndpointPreset } from "../../shared/index.js";
+import type { Player, ChatMessage, Game, StreamResult, EndpointPreset, DiceRoll } from "../../shared/index.js";
+
+/**
+ * Format dice roll result for chat display
+ */
+function formatDiceResult(dice: DiceRoll, locale: string): string {
+  if (!dice.skillCheck) {
+    return `🎲 d20: ${dice.total} (${dice.rolls[0] || dice.total} + ${dice.modifier})`;
+  }
+
+  const roll = dice.rolls[0] || dice.total;
+  const mod = dice.modifier;
+  const total = dice.total;
+  const resultText = dice.skillCheck.success ? "success" : "failure";
+  
+  // Localized skill names for Chinese
+  let skillName = dice.skillCheck.skill;
+  if (locale === "zh-CN") {
+    const skillMap: Record<string, string> = {
+      "Stealth": "潜行",
+      "Perception": "察觉",
+      "Persuasion": "说服",
+      "Intimidation": "威吓",
+      "Investigation": "调查",
+      "Arcana": "奥秘",
+      "Athletics": "运动",
+      "Dodge": "闪避",
+      "Attack": "攻击"
+    };
+    skillName = skillMap[dice.skillCheck.skill] || dice.skillCheck.skill;
+  }
+
+  return `🎲 ${skillName} 检定：${total} (${roll} + ${mod}) - ${t(`dice.${resultText}`)} (DC ${dice.skillCheck.dc})`;
+}
 
 class App {
   private gameId: string | null = null;
@@ -454,12 +487,21 @@ class App {
     const isDMNarrative = message.type === "narrative" || !message.playerName;
     const senderName = isDMNarrative ? t("dm.name") : (message.characterName || message.playerName || t("player.unknown"));
     el.className = `message ${message.type} ${!isDMNarrative && message.playerId === gameState.currentPlayer?.id ? "own" : ""}`;
+    
+    // Build content - include dice result if present
+    let content = this.escapeHtml(message.content);
+    if (message.diceResult) {
+      const locale = getLocale();
+      const diceText = formatDiceResult(message.diceResult, locale);
+      content += `<br><strong>${diceText}</strong>`;
+    }
+
     el.innerHTML = `
       <div class="message-header">
         <strong class="${isDMNarrative ? 'dm-sender' : ''}">${this.escapeHtml(senderName)}</strong>
         <span class="timestamp">${new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
-      <div class="message-content">${this.escapeHtml(message.content)}</div>
+      <div class="message-content">${content}</div>
     `;
     messagesDiv.appendChild(el);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;

@@ -154,6 +154,11 @@
   "settings.api_key_placeholder": "Leave empty for local models",
   "status.dm_considers": "The DM considers your action...",
   "status.dm_preparing": "The Dungeon Master prepares the world...",
+
+  "dice.skill_check": "🎲 {skill} Check: {total} ({roll} + {mod}) - {result} (DC {dc})",
+  "dice.success": "SUCCESS",
+  "dice.failure": "FAILURE",
+
   "dm_offline.notification": "⚠️ DM unavailable — {message}. Check that LM Studio is running and restart the server.",
   "stream_error.fallback": "The DM's voice fades...",
   "initiative.rolled": "Initiative rolled! Order:",

@@ -62,6 +62,7 @@ export interface ChatMessage {
   content: string;
   type: 'text' | 'roll' | 'npc' | 'event' | 'narrative';
   timestamp: number;
+  diceResult?: DiceRoll; // Auto-rolled dice result for skill checks
 }
 
 export interface DiceRoll {
@@ -93,6 +94,7 @@ export interface StructuredResult {
   newNPCs?: NPC[];
   newEvents?: { title: string; description: string }[];
   newSpells?: Spell[]; // Spells learned during gameplay
+  diceResult?: DiceRoll; // Auto-rolled skill check result
   turn: {
     nextPlayerId: string;
     initiative: { playerId: string; npcId?: string; score: number }[];
