@@ -416,25 +416,25 @@ class App {
               </li>
 
                <!-- Actual Players -->
-               ${(game.players || []).map((p: Player) => {
-                 const isCurrentPlayer = gameState.currentPlayer?.id === p.id;
-                 return `
-                   <li class="${isCurrentPlayer ? 'current-player' : ''}">
-                     <div class="player-info">
-                       <span class="character-name">${this.escapeHtml(p.characterName)}</span>
-                       <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} ${t("level.abbreviation")}${p.level}</span>
-                     </div>
-                     ${p.hp !== undefined && p.maxHp > 0 ? `
-                       <div class="hp-bar-container">
-                         <div class="hp-bar-track">
-                           <div class="hp-bar-fill ${p.hp > p.maxHp * 0.6 ? 'high' : p.hp > p.maxHp * 0.3 ? 'mid' : 'low'}" style="width:${Math.round((p.hp / p.maxHp) * 100)}%"></div>
-                           <span class="hp-bar-text">❤ ${p.hp}/${p.maxHp}</span>
-                         </div>
-                       </div>
-                     ` : ''}
-                   </li>
-                 `;
-               }).join("")}
+                ${(game.players || []).map((p: Player) => {
+                  const isCurrentPlayer = gameState.currentPlayer?.id === p.id;
+                  return `
+                    <li class="player-status ${isCurrentPlayer ? 'current-player' : ''}" data-player-id="${this.escapeHtml(p.id)}">
+                      <div class="player-info">
+                        <span class="character-name">${this.escapeHtml(p.characterName)}</span>
+                        <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} ${t("level.abbreviation")}${p.level}</span>
+                      </div>
+                      ${p.hp !== undefined && p.maxHp > 0 ? `
+                        <div class="hp-bar-container">
+                          <div class="hp-bar-track">
+                            <div class="hp-bar-fill ${p.hp > p.maxHp * 0.6 ? 'high' : p.hp > p.maxHp * 0.3 ? 'mid' : 'low'}" style="width:${Math.round((p.hp / p.maxHp) * 100)}%"></div>
+                            <span class="hp-bar-text">❤ ${p.hp}/${p.maxHp}</span>
+                          </div>
+                        </div>
+                      ` : ''}
+                    </li>
+                  `;
+                }).join("")}
             </ul>
           </aside>
           <main class="chat-area">
@@ -529,10 +529,11 @@ class App {
   private renderHP(): void {
     const list = document.getElementById("players-list");
     if (!list || !gameState.game) return;
-    // Skip index 0 (DM card), start from 1
-    const items = list.querySelectorAll("li:not(.dm-card)");
-    items.forEach((item, i) => {
-      const player = gameState.game!.players[i];
+    // Match by data-player-id attribute instead of index
+    const items = list.querySelectorAll("li.player-status");
+    items.forEach((item) => {
+      const playerId = item.getAttribute("data-player-id");
+      const player = gameState.game?.players.find(p => p.id === playerId);
       if (player?.hp !== undefined && player.maxHp > 0) {
         const fill = item.querySelector(".hp-bar-fill") as HTMLElement;
         const text = item.querySelector(".hp-bar-text") as HTMLElement;
