@@ -494,7 +494,9 @@ export class WebSocketManager {
       playerId: client.playerId,
       playerName: sender.name,
       characterName: sender.characterName,
-      content: `[私聊 to ${target.characterName || target.name}]: ${parsed.data.content}`,
+      content: getLocalizedMessage(target.locale || "en-US", "private_chat.prefix")
+        .replace("{targetName}", target.characterName || target.name)
+        .replace("{content}", parsed.data.content),
       type: "text",
       timestamp: Date.now(),
     };
