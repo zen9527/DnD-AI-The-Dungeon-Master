@@ -799,6 +799,29 @@ hr {
     0 0 12px rgba(212, 168, 67, 0.2) !important;
 }
 
+/* Game Actions (Save/Load buttons) */
+.game-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.game-actions button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.game-actions button:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,0.05),
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    0 2px 4px rgba(0,0,0,0.3),
+    0 0 12px rgba(212, 168, 67, 0.2) !important;
+}
+
 /* Turn Timer */
 .turn-info {
   display: flex;
@@ -999,7 +1022,42 @@ hr {
   font-size: 0.9rem;
 }
 
-/* --- Chat Area (Chronicle) --- */
+/* XP Bar */
+.xp-bar {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.xp-text {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.xp-progress {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  background: var(--accent-gold);
+  color: var(--bg-primary);
+  border-radius: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.max-level {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  background: gold;
+  color: black;
+  border-radius: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Current player highlight *//* --- Chat Area (Chronicle) --- */
 .chat-area {
   flex: 1;
   display: flex;

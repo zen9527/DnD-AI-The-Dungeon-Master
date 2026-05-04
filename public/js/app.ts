@@ -396,6 +396,10 @@ class App {
             <span class="timer" id="turn-timer">30s</span>
           </div>
           <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
+          <div class="game-actions">
+            <button id="save-game-btn" class="secondary" title="${t("save.success")}">💾 Save</button>
+            <button id="load-game-btn" class="secondary" title="${t("load.success")}">📂 Load</button>
+          </div>
           <button id="settings-btn" title="${t("settings.title")}">⚙️ ${t("settings.save_btn")}</button>
           <button id="copy-link-btn" title="${t("copy_link.tooltip")}">📋</button>
         </header>
@@ -418,6 +422,21 @@ class App {
                <!-- Actual Players -->
                 ${(game.players || []).map((p: Player) => {
                   const isCurrentPlayer = gameState.currentPlayer?.id === p.id;
+                  
+                  // Calculate XP threshold for next level
+                  function calculateXPThreshold(level: number): number {
+                    const thresholds: Record<number, number> = {
+                      1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500,
+                      6: 14000, 7: 23000, 8: 34000, 9: 48000, 10: 64000,
+                      11: 85000, 12: 100000, 13: 120000, 14: 140000, 15: 165000,
+                      16: 195000, 17: 225000, 18: 265000, 19: 305000, 20: 355000
+                    };
+                    return thresholds[level] || 355000;
+                  }
+                  
+                  const nextLevelXP = calculateXPThreshold(p.level + 1);
+                  const xpProgress = p.level < 20 ? Math.round((p.xp / nextLevelXP) * 100) : 100;
+                  
                   return `
                     <li class="player-status ${isCurrentPlayer ? 'current-player' : ''}" data-player-id="${this.escapeHtml(p.id)}">
                       <div class="player-info">
@@ -432,6 +451,10 @@ class App {
                           </div>
                         </div>
                       ` : ''}
+                      <div class="xp-bar">
+                        <span class="xp-text">XP: ${p.xp} / ${nextLevelXP}</span>
+                        ${p.level < 20 ? `<span class="xp-progress">${xpProgress}%</span>` : '<span class="max-level">MAX LEVEL</span>'}
+                      </div>
                     </li>
                   `;
                 }).join("")}
@@ -465,6 +488,48 @@ class App {
         this.wsManager.send({ type: "SET_LOCALE", payload: { locale: newLocale } });
       }
       location.reload();
+    });
+
+    // Save game button
+    const saveBtn = document.getElementById("save-game-btn");
+    saveBtn?.addEventListener("click", async () => {
+      if (!this.gameId) return;
+      
+      try {
+        const response = await fetch(`/api/games/${this.gameId}/save`, { method: "POST" });
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          this.showNotification(t("save.success"), "success");
+        } else {
+          this.showNotification(data.error || t("save.error"), "error");
+        }
+      } catch (error) {
+        this.showNotification(t("save.error"), "error");
+        console.error("Save failed:", error);
+      }
+    });
+
+    // Load game button
+    const loadBtn = document.getElementById("load-game-btn");
+    loadBtn?.addEventListener("click", async () => {
+      if (!this.gameId) return;
+      
+      try {
+        const response = await fetch(`/api/games/${this.gameId}/load`);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          this.showNotification(t("load.success"), "success");
+          // Reload page to apply loaded state
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          this.showNotification(data.error || t("load.error"), "error");
+        }
+      } catch (error) {
+        this.showNotification(t("load.error"), "error");
+        console.error("Load failed:", error);
+      }
     });
 
   }
