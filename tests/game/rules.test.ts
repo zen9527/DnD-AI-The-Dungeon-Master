@@ -1,5 +1,221 @@
 import { describe, it, expect } from "vitest";
-import { getActionSkillCheck } from "../../src/game/rules.js";
+import { getActionSkillCheck, getConditionModifier, applyCondition, removeCondition, CONDITIONS } from "../../src/game/rules.js";
+import type { Player } from "../../src/types/index.js";
+
+describe("getConditionModifier", () => {
+  it("should return disadvantage for poisoned condition", () => {
+    const modifier = getConditionModifier(["poisoned"]);
+    expect(modifier).toEqual({ attackAdvantage: false, checkAdvantage: false });
+  });
+
+  it("should return advantage for attacking prone target", () => {
+    const modifier = getConditionModifier([], ["prone"]);
+    expect(modifier).toEqual({ attackAdvantage: true });
+  });
+
+  it("should return disadvantage for blinded condition", () => {
+    const modifier = getConditionModifier(["blinded"]);
+    expect(modifier).toEqual({ attackAdvantage: false, checkAdvantage: false, saveAdvantage: true });
+  });
+
+  it("should return advantage for invisible attacker", () => {
+    const modifier = getConditionModifier([], ["invisible"]);
+    expect(modifier).toEqual({ attackAdvantage: false }); // Invisible makes target hard to hit (attacker has advantage)
+  });
+
+  it("should return disadvantage for frightened condition", () => {
+    const modifier = getConditionModifier(["frightened"]);
+    expect(modifier).toEqual({ attackAdvantage: false, checkAdvantage: false });
+  });
+
+  it("should return no modifiers for empty conditions", () => {
+    const modifier = getConditionModifier([]);
+    expect(modifier).toEqual({});
+  });
+
+  it("should combine self and target conditions", () => {
+    const modifier = getConditionModifier(["poisoned"], ["prone"]);
+    expect(modifier).toEqual({ attackAdvantage: true, checkAdvantage: false });
+  });
+});
+
+describe("applyCondition", () => {
+  it("should add condition to player", () => {
+    const player: Player = {
+      id: "1",
+      name: "Test Player",
+      characterName: "Test Character",
+      isDM: false,
+      race: "Human",
+      characterClass: "Fighter",
+      level: 1,
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      hp: 10,
+      maxHp: 10,
+      ac: 10,
+      proficiencyBonus: 2,
+      spellSlots: {},
+      spells: [],
+      inventory: [],
+      conditions: [],
+      hitDice: { total: 10, used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
+      locale: "en-US"
+    };
+
+    applyCondition(player, "poisoned");
+    expect(player.conditions).toContain("poisoned");
+  });
+
+  it("should not duplicate condition", () => {
+    const player: Player = {
+      id: "1",
+      name: "Test Player",
+      characterName: "Test Character",
+      isDM: false,
+      race: "Human",
+      characterClass: "Fighter",
+      level: 1,
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      hp: 10,
+      maxHp: 10,
+      ac: 10,
+      proficiencyBonus: 2,
+      spellSlots: {},
+      spells: [],
+      inventory: [],
+      conditions: ["poisoned"],
+      hitDice: { total: 10, used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
+      locale: "en-US"
+    };
+
+    applyCondition(player, "poisoned");
+    expect(player.conditions.filter(c => c === "poisoned").length).toBe(1);
+  });
+
+  it("should warn for unknown condition", () => {
+    const consoleWarn = vi.spyOn(console, 'warn').mockImplementation();
+    const player: Player = {
+      id: "1",
+      name: "Test Player",
+      characterName: "Test Character",
+      isDM: false,
+      race: "Human",
+      characterClass: "Fighter",
+      level: 1,
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      hp: 10,
+      maxHp: 10,
+      ac: 10,
+      proficiencyBonus: 2,
+      spellSlots: {},
+      spells: [],
+      inventory: [],
+      conditions: [],
+      hitDice: { total: 10, used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
+      locale: "en-US"
+    };
+
+    applyCondition(player, "unknown_condition");
+    expect(consoleWarn).toHaveBeenCalledWith("Unknown condition: unknown_condition");
+    consoleWarn.mockRestore();
+  });
+});
+
+describe("removeCondition", () => {
+  it("should remove condition from player", () => {
+    const player: Player = {
+      id: "1",
+      name: "Test Player",
+      characterName: "Test Character",
+      isDM: false,
+      race: "Human",
+      characterClass: "Fighter",
+      level: 1,
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      hp: 10,
+      maxHp: 10,
+      ac: 10,
+      proficiencyBonus: 2,
+      spellSlots: {},
+      spells: [],
+      inventory: [],
+      conditions: ["poisoned", "prone"],
+      hitDice: { total: 10, used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
+      locale: "en-US"
+    };
+
+    removeCondition(player, "poisoned");
+    expect(player.conditions).not.toContain("poisoned");
+    expect(player.conditions).toContain("prone");
+  });
+
+  it("should handle removing non-existent condition", () => {
+    const player: Player = {
+      id: "1",
+      name: "Test Player",
+      characterName: "Test Character",
+      isDM: false,
+      race: "Human",
+      characterClass: "Fighter",
+      level: 1,
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      hp: 10,
+      maxHp: 10,
+      ac: 10,
+      proficiencyBonus: 2,
+      spellSlots: {},
+      spells: [],
+      inventory: [],
+      conditions: ["poisoned"],
+      hitDice: { total: 10, used: 0 },
+      deathSaves: { successes: 0, failures: 0 },
+      xp: 0,
+      locale: "en-US"
+    };
+
+    removeCondition(player, "nonexistent");
+    expect(player.conditions).toEqual(["poisoned"]);
+  });
+});
+
+describe("CONDITIONS", () => {
+  it("should define all standard D&D 5e conditions", () => {
+    expect(CONDITIONS["poisoned"]).toBeDefined();
+    expect(CONDITIONS["prone"]).toBeDefined();
+    expect(CONDITIONS["blinded"]).toBeDefined();
+    expect(CONDITIONS["charmed"]).toBeDefined();
+    expect(CONDITIONS["frightened"]).toBeDefined();
+    expect(CONDITIONS["grappled"]).toBeDefined();
+    expect(CONDITIONS["stunned"]).toBeDefined();
+    expect(CONDITIONS["invisible"]).toBeDefined();
+  });
+
+  it("should have correct effects for poisoned", () => {
+    expect(CONDITIONS["poisoned"]).toEqual({
+      description: "Poisoned",
+      checkAdvantage: false,
+      attackAdvantage: false
+    });
+  });
+
+  it("should have correct effects for stunned", () => {
+    expect(CONDITIONS["stunned"]).toEqual({
+      description: "Stunned",
+      checkAdvantage: false,
+      attackAdvantage: false,
+      saveAdvantage: false,
+      canAttack: false
+    });
+  });
+});
 
 describe("getActionSkillCheck", () => {
   it("should map hide action to Stealth (DEX) DC 15", () => {

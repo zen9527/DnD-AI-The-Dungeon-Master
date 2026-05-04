@@ -339,3 +339,70 @@ export function getActionSkillCheck(action: string): {
 
   return null;
 }
+
+// ============================================================================
+// CONDITIONS — D&D 5e Condition Tracking System
+// ============================================================================
+
+export const CONDITIONS: Record<string, {
+  description: string;
+  attackAdvantage?: boolean;
+  checkAdvantage?: boolean;
+  saveAdvantage?: boolean;
+  speedZero?: boolean;
+  canAttack?: boolean;
+  invisible?: boolean;
+}> = {
+  "poisoned": { description: "Poisoned", checkAdvantage: false, attackAdvantage: false },
+  "prone": { description: "Prone", speedZero: true },
+  "blinded": { description: "Blinded", checkAdvantage: false, attackAdvantage: false, saveAdvantage: true },
+  "charmed": { description: "Charmed", canAttack: false },
+  "frightened": { description: "Frightened", checkAdvantage: false, attackAdvantage: false },
+  "grappled": { description: "Grappled", speedZero: true },
+  "stunned": { description: "Stunned", checkAdvantage: false, attackAdvantage: false, saveAdvantage: false, canAttack: false },
+  "invisible": { description: "Invisible", invisible: true }
+};
+
+export function getConditionModifier(
+  selfConditions: string[],
+  targetConditions: string[] = []
+): {
+  attackAdvantage?: boolean;
+  checkAdvantage?: boolean;
+  saveAdvantage?: boolean;
+} {
+  const result: { attackAdvantage?: boolean; checkAdvantage?: boolean; saveAdvantage?: boolean } = {};
+
+  // Apply self conditions (disadvantages/advantages)
+  for (const cond of selfConditions) {
+    const effect = CONDITIONS[cond];
+    if (!effect) continue;
+    if (effect.attackAdvantage !== undefined) result.attackAdvantage = effect.attackAdvantage;
+    if (effect.checkAdvantage !== undefined) result.checkAdvantage = effect.checkAdvantage;
+    if (effect.saveAdvantage !== undefined) result.saveAdvantage = effect.saveAdvantage;
+  }
+
+  // Apply target conditions (affects attacker's advantage when targeting them)
+  for (const cond of targetConditions) {
+    const effect = CONDITIONS[cond];
+    if (!effect) continue;
+    if (cond === "prone") result.attackAdvantage = true; // Attacking prone target = advantage
+    if (cond === "invisible") result.attackAdvantage = false; // Invisible target = disadvantage to attack
+  }
+
+  return result;
+}
+
+export function applyCondition(player: Player, condition: string): void {
+  if (!CONDITIONS[condition]) {
+    console.warn(`Unknown condition: ${condition}`);
+    return;
+  }
+  if (!player.conditions.includes(condition)) {
+    player.conditions.push(condition);
+  }
+}
+
+export function removeCondition(player: Player, condition: string): void {
+  player.conditions = player.conditions.filter(c => c !== condition);
+}
