@@ -415,23 +415,26 @@ class App {
                 </div>
               </li>
 
-              <!-- Actual Players -->
-              ${(game.players || []).map((p: Player) => `
-                <li>
-                  <div class="player-info">
-                    <span class="character-name">${this.escapeHtml(p.characterName)}</span>
-                    <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} ${t("level.abbreviation")}${p.level}</span>
-                  </div>
-                  ${p.hp !== undefined && p.maxHp > 0 ? `
-                    <div class="hp-bar-container">
-                      <div class="hp-bar-track">
-                        <div class="hp-bar-fill ${p.hp > p.maxHp * 0.6 ? 'high' : p.hp > p.maxHp * 0.3 ? 'mid' : 'low'}" style="width:${Math.round((p.hp / p.maxHp) * 100)}%"></div>
-                        <span class="hp-bar-text">❤ ${p.hp}/${p.maxHp}</span>
-                      </div>
-                    </div>
-                  ` : ''}
-                </li>
-              `).join("")}
+               <!-- Actual Players -->
+               ${(game.players || []).map((p: Player) => {
+                 const isCurrentPlayer = gameState.currentPlayer?.id === p.id;
+                 return `
+                   <li class="${isCurrentPlayer ? 'current-player' : ''}">
+                     <div class="player-info">
+                       <span class="character-name">${this.escapeHtml(p.characterName)}</span>
+                       <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} ${t("level.abbreviation")}${p.level}</span>
+                     </div>
+                     ${p.hp !== undefined && p.maxHp > 0 ? `
+                       <div class="hp-bar-container">
+                         <div class="hp-bar-track">
+                           <div class="hp-bar-fill ${p.hp > p.maxHp * 0.6 ? 'high' : p.hp > p.maxHp * 0.3 ? 'mid' : 'low'}" style="width:${Math.round((p.hp / p.maxHp) * 100)}%"></div>
+                           <span class="hp-bar-text">❤ ${p.hp}/${p.maxHp}</span>
+                         </div>
+                       </div>
+                     ` : ''}
+                   </li>
+                 `;
+               }).join("")}
             </ul>
           </aside>
           <main class="chat-area">

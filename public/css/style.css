@@ -979,6 +979,31 @@ hr {
   color: var(--text-muted);
 }
 
+/* Current player highlight */
+.players-panel li.current-player {
+  border-color: var(--player-green);
+  background: linear-gradient(135deg, rgba(90,222,144,0.12) 0%, rgba(74,222,128,0.08) 100%);
+  box-shadow:
+    inset 0 0 20px rgba(90, 222, 144, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    0 0 12px rgba(90, 222, 144, 0.2);
+}
+
+.players-panel li.current-player .character-name {
+  color: var(--player-green);
+  text-shadow: 0 0 8px rgba(90, 222, 144, 0.3);
+}
+
+.players-panel li.current-player::after {
+  content: '◉';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--player-green);
+  font-size: 0.9rem;
+  text-shadow: 0 0 6px rgba(90, 222, 144, 0.4);
+}
+
 /* HP text in sidebar */
 .players-panel li .hp {
   font-family: 'Cinzel', serif;
