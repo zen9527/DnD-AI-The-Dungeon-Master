@@ -288,6 +288,9 @@ class App {
     wsManager.on("CHAT_MESSAGE", (payload) => {
       const p = payload as { message: ChatMessage; gameState: Game };
       
+      console.log("[App] Received CHAT_MESSAGE:", p.message.type, p.message.content?.substring(0, 50));
+      console.log("[App] GameState chatHistory length:", p.gameState?.chatHistory?.length);
+      
       // Use the full game state from backend to ensure consistency
       if (p.gameState) {
         gameState.setGame(p.gameState);
@@ -297,6 +300,7 @@ class App {
         gameState.addChatMessage(msg);
       }
       
+      console.log("[App] After setGame, chatHistory length:", gameState.game?.chatHistory?.length);
       this.renderChatMessages();
     });
 
@@ -586,9 +590,14 @@ class App {
   private renderChatMessages(): void {
     const messagesDiv = document.getElementById("chat-messages");
     if (!messagesDiv) return;
+    
+    console.log("[App] renderChatMessages called, messages count:", (gameState.game?.chatHistory || []).length);
+    
     messagesDiv.innerHTML = "";
     (gameState.game?.chatHistory || []).forEach((msg: ChatMessage) => this.appendChatMessage(msg));
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    console.log("[App] After render, DOM children count:", messagesDiv.children.length);
   }
 
   private renderHP(): void {
@@ -645,7 +654,7 @@ class App {
       <div class="message-content">${content}</div>
     `;
     messagesDiv.appendChild(el);
-    messagesDiv.scrollTop = messages.scrollHeight;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
   private showNotification(text: string, type: "success" | "error" | "info"): void {
