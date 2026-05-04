@@ -24,6 +24,7 @@ export class WebSocketManager {
   private wss: WebSocketServer;
   private clients: Map<WebSocket, { id: string; gameId: string | null; playerId: string | null }>;
   private nextConnectionId: number;
+  private timerBroadcastIntervals: Map<string, NodeJS.Timeout> = new Map(); // Per-game timer broadcast
 
   constructor(server: HttpServer) {
     this.wss = new WebSocketServer({ server });
@@ -218,6 +219,9 @@ export class WebSocketManager {
               currentPlayerId: dmPlayer.id,
               characterName: dmPlayer.characterName,
             });
+            
+            // Start periodic timer broadcast (every 5 seconds)
+            this.startTimerBroadcast(engine.id);
           }
 
         } catch (error) {
@@ -399,6 +403,9 @@ export class WebSocketManager {
           characterName: currentPlayer.characterName,
           expired: engine.timerExpired,
         });
+        
+        // Restart periodic timer broadcast for new turn
+        this.startTimerBroadcast(engine.id);
       }
 
     } catch (error) {
@@ -642,7 +649,49 @@ export class WebSocketManager {
     });
   }
 
+  /**
+   * Start periodic timer broadcast for a game (every 5 seconds)
+   */
+  startTimerBroadcast(gameId: string): void {
+    // Clear existing interval if any
+    const existing = this.timerBroadcastIntervals.get(gameId);
+    if (existing) {
+      clearInterval(existing);
+    }
+    
+    const engine = gameStore.getGame(gameId);
+    if (!engine) return;
+    
+    // Broadcast timer state every 5 seconds
+    const interval = setInterval(() => {
+      const currentEngine = gameStore.getGame(gameId);
+      if (!currentEngine) {
+        clearInterval(interval);
+        this.timerBroadcastIntervals.delete(gameId);
+        return;
+      }
+      
+      const currentPlayer = currentEngine.getCurrentPlayer();
+      if (currentPlayer) {
+        this.broadcastToGame(gameId, "TURN_TIMER", {
+          remaining: currentEngine.timerRemaining,
+          currentPlayerId: currentPlayer.id,
+          characterName: currentPlayer.characterName,
+          expired: currentEngine.timerExpired,
+        });
+      }
+    }, 5000);
+    
+    this.timerBroadcastIntervals.set(gameId, interval);
+  }
+
   shutdown(): void {
+    // Clear all timer broadcast intervals
+    for (const interval of this.timerBroadcastIntervals.values()) {
+      clearInterval(interval);
+    }
+    this.timerBroadcastIntervals.clear();
+    
     this.clients.forEach((_, ws) => ws.close());
     this.wss.close();
   }

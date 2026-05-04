@@ -46,15 +46,48 @@ describe("GameEngine turn timer", () => {
     }
   });
 
-  it("should reset timer to 30 seconds when starting", () => {
+  it("should reset timer to 60 seconds when starting", () => {
     engine.startTimer();
-    expect(engine.timerRemaining).toBe(30);
+    expect(engine.timerRemaining).toBe(60);
+  });
+
+  it("should countdown timer correctly", async () => {
+    engine.startTimer();
+    expect(engine.timerRemaining).toBe(60);
+    
+    // Wait 1 second
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    expect(engine.timerRemaining).toBeLessThan(60);
+  });
+
+  it("should stop timer when stopTimer is called", () => {
+    engine.startTimer();
+    const initial = engine.timerRemaining;
+    
+    engine.stopTimer();
+    
+    // Timer should not countdown after stop
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        expect(engine.timerRemaining).toBe(initial); // Should not have decreased
+        resolve(undefined);
+      }, 1500);
+    });
+  });
+
+  it("should reset timer when advanceTurn is called", () => {
+    engine.startTimer();
+    
+    // Advance turn should reset timer to 60
+    engine.advanceTurn();
+    expect(engine.timerRemaining).toBe(60);
   });
 
   it("should countdown timer correctly", async () => {
     engine.startTimer();
     const initial = engine.timerRemaining;
-    expect(initial).toBe(30);
+    expect(initial).toBe(60);
     
     // Wait 1 second
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -68,18 +101,23 @@ describe("GameEngine turn timer", () => {
       clearInterval((engine as any)._timerInterval);
     }
     
-    (engine as any)._timerRemaining = 30;
+    (engine as any)._timerRemaining = 60;
+    (engine as any)._timerExpired = false;
     (engine as any)._timerInterval = setInterval(() => {
-      (engine as any)._timerRemaining--;
+      if ((engine as any)._timerRemaining > 0) {
+        (engine as any)._timerRemaining--;
+      }
       if ((engine as any)._timerRemaining <= 0) {
         (engine as any)._timerRemaining = 0;
+        (engine as any)._timerExpired = true;
       }
     }, 100);
     
-    // Wait until timer reaches 0
-    await new Promise(resolve => setTimeout(resolve, 3500));
+    // Wait until timer reaches 0 (60 * 100ms = 6 seconds + buffer)
+    await new Promise(resolve => setTimeout(resolve, 7000));
     
     expect(engine.timerRemaining).toBe(0);
+    expect((engine as any)._timerExpired).toBe(true);
   });
 
   it("should stop timer when stopTimer is called", () => {
@@ -94,11 +132,8 @@ describe("GameEngine turn timer", () => {
     engine.startTimer();
     const initial = engine.timerRemaining;
     
-    // Wait a bit for countdown
-    setTimeout(() => {}, 100);
-    
-    // Advance turn should reset timer
+    // Advance turn should reset timer to 60
     engine.advanceTurn();
-    expect(engine.timerRemaining).toBe(30);
+    expect(engine.timerRemaining).toBe(60);
   });
 });

@@ -21,10 +21,10 @@ export class GameEngine {
   private readonly SUMMARY_INTERVAL = 5; // Update summary every N turns
 
   // Turn timer (seconds remaining for current player)
-  private _timerRemaining: number = 30;
+  private _timerRemaining: number = 60;
   private _timerInterval: NodeJS.Timeout | null = null;
   private _timerExpired: boolean = false;
-  private readonly DEFAULT_TIMER = 30;
+  private readonly DEFAULT_TIMER = 60; // Increased from 30 to 60 seconds
 
   constructor(
     gameData: Omit<Game, "createdAt" | "conversationHistory">,
@@ -65,13 +65,19 @@ export class GameEngine {
     this._timerExpired = false; // Reset expiration flag
     
     this._timerInterval = setInterval(() => {
-      this._timerRemaining--;
+      if (this._timerRemaining > 0) {
+        this._timerRemaining--;
+      }
       if (this._timerRemaining <= 0) {
         this._timerRemaining = 0;
         this._timerExpired = true;
         console.log(`[Timer] Turn timer expired for ${this.getCurrentPlayer()?.characterName}`);
       }
     }, 1000);
+    
+    // Broadcast timer state every 5 seconds
+    // Note: This requires WebSocketManager reference, which engine doesn't have
+    // Instead, we'll rely on manager to poll or use a callback mechanism
   }
 
   stopTimer(): void {
