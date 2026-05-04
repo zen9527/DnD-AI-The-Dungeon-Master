@@ -2,18 +2,20 @@ import type { Game, Player, ChatMessage, NPC, StructuredResult, StreamResult } f
 import { parseLLMResponse } from "@llm/parser.js";
 
 interface GameStateListener {
-  (state: { game: Game | null; currentPlayer: Player | null }): void;
+  (state: { game: Game | null; currentPlayer: Player | null; timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null }): void;
 }
 
 export class GameState {
   private _game: Game | null = null;
   private _currentPlayer: Player | null = null;
   private _streamBuffer = "";
+  private _timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null = null;
   private listeners: GameStateListener[] = [];
 
   get game(): Game | null { return this._game; }
   get currentPlayer(): Player | null { return this._currentPlayer; }
   get streamBuffer(): string { return this._streamBuffer; }
+  get timerState(): { remaining: number; currentPlayerId: string; expired?: boolean } | null { return this._timerState; }
 
   setGame(gameData: Game): void {
     this._game = gameData;
@@ -39,6 +41,11 @@ export class GameState {
 
   clearStreamBuffer(): void {
     this._streamBuffer = "";
+  }
+
+  setTimerState(state: { remaining: number; currentPlayerId: string; expired?: boolean }): void {
+    this._timerState = state;
+    this.notifyListeners();
   }
 
   /**
@@ -106,13 +113,14 @@ export class GameState {
   }
 
   private notifyListeners(): void {
-    this.listeners.forEach(callback => callback({ game: this._game, currentPlayer: this._currentPlayer }));
+    this.listeners.forEach(callback => callback({ game: this._game, currentPlayer: this._currentPlayer, timerState: this._timerState }));
   }
 
   clear(): void {
     this._game = null;
     this._currentPlayer = null;
     this._streamBuffer = "";
+    this._timerState = null;
     this.notifyListeners();
   }
 }

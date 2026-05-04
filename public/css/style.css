@@ -812,9 +812,39 @@ hr {
     0 0 12px rgba(212, 168, 67, 0.2) !important;
 }
 
+/* Turn Timer */
+.turn-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.timer {
+  font-weight: bold;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  background: var(--color-wood-light, #d4a843);
+  color: var(--text-primary);
+}
+
+.timer.warning {
+  background: #ff9800;
+  animation: pulse 1s infinite;
+}
+
+.timer.expired {
+  background: #f44336;
+  color: white;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
 /* ============================================================================
-   Game Interface — Main Content Layout
-   ============================================================================ */
+    Game Interface — Main Content Layout
+    ============================================================================ */
 .main-content {
   display: flex;
   flex: 1;

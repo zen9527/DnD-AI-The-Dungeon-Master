@@ -341,6 +341,35 @@ class App {
       const p = payload as { message: string };
       this.showNotification(t("error.notification", { message: p.message }), "error");
     });
+
+    wsManager.on("TURN_TIMER", (payload) => {
+      const p = payload as { 
+        remaining: number; 
+        currentPlayerId: string; 
+        characterName?: string; 
+        expired?: boolean 
+      };
+      
+      // Update timer state in game state
+      gameState.setTimerState(p);
+      
+      // Update timer display in UI
+      const timerEl = document.getElementById("turn-timer");
+      if (timerEl) {
+        timerEl.textContent = `${p.remaining}s`;
+        
+        // Remove old classes
+        timerEl.classList.remove("warning", "expired");
+        
+        // Add warning/expired classes based on state
+        if (p.expired) {
+          timerEl.classList.add("expired");
+          this.showNotification(`⏰ ${p.characterName || 'Current player'}'s time is up!`, "warning");
+        } else if (p.remaining <= 10) {
+          timerEl.classList.add("warning");
+        }
+      }
+    });
   }
 
   private showGameUI(): void {
@@ -362,6 +391,10 @@ class App {
         ${this.renderLocaleDropdown()}
         <header class="game-header">
           <h2>${this.escapeHtml(game.name)}</h2>
+          <div class="turn-info">
+            <span class="current-turn">${this.escapeHtml(this.getCurrentPlayerName())}</span>
+            <span class="timer" id="turn-timer">30s</span>
+          </div>
           <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
           <button id="settings-btn" title="${t("settings.title")}">⚙️ ${t("settings.save_btn")}</button>
           <button id="copy-link-btn" title="${t("copy_link.tooltip")}">📋</button>
@@ -562,6 +595,11 @@ class App {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private getCurrentPlayerName(): string {
+    const player = gameState.currentPlayer;
+    return player?.characterName || player?.name || "Unknown";
   }
 
   // ---- Settings Modal ----
