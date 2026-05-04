@@ -389,6 +389,16 @@ export class WebSocketManager {
 
       // AFTER await completes - engine method has updated chatHistory with DM response
       console.log(`[DM Response] Complete for player ${client.playerId}`);
+      
+      // Broadcast the new DM narrative as a chat message
+      const latestMessage = engine.game.chatHistory[engine.game.chatHistory.length - 1];
+      if (latestMessage && latestMessage.type === "narrative") {
+        this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
+          message: latestMessage,
+          gameState: engine.game,
+        });
+      }
+      
       this.broadcastToGame(engine.id, "STREAM_END", {
         fullNarrative: parsed.fullNarrative,
         structured: engine.game,  // Public getter returns fresh snapshot after state update
@@ -650,7 +660,7 @@ export class WebSocketManager {
   }
 
   /**
-   * Start periodic timer broadcast for a game (every 5 seconds)
+   * Start periodic timer broadcast for a game (every second for smooth display)
    */
   startTimerBroadcast(gameId: string): void {
     // Clear existing interval if any
@@ -662,7 +672,7 @@ export class WebSocketManager {
     const engine = gameStore.getGame(gameId);
     if (!engine) return;
     
-    // Broadcast timer state every 5 seconds
+    // Broadcast timer state every 1 second for smooth countdown display
     const interval = setInterval(() => {
       const currentEngine = gameStore.getGame(gameId);
       if (!currentEngine) {
@@ -680,7 +690,7 @@ export class WebSocketManager {
           expired: currentEngine.timerExpired,
         });
       }
-    }, 5000);
+    }, 1000); // Changed from 5000 to 1000 for smoother display
     
     this.timerBroadcastIntervals.set(gameId, interval);
   }
