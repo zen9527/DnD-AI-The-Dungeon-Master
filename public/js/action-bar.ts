@@ -155,7 +155,7 @@ export class ActionBar {
     const trimmedAction = action.trim();
     
     // Parse /emote command - send as PLAYER_EMOTE
-    if (trimmedAction.startsWith("/emote ") || trimmedAction.startsWith("/emote\t")) {
+    if (trimmedAction.startsWith("/emote ")) {
       const emoteText = trimmedAction.substring(7).trim();
       if (emoteText) {
         wsManager.send({ type: "PLAYER_EMOTE", payload: { action: emoteText } });

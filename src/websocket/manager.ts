@@ -18,7 +18,7 @@ function getHitDiceForClass(characterClass: string): number {
   };
   return hdMap[characterClass] || 1;
 }
-import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema } from "../../shared/index.js";
+import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -423,7 +423,7 @@ export class WebSocketManager {
     }
 
     // Validate emote action
-    const parsed = z.object({ action: z.string().min(1).max(200) }).safeParse(payload);
+    const parsed = emoteSchema.safeParse(payload);
     if (!parsed.success) {
       this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
       return;
@@ -468,10 +468,7 @@ export class WebSocketManager {
     }
 
     // Validate private chat payload
-    const parsed = z.object({ 
-      targetPlayerId: z.string().min(1),
-      content: z.string().min(1).max(500)
-    }).safeParse(payload);
+    const parsed = privateChatSchema.safeParse(payload);
     if (!parsed.success) {
       this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
       return;
