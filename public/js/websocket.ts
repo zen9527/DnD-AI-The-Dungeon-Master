@@ -46,17 +46,13 @@ export class WebSocketManager {
     this.ws.onmessage = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data) as WebSocketMessage;
-        console.log('📨 [WS] Received:', message.type, 'Payload keys:', Object.keys(message.payload || {}));
         
-        // Check if we have handlers for this type
+        // Trigger handlers for this message type
         if (this.eventHandlers[message.type]) {
-          console.log(`✅ [WS] Found ${this.eventHandlers[message.type].length} handler(s) for ${message.type}`);
           this.eventHandlers[message.type].forEach(handler => handler(message.payload));
-        } else {
-          console.warn(`⚠️ [WS] No handlers registered for ${message.type}`);
         }
       } catch (error) {
-        console.error('❌ [WS] Failed to parse message:', error);
+        console.error('Failed to parse message:', error);
       }
     };
 

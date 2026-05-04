@@ -205,13 +205,10 @@ export class WebSocketManager {
 
           // AFTER await completes - engine method has updated chatHistory
           console.log(`[OpeningScene] Generation complete (game: ${engine.id})`);
-          console.log(`[OpeningScene] Chat history length: ${engine.game.chatHistory.length}`);
-          console.log(`[OpeningScene] Last message:`, JSON.stringify(engine.game.chatHistory[engine.game.chatHistory.length - 1], null, 2));
           
           // Broadcast the new DM narrative as a chat message FIRST
           const latestMessage = engine.game.chatHistory[engine.game.chatHistory.length - 1];
           if (latestMessage) {
-            console.log(`[OpeningScene] Broadcasting CHAT_MESSAGE:`, latestMessage.type);
             this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
               message: latestMessage,
               gameState: engine.game,
@@ -402,19 +399,14 @@ export class WebSocketManager {
 
       // AFTER await completes - engine method has updated chatHistory with DM response
       console.log(`[DM Response] Complete for player ${client.playerId}`);
-      console.log(`[DM Response] Chat history length: ${engine.game.chatHistory.length}`);
-      console.log(`[DM Response] Last message:`, JSON.stringify(engine.game.chatHistory[engine.game.chatHistory.length - 1], null, 2));
       
       // Broadcast the new DM narrative as a chat message FIRST
       const latestMessage = engine.game.chatHistory[engine.game.chatHistory.length - 1];
       if (latestMessage && latestMessage.type === "narrative") {
-        console.log(`[DM Response] Broadcasting CHAT_MESSAGE:`, latestMessage.type);
         this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
           message: latestMessage,
           gameState: engine.game,
         });
-      } else {
-        console.warn(`[DM Response] Last message is not narrative type:`, latestMessage?.type);
       }
       
       this.broadcastToGame(engine.id, "STREAM_END", {
