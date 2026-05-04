@@ -397,6 +397,7 @@ export class WebSocketManager {
           remaining: engine.timerRemaining,
           currentPlayerId: currentPlayer.id,
           characterName: currentPlayer.characterName,
+          expired: engine.timerExpired,
         });
       }
 

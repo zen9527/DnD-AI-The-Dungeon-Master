@@ -23,6 +23,7 @@ export class GameEngine {
   // Turn timer (seconds remaining for current player)
   private _timerRemaining: number = 30;
   private _timerInterval: NodeJS.Timeout | null = null;
+  private _timerExpired: boolean = false;
   private readonly DEFAULT_TIMER = 30;
 
   constructor(
@@ -55,16 +56,19 @@ export class GameEngine {
   get id(): string { return this._game.id; }
   get name(): string { return this._game.name; }
   get timerRemaining(): number { return this._timerRemaining; }
+  get timerExpired(): boolean { return this._timerExpired || false; }
 
   startTimer(): void {
     if (this._timerInterval) clearInterval(this._timerInterval);
     
     this._timerRemaining = this.DEFAULT_TIMER;
+    this._timerExpired = false; // Reset expiration flag
     
     this._timerInterval = setInterval(() => {
       this._timerRemaining--;
       if (this._timerRemaining <= 0) {
         this._timerRemaining = 0;
+        this._timerExpired = true;
         console.log(`[Timer] Turn timer expired for ${this.getCurrentPlayer()?.characterName}`);
       }
     }, 1000);
