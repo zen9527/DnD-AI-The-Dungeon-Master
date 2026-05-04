@@ -1,6 +1,7 @@
 import { GameEngine } from "./engine.js";
 import { generateId } from "../utils/id.js";
 import { configManager } from "../utils/config.js";
+import * as storage from "../utils/storage.js";
 import type { Game, Player, ChatMessage, NPC } from "../types/index.js";
 
 interface Snapshot {
@@ -98,6 +99,34 @@ export class GameStore {
 
   getGameCount(): number {
     return this.games.size;
+  }
+
+  saveAllGames(): void {
+    for (const [id, engine] of this.games.entries()) {
+      storage.saveGame(engine.game);
+    }
+  }
+
+  loadSavedGames(): void {
+    const saved = storage.listGames();
+    for (const gameMeta of saved) {
+      const gameData = storage.loadGame(gameMeta.id);
+      if (gameData) {
+        // Recreate engine from saved game
+        const config = configManager.read();
+        const engine = new GameEngine(
+          gameData,
+          config.llmBaseUrl,
+          config.llmApiKey,
+          config.llmModel
+        );
+        this.games.set(gameMeta.id, engine);
+      }
+    }
+  }
+
+  startAutoSave(): NodeJS.Timeout {
+    return setInterval(() => this.saveAllGames(), 60000);
   }
 }
 

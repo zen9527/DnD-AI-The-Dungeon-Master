@@ -185,5 +185,10 @@
   "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[Private to {targetName}]: {content}",
   "private_chat.sent": "Private message sent to {targetName}",
-  "private_chat.received": "Private message from {senderName}"
+  "private_chat.received": "Private message from {senderName}",
+  "save.success": "✅ Game saved!",
+  "save.error": "❌ Save failed",
+  "load.success": "✅ Game loaded!",
+  "load.error": "❌ Failed to load game",
+  "saved_games.title": "💾 Saved Adventures"
 }

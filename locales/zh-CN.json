@@ -508,5 +508,10 @@
   "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[私聊 to {targetName}]: {content}",
   "private_chat.sent": "已发送私聊给 {targetName}",
-  "private_chat.received": "收到来自 {senderName} 的私聊"
+  "private_chat.received": "收到来自 {senderName} 的私聊",
+  "save.success": "✅ 游戏已保存！",
+  "save.error": "❌ 保存失败",
+  "load.success": "✅ 游戏已加载！",
+  "load.error": "❌ 加载游戏失败",
+  "saved_games.title": "💾 已保存的冒险"
 }
