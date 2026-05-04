@@ -234,3 +234,108 @@ export function checkCreatureDeath(npc: NPC, damage: number): { npc: NPC; defeat
 export function calculateInitiative(dex: number): number {
   return Math.floor(Math.random() * 20) + 1 + calculateModifier(dex);
 }
+
+// ============================================================================
+// ACTION TO SKILL CHECK MAPPING — Auto-detect action keywords for dice rolling
+// ============================================================================
+
+export function getActionSkillCheck(action: string): {
+  skill: string;
+  ability: keyof Player['attributes'];
+  dc: number;
+  description: string; // Localized description (en-US default)
+} | null {
+  const actionLower = action.toLowerCase();
+
+  // Defend / Dodge (check before attack to avoid "dodge the attack" matching attack)
+  if (actionLower.includes("defend") || actionLower.includes("dodge") || actionLower.includes("protect")) {
+    return {
+      skill: "Dodge",
+      ability: "dex",
+      dc: 0, // Defensive action, no check needed
+      description: "敏捷 (闪避)"
+    };
+  }
+
+  // Stealth / Hide
+  if (actionLower.includes("hide") || actionLower.includes("stealth") || actionLower.includes("sneak")) {
+    return {
+      skill: "Stealth",
+      ability: "dex",
+      dc: 15,
+      description: "敏捷 (潜行)"
+    };
+  }
+
+  // Attack
+  if (actionLower.includes("attack") || actionLower.includes("strike") || actionLower.includes("hit")) {
+    return {
+      skill: "Attack",
+      ability: "str", // Default to STR, DM can narrate DEX for finesse weapons
+      dc: 0, // Attack rolls compare to AC, not DC
+      description: "攻击"
+    };
+  }
+
+  // Search / Perception
+  if (actionLower.includes("search") || actionLower.includes("look") || actionLower.includes("perceive")) {
+    return {
+      skill: "Perception",
+      ability: "wis",
+      dc: 10,
+      description: "感知 (察觉)"
+    };
+  }
+
+  // Talk / Persuasion
+  if (actionLower.includes("talk") || actionLower.includes("persuade") || actionLower.includes("convince")) {
+    return {
+      skill: "Persuasion",
+      ability: "cha",
+      dc: 10,
+      description: "魅力 (说服)"
+    };
+  }
+
+  // Intimidation
+  if (actionLower.includes("intimidate") || actionLower.includes("threaten")) {
+    return {
+      skill: "Intimidation",
+      ability: "cha",
+      dc: 12,
+      description: "魅力 (威吓)"
+    };
+  }
+
+  // Investigation
+  if (actionLower.includes("investigate") || actionLower.includes("examine") || actionLower.includes("inspect")) {
+    return {
+      skill: "Investigation",
+      ability: "int",
+      dc: 12,
+      description: "智力 (调查)"
+    };
+  }
+
+  // Intelligence / Arcana
+  if (actionLower.includes("intelligence") || actionLower.includes("arcana") || actionLower.includes("magic")) {
+    return {
+      skill: "Arcana",
+      ability: "int",
+      dc: 10,
+      description: "智力 (奥秘)"
+    };
+  }
+
+  // Athletics
+  if (actionLower.includes("climb") || actionLower.includes("jump") || actionLower.includes("swim")) {
+    return {
+      skill: "Athletics",
+      ability: "str",
+      dc: 12,
+      description: "力量 (运动)"
+    };
+  }
+
+  return null;
+}
