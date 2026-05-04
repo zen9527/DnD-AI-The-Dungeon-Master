@@ -36,6 +36,8 @@ app.use("/api", express.json());
 import { WebSocketManager } from "./websocket/manager.js";
 import { gameStore } from "./game/store.js";
 import { configSchema } from "../shared/schemas/config.js";
+import gamesSavePostHandler from "./routes/games.save.post.js";
+import gamesLoadGetHandler from "./routes/games.load.get.js";
 
 // Use config from ConfigManager (already loaded above)
 const llmBaseUrl = config.llmBaseUrl;
@@ -152,6 +154,11 @@ app.post("/api/config/test", async (req, res) => {
 app.get("/api/games", (_req, res) => {
   res.json(gameStore.listGames());
 });
+
+// ---- Save/Load Game API Routes ----
+
+app.post("/api/games/:id/save", gamesSavePostHandler);
+app.get("/api/games/:id/load", gamesLoadGetHandler);
 
 server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
