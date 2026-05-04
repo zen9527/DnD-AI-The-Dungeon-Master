@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck } from "./rules.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
@@ -457,6 +457,10 @@ Format as bullet points. Keep it factual, not narrative.`;
     if (parsed.structured.creatureDefeated && parsed.structured.creatureHp) {
       const idx = this._game.npcs.findIndex(n => n.name === parsed.structured.creatureHp!.name);
       if (idx >= 0) {
+        // Award XP for defeating enemy
+        const xpPerEnemy = 50; // Simplified - should be based on CR later
+        awardXP(this._game.players, xpPerEnemy);
+        
         this._game.npcs.splice(idx, 1);
       }
     }

@@ -453,3 +453,153 @@ export function getCombinedCheckDescription(
   
   return `${skill} ${verb} (with ${helpers} helper${helpers > 1 ? "s" : ""}): ${result}`;
 }
+
+// ============================================================================
+// XP & LEVELING — D&D 5e experience and level progression
+// ============================================================================
+
+export const XP_THRESHOLDS: Record<number, number> = {
+  1: 0,
+  2: 300,
+  3: 900,
+  4: 2700,
+  5: 6500,
+  6: 14000,
+  7: 23000,
+  8: 34000,
+  9: 48000,
+  10: 64000,
+  11: 85000,
+  12: 100000,
+  13: 120000,
+  14: 140000,
+  15: 165000,
+  16: 195000,
+  17: 225000,
+  18: 265000,
+  19: 305000,
+  20: 355000
+};
+
+export function calculateXPThreshold(level: number): number {
+  const threshold = XP_THRESHOLDS[level];
+  return threshold !== undefined ? threshold : 355000;
+}
+
+export function checkLevelUp(xp: number, currentLevel: number): {
+  shouldLevelUp: boolean;
+  newLevel: number;
+  xpToNext: number;
+} {
+  let newLevel = currentLevel;
+  
+  while (newLevel < 20 && xp >= calculateXPThreshold(newLevel + 1)) {
+    newLevel++;
+  }
+  
+  const shouldLevelUp = newLevel > currentLevel;
+  const xpToNext = newLevel < 20 ? calculateXPThreshold(newLevel + 1) - xp : 0;
+  
+  return { shouldLevelUp, newLevel, xpToNext };
+}
+
+export function getLevelUpBenefits(characterClass: string, newLevel: number): {
+  hpIncrease: number;
+  proficiencyBonus: number;
+  newSpellSlots?: Record<string, number>;
+  newFeatures?: string[];
+} {
+  const hd = getHitDiceForClass(characterClass);
+  const conMod = 0; // Will be applied with actual CON mod
+  const hpIncrease = Math.floor((hd + 1) / 2) + conMod; // Average + 1
+  
+  let proficiencyBonus = 2;
+  if (newLevel >= 5) proficiencyBonus = 3;
+  if (newLevel >= 9) proficiencyBonus = 4;
+  if (newLevel >= 13) proficiencyBonus = 5;
+  if (newLevel >= 17) proficiencyBonus = 6;
+  
+  const benefits: {
+    hpIncrease: number;
+    proficiencyBonus: number;
+    newSpellSlots?: Record<string, number>;
+    newFeatures?: string[];
+  } = { hpIncrease, proficiencyBonus };
+
+  if (["Wizard", "Sorcerer", "Cleric", "Paladin", "Ranger", "Bard", "Warlock"].includes(characterClass)) {
+    benefits.newSpellSlots = calculateNewSpellSlots(newLevel);
+  }
+
+  benefits.newFeatures = getClassFeaturesAtLevel(characterClass, newLevel);
+  
+  return benefits;
+}
+
+function getHitDiceForClass(characterClass: string): number {
+  const defaults: Record<string, number> = {
+    Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 8,
+    Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+    Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8
+  };
+  return defaults[characterClass] || 8;
+}
+
+function calculateNewSpellSlots(level: number): Record<string, number> {
+  const slots: Record<string, number> = {};
+  
+  if (level >= 1) slots["level-1"] = 2;
+  if (level >= 2) slots["level-1"] = 3;
+  if (level >= 3) { slots["level-1"] = 4; slots["level-2"] = 2; }
+  if (level >= 5) { slots["level-1"] = 4; slots["level-2"] = 3; slots["level-3"] = 2; }
+  if (level >= 7) { slots["level-1"] = 4; slots["level-2"] = 3; slots["level-3"] = 3; slots["level-4"] = 1; }
+  if (level >= 9) { slots["level-1"] = 4; slots["level-2"] = 3; slots["level-3"] = 3; slots["level-4"] = 2; slots["level-5"] = 1; }
+  
+  return slots;
+}
+
+function getClassFeaturesAtLevel(characterClass: string, level: number): string[] {
+  const features: string[] = [];
+  
+  if (characterClass === "Fighter") {
+    if (level === 2) features.push("Second Wind");
+    if (level === 3) features.push("Fighting Style");
+    if (level === 5) features.push("Extra Attack");
+  }
+  
+  if (characterClass === "Rogue") {
+    if (level === 2) features.push("Cunning Action");
+    if (level === 3) features.push("Roguish Archetype");
+    if (level === 5) features.push("Uncanny Dodge");
+  }
+  
+  if (characterClass === "Wizard") {
+    if (level === 2) features.push("Arcane Recovery");
+    if (level === 3) features.push("Arcane Tradition");
+  }
+  
+  return features;
+}
+
+export function awardXP(players: Player[], xpAmount: number): void {
+  for (const player of players) {
+    player.xp += xpAmount;
+    
+    const levelUp = checkLevelUp(player.xp, player.level);
+    if (levelUp.shouldLevelUp) {
+      const benefits = getLevelUpBenefits(player.characterClass, levelUp.newLevel);
+      
+      player.level = levelUp.newLevel;
+      player.hp += benefits.hpIncrease;
+      player.maxHp += benefits.hpIncrease;
+      player.proficiencyBonus = benefits.proficiencyBonus;
+      
+      if (benefits.newSpellSlots) {
+        for (const [key, val] of Object.entries(benefits.newSpellSlots)) {
+          player.spellSlots[key] = val;
+        }
+      }
+      
+      console.log(`[LevelUp] ${player.characterName} reached level ${levelUp.newLevel}!`);
+    }
+  }
+}

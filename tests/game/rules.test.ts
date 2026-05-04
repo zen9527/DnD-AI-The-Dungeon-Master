@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getActionSkillCheck, getConditionModifier, applyCondition, removeCondition, CONDITIONS } from "../../src/game/rules.js";
+import { getActionSkillCheck, getConditionModifier, applyCondition, removeCondition, CONDITIONS, calculateXPThreshold, checkLevelUp, getLevelUpBenefits, awardXP } from "../../src/game/rules.js";
 import type { Player } from "../../src/types/index.js";
 
 describe("getConditionModifier", () => {
@@ -406,5 +406,136 @@ describe("getActionSkillCheck", () => {
   it("should return null for free-text actions", () => {
     const result = getActionSkillCheck("I want to explore the corridor");
     expect(result).toBeNull();
+  });
+});
+
+// ============================================================================
+// XP & LEVELING TESTS — D&D 5e experience and level progression
+// ============================================================================
+
+describe("calculateXPThreshold", () => {
+  it("should return 0 for level 1", () => {
+    expect(calculateXPThreshold(1)).toBe(0);
+  });
+
+  it("should return 300 for level 2", () => {
+    expect(calculateXPThreshold(2)).toBe(300);
+  });
+
+  it("should return 900 for level 3", () => {
+    expect(calculateXPThreshold(3)).toBe(900);
+  });
+
+  it("should return 6500 for level 5", () => {
+    expect(calculateXPThreshold(5)).toBe(6500);
+  });
+
+  it("should return 355000 for level 20", () => {
+    expect(calculateXPThreshold(20)).toBe(355000);
+  });
+
+  it("should return max threshold for level > 20", () => {
+    expect(calculateXPThreshold(25)).toBe(355000);
+  });
+});
+
+describe("checkLevelUp", () => {
+  it("should not level up if XP below threshold", () => {
+    const result = checkLevelUp(200, 1);
+    expect(result.shouldLevelUp).toBe(false);
+    expect(result.newLevel).toBe(1);
+  });
+
+  it("should level up from 1 to 2 at 300 XP", () => {
+    const result = checkLevelUp(300, 1);
+    expect(result.shouldLevelUp).toBe(true);
+    expect(result.newLevel).toBe(2);
+  });
+
+  it("should calculate XP to next level", () => {
+    const result = checkLevelUp(500, 2);
+    expect(result.xpToNext).toBe(400); // 900 - 500 = 400
+  });
+
+  it("should handle multi-level advancement", () => {
+    const result = checkLevelUp(6500, 1);
+    expect(result.shouldLevelUp).toBe(true);
+    expect(result.newLevel).toBe(5);
+  });
+
+  it("should return 0 XP to next at level 20", () => {
+    const result = checkLevelUp(355000, 20);
+    expect(result.xpToNext).toBe(0);
+  });
+});
+
+describe("getLevelUpBenefits", () => {
+  it("should increase HP on level up", () => {
+    const benefits = getLevelUpBenefits("Fighter", 2);
+    expect(benefits.hpIncrease).toBeGreaterThanOrEqual(5); // Fighter d10 HD, average ~6
+    expect(benefits.proficiencyBonus).toBe(2);
+  });
+
+  it("should increase proficiency bonus at level 5", () => {
+    const benefits = getLevelUpBenefits("Wizard", 5);
+    expect(benefits.proficiencyBonus).toBe(3);
+  });
+
+  it("should provide spell slots for spellcasters", () => {
+    const benefits = getLevelUpBenefits("Wizard", 3);
+    expect(benefits.newSpellSlots).toBeDefined();
+    expect(benefits.newSpellSlots?.["level-1"]).toBeGreaterThanOrEqual(4);
+  });
+
+  it("should not provide spell slots for non-spellcasters", () => {
+    const benefits = getLevelUpBenefits("Fighter", 3);
+    expect(benefits.newSpellSlots).toBeUndefined();
+  });
+
+  it("should provide class features at appropriate levels", () => {
+    const benefits = getLevelUpBenefits("Fighter", 5);
+    expect(benefits.newFeatures).toContain("Extra Attack");
+  });
+
+  it("should return proficiency bonus 4 at level 9", () => {
+    const benefits = getLevelUpBenefits("Rogue", 9);
+    expect(benefits.proficiencyBonus).toBe(4);
+  });
+});
+
+describe("awardXP", () => {
+  it("should distribute XP to all players", () => {
+    const players = [
+      { xp: 0, level: 1, characterClass: "Fighter", hp: 10, maxHp: 10, proficiencyBonus: 2, spellSlots: {}, conditions: [], hitDice: { total: 10, used: 0 }, deathSaves: { successes: 0, failures: 0 }, locale: "en-US", id: "1", name: "Test", characterName: "Test", isDM: false, race: "Human", ac: 10, attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, spells: [], inventory: [] } as Player,
+      { xp: 0, level: 1, characterClass: "Wizard", hp: 8, maxHp: 8, proficiencyBonus: 2, spellSlots: {}, conditions: [], hitDice: { total: 6, used: 0 }, deathSaves: { successes: 0, failures: 0 }, locale: "en-US", id: "2", name: "Test2", characterName: "Test2", isDM: false, race: "Human", ac: 10, attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, spells: [], inventory: [] } as Player
+    ];
+
+    awardXP(players, 100);
+    
+    expect(players[0].xp).toBe(100);
+    expect(players[1].xp).toBe(100);
+  });
+
+  it("should trigger level up when XP threshold reached", () => {
+    const players = [
+      { xp: 250, level: 1, characterClass: "Fighter", hp: 10, maxHp: 10, proficiencyBonus: 2, spellSlots: {}, conditions: [], hitDice: { total: 10, used: 0 }, deathSaves: { successes: 0, failures: 0 }, locale: "en-US", id: "1", name: "Test", characterName: "Test", isDM: false, race: "Human", ac: 10, attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, spells: [], inventory: [] } as Player
+    ];
+
+    awardXP(players, 100); // Total: 350, should reach level 2 (threshold 300)
+    
+    expect(players[0].level).toBe(2);
+    expect(players[0].hp).toBeGreaterThan(10); // HP increased
+    expect(players[0].maxHp).toBeGreaterThan(10);
+  });
+
+  it("should update proficiency bonus on level up", () => {
+    const players = [
+      { xp: 6400, level: 4, characterClass: "Wizard", hp: 20, maxHp: 20, proficiencyBonus: 2, spellSlots: {}, conditions: [], hitDice: { total: 6, used: 0 }, deathSaves: { successes: 0, failures: 0 }, locale: "en-US", id: "1", name: "Test", characterName: "Test", isDM: false, race: "Human", ac: 10, attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }, spells: [], inventory: [] } as Player
+    ];
+
+    awardXP(players, 100); // Total: 6500, should reach level 5 (threshold 6500)
+    
+    expect(players[0].level).toBe(5);
+    expect(players[0].proficiencyBonus).toBe(3);
   });
 });
