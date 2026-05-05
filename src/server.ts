@@ -38,6 +38,7 @@ import { gameStore } from "./game/store.js";
 import { configSchema } from "../shared/schemas/config.js";
 import gamesSavePostHandler from "./routes/games.save.post.js";
 import gamesLoadGetHandler from "./routes/games.load.get.js";
+import { listGames as listSavedGames } from "./utils/storage.js";
 
 // Use config from ConfigManager (already loaded above)
 const llmBaseUrl = config.llmBaseUrl;
@@ -159,6 +160,18 @@ app.get("/api/games", (_req, res) => {
 
 app.post("/api/games/:id/save", gamesSavePostHandler);
 app.get("/api/games/:id/load", gamesLoadGetHandler);
+
+// ---- Saved Games API Route ----
+
+app.get("/api/saved-games", (_req, res) => {
+  try {
+    const saved = listSavedGames();
+    res.json(saved);
+  } catch (error) {
+    console.error("[API] Failed to list saved games:", error);
+    res.status(500).json({ error: "Failed to list saved games" });
+  }
+});
 
 server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
