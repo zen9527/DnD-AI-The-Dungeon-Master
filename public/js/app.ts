@@ -498,6 +498,11 @@ class App {
       this.showNotification(t(`equipment.${p.itemId ? "equipped" : "unequipped"}`, { slot: p.slot }), "info");
     });
 
+    wsManager.on("GAME_SAVED", (data) => {
+      this.showNotification(t("save.success"), "success");
+      console.log(`[GAME_SAVED] Game ${(data as { gameId: string }).gameId} saved at ${new Date((data as { timestamp: string }).timestamp).toLocaleString()}`);
+    });
+
     wsManager.on("ITEM_USED", (payload) => {
       const p = payload as { 
         playerId: string;
@@ -695,14 +700,9 @@ class App {
       if (!this.gameId) return;
       
       try {
-        const response = await fetch(`/api/games/${this.gameId}/save`, { method: "POST" });
-        const data = await response.json();
+        wsManager.send("SAVE_GAME", { gameId: this.gameId });
         
-        if (response.ok && data.success) {
-          this.showNotification(t("save.success"), "success");
-        } else {
-          this.showNotification(data.error || t("save.error"), "error");
-        }
+        this.showNotification("💾 正在保存...", "info");
       } catch (error) {
         this.showNotification(t("save.error"), "error");
         console.error("Save failed:", error);
