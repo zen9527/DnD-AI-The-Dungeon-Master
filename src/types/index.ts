@@ -206,6 +206,7 @@ export type MessageType =
   | 'APPLY_TEMPORARY_HP'  // NEW: Apply temporary HP with duration
   | 'APPLY_BUFF'          // NEW: Apply buff to entity
   | 'REMOVE_BUFF'         // NEW: Remove buff from entity
+  | 'SAVE_GAME'           // NEW: Client requests game save
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -231,6 +232,7 @@ export type MessageType =
   | 'EQUIPMENT_UPDATE'    // NEW: Equipment changed
   | 'ITEM_USED'           // NEW: Item consumed
   | 'BUFF_UPDATE'         // NEW: Buff/Debuff change
+  | 'GAME_SAVED'          // NEW: Server confirms save success
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

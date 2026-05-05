@@ -70,6 +70,16 @@ export const diceRollSchema = z.object({
 });
 
 // ============================================================================
+// SAVE GAME SCHEMA
+// ============================================================================
+
+export const saveGameSchema = z.object({
+  gameId: z.string().min(1),
+});
+
+export type SaveGameInput = z.infer<typeof saveGameSchema>;
+
+// ============================================================================
 // INVENTORY & EQUIPMENT SCHEMAS
 // ============================================================================
 

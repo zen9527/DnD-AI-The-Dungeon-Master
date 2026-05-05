@@ -35,7 +35,7 @@ export { playerActionSchema } from "./schemas/action.js";
 export { chatMessageSchema } from "./schemas/chat.js";
 export { emoteSchema } from "./schemas/emote.js";
 export { privateChatSchema } from "./schemas/private-chat.js";
-export { npcSchema, eventSchema, diceRollSchema } from "./schemas/game.js";
+export { npcSchema, eventSchema, diceRollSchema, saveGameSchema } from "./schemas/game.js";
 
 export type {
   CreateGameInput,
@@ -48,7 +48,7 @@ export type { PlayerActionInput as ActionInput } from "./schemas/action.js";
 export type { ChatMessageInput } from "./schemas/chat.js";
 export type { EmoteInput } from "./schemas/emote.js";
 export type { PrivateChatInput } from "./schemas/private-chat.js";
-export type { NPCInput, EventInput, DiceRollInput } from "./schemas/game.js";
+export type { NPCInput, EventInput, DiceRollInput, SaveGameInput } from "./schemas/game.js";
 
 export { scenarioOptions, scenarioDescriptions } from "./schemas/scenario.js";
 export type { Scenario } from "./schemas/scenario.js";
