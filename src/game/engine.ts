@@ -273,16 +273,6 @@ export class GameEngine {
     }
   }
 
-  applyTemporaryHP(entityId: string, isPlayer: boolean, amount: number): void {
-    if (isPlayer) {
-      const player = this._game.players.find(p => p.id === entityId);
-      if (player) applyTemporaryHP(player, amount);
-    } else {
-      const npc = this._game.npcs.find(n => n.id === entityId);
-      if (npc) applyTemporaryHP(npc, amount);
-    }
-  }
-
   // ---- World State (compact game state for LLM context) ----
 
   /**
@@ -807,6 +797,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
       createdAt: Date.now(),
       conditions: [],
+      buffs: [],
     };
     this._game.npcs.push(npc);
   }
@@ -836,6 +827,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       attributes: npcData.attributes,
       createdAt: Date.now(),
       conditions: [],
+      buffs: [],
     };
     this._game.npcs.push(npc);
   }
@@ -1245,5 +1237,148 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     }
     
     return player.inventory.reduce((total, item) => total + item.weight, 0);
+  }
+
+  // ---- Buff/Debuff System ----
+
+  /**
+   * Apply temporary HP with duration
+   */
+  applyTemporaryHP(playerId: string, amount: number, duration: number): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    // New temp HP replaces old if higher
+    const currentTempHp = player.temporaryHp || 0;
+    player.temporaryHp = Math.max(currentTempHp, amount);
+    player.temporaryHpRemaining = duration;
+  }
+
+  /**
+   * Apply buff to player
+   */
+  applyBuff(playerId: string, buff: { name: string; effect: string; bonus?: number; duration: number }): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.buffs) {
+      player.buffs = [];
+    }
+    
+    // Check for existing buff with same name and update duration
+    const existingIndex = player.buffs.findIndex(b => b.name === buff.name);
+    if (existingIndex >= 0) {
+      player.buffs[existingIndex] = buff;
+    } else {
+      player.buffs.push(buff);
+    }
+  }
+
+  /**
+   * Remove buff from player
+   */
+  removeBuff(playerId: string, buffName: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.buffs) return;
+    
+    player.buffs = player.buffs.filter(b => b.name !== buffName);
+  }
+
+  /**
+   * Apply temporary HP to NPC
+   */
+  applyTemporaryHPToNPC(npcId: string, amount: number, duration: number): void {
+    const npc = this._game.npcs.find(n => n.id === npcId);
+    if (!npc) throw new Error("NPC not found");
+    
+    // New temp HP replaces old if higher
+    const currentTempHp = npc.temporaryHp || 0;
+    npc.temporaryHp = Math.max(currentTempHp, amount);
+    npc.temporaryHpRemaining = duration;
+  }
+
+  /**
+   * Apply buff to NPC
+   */
+  applyBuffToNPC(npcId: string, buff: { name: string; effect: string; bonus?: number; duration: number }): void {
+    const npc = this._game.npcs.find(n => n.id === npcId);
+    if (!npc) throw new Error("NPC not found");
+    
+    if (!npc.buffs) {
+      npc.buffs = [];
+    }
+    
+    // Check for existing buff with same name and update duration
+    const existingIndex = npc.buffs.findIndex(b => b.name === buff.name);
+    if (existingIndex >= 0) {
+      npc.buffs[existingIndex] = buff;
+    } else {
+      npc.buffs.push(buff);
+    }
+  }
+
+  /**
+   * Reduce buff durations by 1 round (call at end of each combat round)
+   */
+  reduceBuffDurations(): void {
+    // Reduce player buff durations
+    for (const player of this._game.players) {
+      if (player.buffs) {
+        player.buffs = player.buffs.filter(b => {
+          b.duration--;
+          return b.duration > 0;
+        });
+      }
+      
+      // Reduce temporary HP duration
+      if (player.temporaryHpRemaining !== undefined) {
+        player.temporaryHpRemaining--;
+        if (player.temporaryHpRemaining <= 0) {
+          player.temporaryHp = undefined;
+          player.temporaryHpRemaining = undefined;
+        }
+      }
+    }
+    
+    // Reduce NPC buff durations
+    for (const npc of this._game.npcs) {
+      if (npc.buffs) {
+        npc.buffs = npc.buffs.filter(b => {
+          b.duration--;
+          return b.duration > 0;
+        });
+      }
+      
+      // Reduce temporary HP duration
+      if (npc.temporaryHpRemaining !== undefined) {
+        npc.temporaryHpRemaining--;
+        if (npc.temporaryHpRemaining <= 0) {
+          npc.temporaryHp = undefined;
+          npc.temporaryHpRemaining = undefined;
+        }
+      }
+    }
+  }
+
+  /**
+   * Get player's current buffs
+   */
+  getPlayerBuffs(playerId: string): { name: string; effect: string; bonus?: number; duration: number }[] {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    return player.buffs || [];
+  }
+
+  /**
+   * Get NPC's current buffs
+   */
+  getNPCBuffs(npcId: string): { name: string; effect: string; bonus?: number; duration: number }[] {
+    const npc = this._game.npcs.find(n => n.id === npcId);
+    if (!npc) throw new Error("NPC not found");
+    
+    return npc.buffs || [];
   }
 }

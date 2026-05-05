@@ -27,11 +27,20 @@ export interface Player {
   // Combat mechanics
   initiative?: number; // Initiative score for combat turn order
   temporaryHp?: number; // Temporary HP that absorbs damage first
+  temporaryHpRemaining?: number; // Rounds remaining for temporary HP
   
   // Equipment system
   equippedWeapon?: Item; // Currently equipped weapon
   equippedArmor?: Item; // Currently equipped armor
   usedItems: string[]; // IDs of consumed items (potions, etc.)
+  
+  // Buff/Debuff system
+  buffs: {
+    name: string;
+    effect: string;
+    bonus?: number; // Numeric bonus (e.g., +2 to attacks)
+    duration: number; // Rounds remaining
+  }[];
 }
 
 export type DiceType = 4 | 6 | 8 | 10 | 12 | 20;
@@ -69,7 +78,16 @@ export interface NPC {
   
   // Combat mechanics
   temporaryHp?: number; // Temporary HP that absorbs damage first
+  temporaryHpRemaining?: number; // Rounds remaining for temporary HP
   conditions: string[]; // Combat conditions (poisoned, prone, blinded, etc.)
+  
+  // Buff/Debuff system
+  buffs: {
+    name: string;
+    effect: string;
+    bonus?: number; // Numeric bonus (e.g., +2 to attacks)
+    duration: number; // Rounds remaining
+  }[];
 }
 
 export interface ChatMessage {
@@ -185,6 +203,9 @@ export type MessageType =
   | 'UNEQUIP_WEAPON'      // NEW: Unequip weapon
   | 'UNEQUIP_ARMOR'       // NEW: Unequip armor
   | 'USE_ITEM'            // NEW: Use consumable item
+  | 'APPLY_TEMPORARY_HP'  // NEW: Apply temporary HP with duration
+  | 'APPLY_BUFF'          // NEW: Apply buff to entity
+  | 'REMOVE_BUFF'         // NEW: Remove buff from entity
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -209,6 +230,7 @@ export type MessageType =
   | 'INVENTORY_UPDATE'    // NEW: Inventory updated
   | 'EQUIPMENT_UPDATE'    // NEW: Equipment changed
   | 'ITEM_USED'           // NEW: Item consumed
+  | 'BUFF_UPDATE'         // NEW: Buff/Debuff change
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

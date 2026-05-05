@@ -223,5 +223,12 @@
   "equipment.armor": "Armor",
   "equipment.equipped": "Equipped {slot}",
   "equipment.unequipped": "Unequipped {slot}",
-  "equipment.none": "None equipped"
+  "equipment.none": "None equipped",
+  "buff.title": "✨ Active Buffs",
+  "buff.apply_btn": "Apply Buff",
+  "buff.remove_btn": "Remove Buff",
+  "buff.temporary_hp": "Temporary HP",
+  "buff.duration": "Duration: {rounds} rounds",
+  "buff.active": "{name} active (+{bonus})",
+  "buff.expired": "{name} expired"
 }

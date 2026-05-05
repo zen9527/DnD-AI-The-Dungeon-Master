@@ -161,6 +161,15 @@ export class WebSocketManager {
       case "USE_ITEM":
         this.handleUseItem(ws, client!, payload);
         break;
+      case "APPLY_TEMPORARY_HP":
+        this.handleApplyTemporaryHP(ws, client!, payload);
+        break;
+      case "APPLY_BUFF":
+        this.handleApplyBuff(ws, client!, payload);
+        break;
+      case "REMOVE_BUFF":
+        this.handleRemoveBuff(ws, client!, payload);
+        break;
       default:
         this.sendError(ws, `Unknown message type: ${message.type}`);
     }
@@ -196,6 +205,7 @@ export class WebSocketManager {
       equippedArmor: undefined,
       usedItems: [],
       conditions: [],
+      buffs: [],
       hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
       deathSaves: { successes: 0, failures: 0 },
       xp: 0,
@@ -340,6 +350,7 @@ export class WebSocketManager {
       equippedArmor: undefined,
       usedItems: [],
       conditions: [],
+      buffs: [],
       hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
       deathSaves: { successes: 0, failures: 0 },
       xp: 0,
@@ -1275,6 +1286,131 @@ export class WebSocketManager {
     });
 
     console.log(`[Inventory] Player ${client.playerId} used item ${itemId}`);
+  }
+
+  // ---- Buff/Debuff Handlers ----
+
+  private handleApplyTemporaryHP(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can apply temporary HP
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can apply temporary HP");
+      return;
+    }
+
+    const targetId = payload.targetId as string;
+    const amount = (payload.amount as number) || 0;
+    const duration = (payload.duration as number) || 1;
+    const isPlayer = (payload.isPlayer as boolean) || true;
+
+    if (isPlayer) {
+      engine.applyTemporaryHP(targetId, amount, duration);
+    } else {
+      engine.applyTemporaryHPToNPC(targetId, amount, duration);
+    }
+
+    this.broadcastToGame(client.gameId, "BUFF_UPDATE", {
+      action: "apply_temporary_hp",
+      targetId,
+      isPlayer,
+      amount,
+      duration,
+    });
+
+    console.log(`[Buff] Applied ${amount} temporary HP to ${targetId} for ${duration} rounds`);
+  }
+
+  private handleApplyBuff(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can apply buffs
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can apply buffs");
+      return;
+    }
+
+    const targetId = payload.targetId as string;
+    const buff = payload.buff as { name: string; effect: string; bonus?: number; duration: number };
+    const isPlayer = (payload.isPlayer as boolean) || true;
+
+    if (isPlayer) {
+      engine.applyBuff(targetId, buff);
+    } else {
+      engine.applyBuffToNPC(targetId, buff);
+    }
+
+    this.broadcastToGame(client.gameId, "BUFF_UPDATE", {
+      action: "apply_buff",
+      targetId,
+      isPlayer,
+      buff,
+    });
+
+    console.log(`[Buff] Applied ${buff.name} to ${targetId} for ${buff.duration} rounds`);
+  }
+
+  private handleRemoveBuff(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can remove buffs
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can remove buffs");
+      return;
+    }
+
+    const targetId = payload.targetId as string;
+    const buffName = payload.buffName as string;
+    const isPlayer = (payload.isPlayer as boolean) || true;
+
+    if (isPlayer) {
+      engine.removeBuff(targetId, buffName);
+    } else {
+      // NPCs don't have removeBuff method yet, but we can filter directly
+      const npc = engine.game.npcs.find(n => n.id === targetId);
+      if (npc && npc.buffs) {
+        npc.buffs = npc.buffs.filter(b => b.name !== buffName);
+      }
+    }
+
+    this.broadcastToGame(client.gameId, "BUFF_UPDATE", {
+      action: "remove_buff",
+      targetId,
+      isPlayer,
+      buffName,
+    });
+
+    console.log(`[Buff] Removed ${buffName} from ${targetId}`);
   }
 
   shutdown(): void {

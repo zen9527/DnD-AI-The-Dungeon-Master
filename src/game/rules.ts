@@ -193,7 +193,17 @@ export function getAttackBonus(player: Player, weaponAttackBonus: number = 0): n
     weaponBonus += player.equippedWeapon.stats.attackBonus;
   }
   
-  return proficiency + abilityMod + weaponBonus;
+  // Add buff bonuses (e.g., bless spell gives +1d4, simplified to +2 here)
+  let buffBonus = 0;
+  if (player.buffs) {
+    for (const buff of player.buffs) {
+      if (buff.bonus) {
+        buffBonus += buff.bonus;
+      }
+    }
+  }
+  
+  return proficiency + abilityMod + weaponBonus + buffBonus;
 }
 
 export function getAttackAttributeMod(player: Player): number {
@@ -216,7 +226,17 @@ export function calculateAC(player: Player): number {
     armorBonus = player.equippedArmor.stats.armorClassBonus;
   }
   
-  return base + dexMod + armorBonus;
+  // Add buff bonuses to AC (e.g., shield spell gives +5 AC)
+  let buffBonus = 0;
+  if (player.buffs) {
+    for (const buff of player.buffs) {
+      if (buff.effect.toLowerCase().includes('ac') || buff.effect.toLowerCase().includes('defense')) {
+        buffBonus += buff.bonus || 0;
+      }
+    }
+  }
+  
+  return base + dexMod + armorBonus + buffBonus;
 }
 
 export function isHit(roll: number, player: Player, target: NPC, weaponAttackBonus: number = 0): { hit: boolean; isCritical: boolean } {
