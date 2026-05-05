@@ -138,6 +138,24 @@ export class GameStore {
     }
   }
 
+  loadSingleGame(gameId: string): GameEngine | null {
+    if (this.games.has(gameId)) return this.games.get(gameId)!;
+    
+    const gameData = storage.loadGame(gameId);
+    if (!gameData) return null;
+    
+    const config = configManager.read();
+    const engine = new GameEngine(
+      gameData,
+      config.llmBaseUrl,
+      config.llmApiKey,
+      config.llmModel
+    );
+    this.games.set(gameId, engine);
+    console.log(`[GameStore] Loaded single game ${gameId} from disk`);
+    return engine;
+  }
+
   startAutoSave(): NodeJS.Timeout {
     return setInterval(() => this.saveAllGames(), 60000);
   }

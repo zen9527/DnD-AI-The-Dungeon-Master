@@ -654,7 +654,7 @@ class App {
         </div>
         
         <!-- DM Control Panel (only visible to DM) -->
-        ${player.isDM ? `<div class="dm-control-panel hidden" id="dm-control-panel"></div>` : ''}
+        ${player.isDM ? `<div class="dm-control-panel-expanded hidden" id="dm-control-panel"></div>` : ''}
       </div>
     `;
 

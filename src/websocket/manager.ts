@@ -3,6 +3,7 @@ import { Server as HttpServer } from "http";
 import type { IncomingMessage } from "http";
 import type { MessageType, WebSocketMessage, Player, Attributes, ChatMessage } from "../types/index.js";
 import { gameStore } from "../game/store.js";
+import type { GameEngine } from "../game/engine.js";
 import { buildSystemPrompt } from "../llm/prompts.js";
 import { type Scenario } from "../../shared/schemas/scenario.js";
 import { getLocalizedMessage } from "../utils/locale-loader.js";
@@ -324,11 +325,20 @@ export class WebSocketManager {
     }
 
     const p = parsed.data;
-    const engine = gameStore.getGame(p.gameId);
+    let engine: GameEngine | null = gameStore.getGame(p.gameId) ?? null;
+    
+    // If game not in memory, try loading from disk (saved games from lobby)
     if (!engine) {
-      this.sendError(ws, "Game not found");
-      return;
+      engine = gameStore.loadSingleGame(p.gameId);
+      if (!engine) {
+        this.sendError(ws, "Game not found");
+        return;
+      }
+      console.log(`[WebSocket] Loaded saved game ${p.gameId} from disk`);
     }
+    
+    // At this point, engine is guaranteed to be defined (we returned early if not)
+    const currentEngine = engine!;
 
     const player: Player = {
       id: this.clients.get(ws)!.id,
@@ -358,51 +368,51 @@ export class WebSocketManager {
     };
 
     gameStore.joinGame(p.gameId, player);
-    this.clients.set(ws, { id: this.clients.get(ws)!.id, gameId: engine.id, playerId: player.id });
+    this.clients.set(ws, { id: this.clients.get(ws)!.id, gameId: currentEngine.id, playerId: player.id });
 
     // Send join notification to all players
     const joinLocale = player.locale || "en-US";
     const joinMsg = getLocalizedMessage(joinLocale, "player_joined.notification").replace("{name}", player.characterName);
-    engine.addEvent("Player Joined", `${player.characterName} has joined the adventure`);
-    this.broadcastToGame(engine.id, "CHAT_MESSAGE", {
-      message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
-      gameState: engine.game,
+    currentEngine.addEvent("Player Joined", `${player.characterName} has joined the adventure`);
+    this.broadcastToGame(currentEngine.id, "CHAT_MESSAGE", {
+      message: currentEngine.game.chatHistory[currentEngine.game.chatHistory.length - 1],
+      gameState: currentEngine.game,
     });
 
     // Send game state to the joining player
     this.send(ws, "PLAYER_JOINED", {
-      gameId: engine.id,
+      gameId: currentEngine.id,
       player,
-      gameState: engine.game,
+      gameState: currentEngine.game,
     });
 
     // Broadcast updated state to other players (excluding the joining player)
-    this.broadcastToGame(engine.id, "PLAYER_JOINED", { player, gameState: engine.game }, ws);
+    this.broadcastToGame(currentEngine.id, "PLAYER_JOINED", { player, gameState: currentEngine.game }, ws);
 
     // If this is the first player joining (DM already in game), generate a welcome scene from DM
-    if (engine.game.players.length > 1 && engine.game.chatHistory.length <= 1) {
+    if (currentEngine.game.players.length > 1 && currentEngine.game.chatHistory.length <= 1) {
       // DM is already in the game but no opening scene yet — generate one for the new player
-      const dmPlayer = engine.game.players.find(pl => pl.isDM);
+      const dmPlayer = currentEngine.game.players.find(pl => pl.isDM);
       if (dmPlayer) {
         this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(joinLocale, "status.dm_preparing"), isFinal: false });
         setTimeout(() => {
-          engine.generateOpeningScene({
+          currentEngine.generateOpeningScene({
             onChunk: (chunk: string) => {
-              this.broadcastToGame(engine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+              this.broadcastToGame(currentEngine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
             },
             onEnd: () => {},
             onError: (error: Error) => {
               const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
-              engine.addEvent("DM", fallback);
-              this.broadcastToGame(engine.id, "STREAM_ERROR", {
+              currentEngine.addEvent("DM", fallback);
+              this.broadcastToGame(currentEngine.id, "STREAM_ERROR", {
                 message: error.message,
                 fallbackNarrative: fallback,
               });
             },
           }).then((result) => {
-            this.broadcastToGame(engine.id, "STREAM_END", {
+            this.broadcastToGame(currentEngine.id, "STREAM_END", {
               fullNarrative: result.fullNarrative,
-              structured: engine.game,
+              structured: currentEngine.game,
             });
           }).catch(() => {});
         }, 2000);

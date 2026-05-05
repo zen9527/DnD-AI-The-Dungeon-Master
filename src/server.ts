@@ -47,6 +47,13 @@ const llmModel = config.llmModel;
 
 const wsManager = new WebSocketManager(server);
 
+// Load saved games from disk into memory at startup
+gameStore.loadSavedGames();
+console.log(`[GameStore] Loaded ${gameStore.getGameCount()} game(s) from storage`);
+
+// Start auto-save every 60 seconds
+gameStore.startAutoSave();
+
 const PORT = config.port;
 const HOST = config.host;
 
