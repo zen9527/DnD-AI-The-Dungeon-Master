@@ -559,5 +559,6 @@
   "item.type_weapon": "武器",
   "item.type_armor": "护甲",
   "item.type_consumable": "消耗品",
-  "item.type_misc": "其他"
+  "item.type_misc": "其他",
+  "npc.create_btn": "创建NPC"
 }

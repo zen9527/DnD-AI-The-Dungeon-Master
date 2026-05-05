@@ -176,5 +176,6 @@
   "item.type_weapon": "武器",
   "item.type_armor": "防具",
   "item.type_consumable": "消耗品",
-  "item.type_misc": "その他"
+  "item.type_misc": "その他",
+  "npc.create_btn": "NPC作成"
 }

@@ -176,5 +176,6 @@
   "item.type_weapon": "Arma",
   "item.type_armor": "Armadura",
   "item.type_consumable": "Consumible",
-  "item.type_misc": "Otros"
+  "item.type_misc": "Otros",
+  "npc.create_btn": "Crear NPC"
 }

@@ -176,5 +176,6 @@
   "item.type_weapon": "무기",
   "item.type_armor": "방패",
   "item.type_consumable": "소모품",
-  "item.type_misc": "기타"
+  "item.type_misc": "기타",
+  "npc.create_btn": "NPC 생성"
 }
