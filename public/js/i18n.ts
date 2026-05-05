@@ -118,3 +118,15 @@ export function getLocalizedNames(race: string): { firstNames: string[]; lastPar
     lastParts: (localeData[lastKey] ?? enData[lastKey]) as string[] || [],
   };
 }
+
+/** Get localized race name */
+export function getLocalizedRaceName(race: string): string {
+  const key = `race.${race.toLowerCase()}`;
+  return t(key) || race; // Fallback to English if translation missing
+}
+
+/** Get localized class name */
+export function getLocalizedClassName(characterClass: string): string {
+  const key = `class.${characterClass.toLowerCase()}`;
+  return t(key) || characterClass; // Fallback to English if translation missing
+}
