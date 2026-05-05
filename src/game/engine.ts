@@ -7,6 +7,7 @@ import { parseLLMResponse } from "../llm/parser.js";
 import type { Game, Player, NPC, ChatMessage, PlayerActionPayload, StreamResult } from "../types/index.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import { getLocalizedMessage } from "../utils/locale-loader.js";
+import * as storage from "../utils/storage.js";
 
 export class GameEngine {
   private _game: Game;
@@ -1380,5 +1381,12 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     if (!npc) throw new Error("NPC not found");
     
     return npc.buffs || [];
+  }
+
+  /**
+   * Save game to disk
+   */
+  saveGame(): void {
+    storage.saveGame(this._game);
   }
 }

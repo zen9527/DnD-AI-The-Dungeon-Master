@@ -19,7 +19,7 @@ function getHitDiceForClass(characterClass: string): number {
   };
   return hdMap[characterClass] || 1;
 }
-import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, combatEndSchema, initiativeRollSchema, turnAdvanceSchema } from "../../shared/index.js";
+import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, combatEndSchema, initiativeRollSchema, turnAdvanceSchema, saveGameSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -170,6 +170,9 @@ export class WebSocketManager {
         break;
       case "REMOVE_BUFF":
         this.handleRemoveBuff(ws, client!, payload);
+        break;
+      case "SAVE_GAME":
+        this.handleSaveGame(ws, client!, payload);
         break;
       default:
         this.sendError(ws, `Unknown message type: ${message.type}`);
@@ -1421,6 +1424,45 @@ export class WebSocketManager {
     });
 
     console.log(`[Buff] Removed ${buffName} from ${targetId}`);
+  }
+
+  private handleSaveGame(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    const parsed = saveGameSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const gameId = parsed.data.gameId;
+    
+    // Verify client is in the game
+    if (client.gameId !== gameId) {
+      this.sendError(ws, "You are not in this game");
+      return;
+    }
+
+    const engine = gameStore.getGame(gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Save game to disk
+    try {
+      engine.saveGame();
+      
+      // Broadcast success to all players in the game
+      this.broadcastToGame(gameId, "GAME_SAVED", { 
+        gameId,
+        timestamp: Date.now()
+      });
+
+      console.log(`[SaveGame] Game ${gameId} saved successfully`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      this.sendError(ws, `Failed to save game: ${errorMessage}`);
+      console.error(`[SaveGame] Failed to save game ${gameId}:`, error);
+    }
   }
 
   shutdown(): void {
