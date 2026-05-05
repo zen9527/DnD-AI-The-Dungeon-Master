@@ -113,6 +113,14 @@ export class CharacterCreator {
         <div id="active-games-container"></div>
       </div>
 
+      <!-- Saved Games Section -->
+      <div class="saved-games-section" id="saved-games-section" style="display:none;">
+        <div class="section-header">
+          <h2 class="section-title">${t("saved_games.title")}</h2>
+        </div>
+        <div id="saved-games-container"></div>
+      </div>
+
       <div class="welcome-screen">
         <div class="settings-trigger" title="${t("settings.title")}">⚙️</div>
         <h2>${t("create_own.title")}</h2>
@@ -150,6 +158,64 @@ export class CharacterCreator {
 
     // Fetch active games on load
     (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
+
+    // Fetch saved games on load
+    this.fetchSavedGames();
+  }
+
+  private async fetchSavedGames(): Promise<void> {
+    try {
+      const response = await fetch("/api/saved-games");
+      if (!response.ok) return;
+      const games: Array<{ id: string; name: string; createdAt: number }> = await response.json();
+      this.renderSavedGames(games);
+    } catch {
+      // API not available yet — skip
+    }
+  }
+
+  private renderSavedGames(games: Array<{ id: string; name: string; createdAt: number }>): void {
+    const container = document.getElementById("saved-games-container");
+    if (!container) return;
+
+    if (games.length === 0) {
+      container.innerHTML = `<p class="no-games">${t("saved_games.empty")}</p>`;
+      container.parentElement!.style.display = "block";
+      return;
+    }
+
+    container.innerHTML = games.map(g => {
+      const dateStr = new Date(g.createdAt).toLocaleDateString();
+      return `
+        <div class="game-card saved-game" data-saved-id="${this.escapeHtml(g.id)}">
+          <div class="game-card-header">
+            <span class="scenario-badge">💾</span>
+            <h3>${this.escapeHtml(g.name)}</h3>
+          </div>
+          <div class="game-card-body">
+            <span class="game-scenario-label">${t("saved_games.date_format", { date: dateStr })}</span>
+            <button class="join-game-btn load-saved-btn" data-saved-id="${this.escapeHtml(g.id)}">
+              ${t("saved_games.load_btn")}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Make section visible
+    const section = document.getElementById("saved-games-section");
+    if (section) section.style.display = "block";
+
+    // Attach load handlers
+    container.querySelectorAll(".load-saved-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const savedId = (btn as HTMLElement).getAttribute("data-saved-id");
+        if (savedId) {
+          window.location.href = `?game=${savedId}`;
+        }
+      });
+    });
   }
 
   private renderLocaleDropdown(): string {

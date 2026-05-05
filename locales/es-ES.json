@@ -177,5 +177,10 @@
   "item.type_armor": "Armadura",
   "item.type_consumable": "Consumible",
   "item.type_misc": "Otros",
+  "saved_games.title": "💾 Aventuras Guardadas",
+  "saved_games.loading": "Cargando partidas guardadas...",
+  "saved_games.empty": "Aún no hay partidas guardadas. Guarda una partida durante la jugabilidad para verla aquí.",
+  "saved_games.load_btn": "Cargar Juego",
+  "saved_games.date_format": "{date}",
   "npc.create_btn": "Crear NPC"
 }

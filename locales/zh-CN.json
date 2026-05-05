@@ -560,5 +560,10 @@
   "item.type_armor": "护甲",
   "item.type_consumable": "消耗品",
   "item.type_misc": "其他",
+  "saved_games.title": "💾 存档冒险",
+  "saved_games.loading": "加载存档中...",
+  "saved_games.empty": "还没有存档。在游戏中保存后，这里会显示可用的存档。",
+  "saved_games.load_btn": "加载游戏",
+  "saved_games.date_format": "{date}",
   "npc.create_btn": "创建NPC"
 }

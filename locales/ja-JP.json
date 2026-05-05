@@ -177,5 +177,10 @@
   "item.type_armor": "防具",
   "item.type_consumable": "消耗品",
   "item.type_misc": "その他",
+  "saved_games.title": "💾 保存された冒険",
+  "saved_games.loading": "セーブデータを読み込み中...",
+  "saved_games.empty": "まだセーブデータがありません。プレイ中にゲームを保存するとここに表示されます。",
+  "saved_games.load_btn": "ロード",
+  "saved_games.date_format": "{date}",
   "npc.create_btn": "NPC作成"
 }

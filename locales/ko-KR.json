@@ -177,5 +177,10 @@
   "item.type_armor": "방패",
   "item.type_consumable": "소모품",
   "item.type_misc": "기타",
+  "saved_games.title": "💾 저장된 모험",
+  "saved_games.loading": "저장된 게임 로딩 중...",
+  "saved_games.empty": "아직 저장된 게임이 없습니다. 플레이 중 게임을 저장하면 여기에 표시됩니다.",
+  "saved_games.load_btn": "게임 로드",
+  "saved_games.date_format": "{date}",
   "npc.create_btn": "NPC 생성"
 }
