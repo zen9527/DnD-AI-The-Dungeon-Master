@@ -172,5 +172,9 @@
   "player.unknown": "알 수 없음",
   "dm_error.notification": "DM 오류: {message}",
   "spell.cast_tooltip": "주문 시전",
-  "player_joined.notification": "{name}이(가) 모험에 참가했습니다!"
+  "player_joined.notification": "{name}이(가) 모험에 참가했습니다!",
+  "item.type_weapon": "무기",
+  "item.type_armor": "방패",
+  "item.type_consumable": "소모품",
+  "item.type_misc": "기타"
 }

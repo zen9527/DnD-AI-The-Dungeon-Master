@@ -231,8 +231,6 @@
   "buff.duration": "Duration: {rounds} rounds",
   "buff.active": "{name} active (+{bonus})",
   "buff.expired": "{name} expired",
-  
-  // Item types
   "item.type_weapon": "Weapon",
   "item.type_armor": "Armor",
   "item.type_consumable": "Consumable",

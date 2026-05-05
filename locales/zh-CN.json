@@ -555,5 +555,9 @@
   "dm_control.npc_created": "已创建 NPC: {name}",
   "dm_control.npc_deleted": "已删除 NPC: {name}",
   "dm_control.xp_awarded": "已向 {playerName} 奖励 {amount} 经验值",
-  "dm_control.player_leveled": "{playerName} 升级到 {level} 级"
+  "dm_control.player_leveled": "{playerName} 升级到 {level} 级",
+  "item.type_weapon": "武器",
+  "item.type_armor": "护甲",
+  "item.type_consumable": "消耗品",
+  "item.type_misc": "其他"
 }

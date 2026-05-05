@@ -172,5 +172,9 @@
   "player.unknown": "不明",
   "dm_error.notification": "DMエラー: {message}",
   "spell.cast_tooltip": "呪文を発動",
-  "player_joined.notification": "{name} が冒険に参加しました！"
+  "player_joined.notification": "{name} が冒険に参加しました！",
+  "item.type_weapon": "武器",
+  "item.type_armor": "防具",
+  "item.type_consumable": "消耗品",
+  "item.type_misc": "その他"
 }

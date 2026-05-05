@@ -172,5 +172,9 @@
   "player.unknown": "Desconocido",
   "dm_error.notification": "Error del DM: {message}",
   "spell.cast_tooltip": "Lanzar hechizo",
-  "player_joined.notification": "¡{name} se ha unido a la aventura!"
+  "player_joined.notification": "¡{name} se ha unido a la aventura!",
+  "item.type_weapon": "Arma",
+  "item.type_armor": "Armadura",
+  "item.type_consumable": "Consumible",
+  "item.type_misc": "Otros"
 }
