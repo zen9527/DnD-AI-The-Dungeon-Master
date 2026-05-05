@@ -69,12 +69,48 @@ export const diceRollSchema = z.object({
   modifier: z.number().optional(),
 });
 
+// ============================================================================
+// INVENTORY & EQUIPMENT SCHEMAS
+// ============================================================================
+
+export const itemSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(100),
+  type: z.enum(["weapon", "armor", "consumable", "misc"]),
+  description: z.string().optional(),
+  weight: z.number().nonnegative(),
+  stats: z.object({
+    attackBonus: z.number().optional(),
+    damageDice: z.object({ 
+      type: z.union([z.literal(4), z.literal(6), z.literal(8), z.literal(10), z.literal(12), z.literal(20)]), 
+      count: z.number() 
+    }).optional(),
+    armorClassBonus: z.number().optional(),
+    healingAmount: z.number().optional(), // For potions
+  }).optional(),
+});
+
+export const equipItemSchema = z.object({
+  itemId: z.string(),
+  slot: z.enum(["weapon", "armor"]),
+});
+
+export const unequipItemSchema = z.object({
+  slot: z.enum(["weapon", "armor"]),
+});
+
+export const useItemSchema = z.object({
+  itemId: z.string(),
+  targetId: z.string().optional(), // For potions targeting specific entities
+});
+
 export type CreateGameInput = z.infer<typeof createGameSchema>;
 export type JoinGameInput = z.infer<typeof joinGameSchema>;
 export type CharacterInput = z.infer<typeof createCharacterSchema>;
 export type NPCInput = z.infer<typeof npcSchema>;
 export type EventInput = z.infer<typeof eventSchema>;
 export type DiceRollInput = z.infer<typeof diceRollSchema>;
+export type Item = z.infer<typeof itemSchema>;
 
 export { scenarioOptions, scenarioDescriptions } from "./scenario.js";
 export type { Scenario } from "./scenario.js";

@@ -1004,4 +1004,138 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   addPlayer(player: Player): void {
     this._game.players.push(player);
   }
+
+  // ---- Inventory & Equipment Management ----
+
+  /**
+   * Add item to player inventory
+   */
+  addItemToInventory(playerId: string, item: any): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.inventory) {
+      player.inventory = [];
+    }
+    player.inventory.push(item);
+  }
+
+  /**
+   * Remove item from player inventory by itemId
+   */
+  removeItemFromInventory(playerId: string, itemId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.inventory) return;
+    
+    const index = player.inventory.findIndex(i => i.id === itemId);
+    if (index >= 0) {
+      player.inventory.splice(index, 1);
+    }
+  }
+
+  /**
+   * Equip item to weapon or armor slot
+   */
+  equipItem(playerId: string, itemId: string, slot: "weapon" | "armor"): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.inventory) throw new Error("Inventory not found");
+    
+    const item = player.inventory.find(i => i.id === itemId);
+    if (!item) throw new Error("Item not found in inventory");
+    
+    // Initialize equipped if not present
+    if (!player.equipped) {
+      player.equipped = {};
+    }
+    
+    // Unequip any existing item in this slot
+    if (slot === "weapon") {
+      player.equipped.weapon = item;
+    } else {
+      player.equipped.armor = item;
+    }
+  }
+
+  /**
+   * Unequip item from weapon or armor slot
+   */
+  unequipItem(playerId: string, slot: "weapon" | "armor"): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.equipped) return;
+    
+    if (slot === "weapon") {
+      player.equipped.weapon = undefined;
+    } else {
+      player.equipped.armor = undefined;
+    }
+  }
+
+  /**
+   * Use consumable item (potion, etc.)
+   */
+  useConsumable(playerId: string, itemId: string): { healed: number } {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.inventory) throw new Error("Inventory not found");
+    
+    const item = player.inventory.find(i => i.id === itemId);
+    if (!item) throw new Error("Item not found in inventory");
+    
+    let healed = 0;
+    
+    // Apply healing if item has healingAmount
+    if (item.stats?.healingAmount) {
+      healed = item.stats.healingAmount;
+      player.hp = Math.min(player.maxHp, player.hp + healed);
+    }
+    
+    // Remove consumable from inventory after use
+    this.removeItemFromInventory(playerId, itemId);
+    
+    return { healed };
+  }
+
+  /**
+   * Get player's inventory
+   */
+  getPlayerInventory(playerId: string): any[] {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    return player.inventory ? [...player.inventory] : [];
+  }
+
+  /**
+   * Get player's equipped items
+   */
+  getEquippedItems(playerId: string): { weapon?: any; armor?: any } {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    return {
+      weapon: player.equipped?.weapon,
+      armor: player.equipped?.armor,
+    };
+  }
+
+  /**
+   * Calculate total weight of player's inventory
+   */
+  calculateTotalWeight(playerId: string): number {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    if (!player.inventory || player.inventory.length === 0) {
+      return 0;
+    }
+    
+    return player.inventory.reduce((total, item) => total + item.weight, 0);
+  }
 }

@@ -16,6 +16,7 @@ export interface Player {
   spellSlots: Record<string, number>;
   spells: Spell[]; // Learned spells with levels
   inventory: Item[]; // Potions and other consumables
+  equipped: { weapon?: Item; armor?: Item }; // Equipped weapon and armor
   conditions: string[];
 
   // D&D 5e extended mechanics
@@ -37,12 +38,17 @@ export interface Spell {
 }
 
 export interface Item {
+  id: string;
   name: string;
-  type: 'weapon' | 'armor' | 'potion' | 'misc';
-  description: string;
+  type: 'weapon' | 'armor' | 'consumable' | 'misc';
+  description?: string;
   weight: number;
-  attackBonus?: number;
-  damageDice?: { type: DiceType; count: number };
+  stats?: {
+    attackBonus?: number;
+    damageDice?: { type: DiceType; count: number };
+    armorClassBonus?: number;
+    healingAmount?: number;
+  };
 }
 
 export interface NPC {

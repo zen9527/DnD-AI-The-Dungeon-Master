@@ -186,13 +186,37 @@ export function rollHitDice(player: Player): { healed: number; conMod: number } 
 export function getAttackBonus(player: Player, weaponAttackBonus: number = 0): number {
   const proficiency = calculateProficiencyBonus(player.level);
   const abilityMod = getAttackAttributeMod(player);
-  return proficiency + abilityMod + weaponAttackBonus;
+  
+  // Add weapon attack bonus from equipped weapon if present
+  let weaponBonus = weaponAttackBonus;
+  if (player.equipped?.weapon?.stats?.attackBonus) {
+    weaponBonus += player.equipped.weapon.stats.attackBonus;
+  }
+  
+  return proficiency + abilityMod + weaponBonus;
 }
 
 export function getAttackAttributeMod(player: Player): number {
   const isSpellcaster = ["Wizard", "Sorcerer", "Cleric", "Paladin", "Ranger"].includes(player.characterClass);
   if (isSpellcaster) return calculateModifier(player.attributes.int);
   return calculateModifier(player.attributes.str);
+}
+
+/**
+ * Calculate Armor Class (AC) including armor bonus from equipped armor
+ * Formula: Base 10 + Dexterity modifier + Armor AC bonus (if equipped)
+ */
+export function calculateAC(player: Player): number {
+  const base = 10;
+  const dexMod = calculateModifier(player.attributes.dex);
+  
+  // Add armor bonus if armor is equipped
+  let armorBonus = 0;
+  if (player.equipped?.armor?.stats?.armorClassBonus) {
+    armorBonus = player.equipped.armor.stats.armorClassBonus;
+  }
+  
+  return base + dexMod + armorBonus;
 }
 
 export function isHit(roll: number, player: Player, target: NPC, weaponAttackBonus: number = 0): { hit: boolean; isCritical: boolean } {
