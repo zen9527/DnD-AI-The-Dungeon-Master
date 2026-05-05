@@ -37,6 +37,7 @@ function createFallbackResult(): StructuredResult {
       nextPlayerId: "",
       initiative: [],
       round: 1,
+      currentTurnIndex: 0,
     },
   };
 }

@@ -47,7 +47,20 @@ export class GameStore {
     // Read fresh config from .env at runtime (not cached)
     const config = configManager.read();
     const engine = new GameEngine(
-      { id: gameId, name: gameName, maxPlayers, scenario, players: [firstPlayer], npcs: [], chatHistory: [], events: [] },
+      { 
+        id: gameId, 
+        name: gameName, 
+        maxPlayers, 
+        scenario, 
+        players: [firstPlayer], 
+        npcs: [], 
+        chatHistory: [], 
+        events: [],
+        combatMode: false,
+        initiativeOrder: [],
+        currentRound: 1,
+        currentTurnIndex: 0
+      },
       config.llmBaseUrl,
       config.llmApiKey,
       config.llmModel

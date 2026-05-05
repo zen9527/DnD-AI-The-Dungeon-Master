@@ -190,5 +190,18 @@
   "save.error": "❌ Save failed",
   "load.success": "✅ Game loaded!",
   "load.error": "❌ Failed to load game",
-  "saved_games.title": "💾 Saved Adventures"
+  "saved_games.title": "💾 Saved Adventures",
+  "combat.start": "⚔️ Start Combat",
+  "combat.end": "🏁 End Combat",
+  "combat.started": "Combat begins!",
+  "combat.ended": "Combat ends.",
+  "combat.title": "Combat Tracker",
+  "combat.round": "Round {round}",
+  "combat.current_turn": "Current Turn",
+  "combat.player": "Player",
+  "combat.npc": "NPC",
+  "combat.advance_turn": "➡️ Advance Turn",
+  "combat.no_initiative": "No initiative order yet. DM can start combat to roll initiative.",
+  "initiative.rolled_for": "{name} rolled initiative: {score}",
+  "dm_control.title": "DM Controls"
 }

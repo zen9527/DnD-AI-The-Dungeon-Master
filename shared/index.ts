@@ -59,3 +59,22 @@ export type { EndpointPreset } from "./schemas/config.js";
 
 export { SUPPORTED_LOCALES, LOCALE_DISPLAY, LOCALE_NATIVE, localeSchema } from "./schemas/locale.js";
 export type { SupportedLocale } from "./schemas/locale.js";
+
+// Combat schemas
+export {
+  combatStartSchema,
+  combatEndSchema,
+  initiativeRollSchema,
+  turnAdvanceSchema,
+  combatStateSchema,
+} from "./schemas/combat.js";
+export type {
+  CombatStartInput,
+  CombatEndInput,
+  InitiativeRollInput,
+  TurnAdvanceInput,
+  CombatStateOutput,
+} from "./schemas/combat.js";
+
+// Combat types
+export type { InitiativeEntry } from "../src/types/index.js";

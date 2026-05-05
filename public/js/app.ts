@@ -370,6 +370,49 @@ class App {
         }
       }
     });
+
+    wsManager.on("COMBAT_STATE", (payload) => {
+      const p = payload as { 
+        combatMode: boolean;
+        initiativeOrder: Array<{ playerId?: string; npcId?: string; score: number; name: string; hp: number; maxHp: number; ac: number; isPlayer: boolean }>;
+        currentRound: number;
+        currentTurnIndex: number;
+        currentPlayerName?: string;
+      };
+      
+      // Update combat state in game state
+      gameState.setCombatState(p);
+      
+      // Update UI to show/hide combat panel
+      const combatPanel = document.getElementById("combat-panel");
+      if (combatPanel) {
+        if (p.combatMode) {
+          combatPanel.classList.remove("hidden");
+          this.renderCombatPanel();
+          this.showNotification(t("combat.started"), "info");
+        } else {
+          combatPanel.classList.add("hidden");
+          this.showNotification(t("combat.ended"), "info");
+        }
+      }
+      
+      // Update turn display
+      const turnInfo = document.querySelector(".turn-info .current-turn");
+      if (turnInfo) {
+        turnInfo.textContent = p.currentPlayerName || this.getCurrentPlayerName();
+      }
+    });
+
+    wsManager.on("INITIATIVE_UPDATE", (payload) => {
+      const p = payload as { 
+        initiativeOrder: Array<{ playerId?: string; npcId?: string; score: number; name: string; hp: number; maxHp: number; ac: number; isPlayer: boolean }>;
+        newEntry: { entityId: string; score: number };
+      };
+      
+      gameState.setInitiativeOrder(p.initiativeOrder);
+      this.renderCombatPanel();
+      this.showNotification(t("initiative.rolled_for", { name: p.newEntry.entityId, score: p.newEntry.score }), "info");
+    });
   }
 
   private showGameUI(): void {
@@ -465,7 +508,18 @@ class App {
             <div id="stream-display" class="stream-display"></div>
             <div id="action-container"></div>
           </main>
+          <aside class="combat-panel hidden" id="combat-panel">
+            <!-- Combat panel will be rendered by renderCombatPanel() -->
+          </aside>
         </div>
+        
+        <!-- DM Control Panel (only visible to DM) -->
+        ${player.isDM ? `
+          <div class="dm-control-panel">
+            <button id="start-combat-btn" class="primary">${t("combat.start")}</button>
+            <button id="create-npc-btn" class="secondary">${t("npc.create_btn")}</button>
+          </div>
+        ` : ''}
       </div>
     `;
 
@@ -475,9 +529,19 @@ class App {
     // Render HP
     this.renderHP();
 
+    // Initialize combat panel if combat is active
+    if (gameState.combatMode) {
+      const combatPanel = document.getElementById("combat-panel");
+      if (combatPanel) combatPanel.classList.remove("hidden");
+      this.renderCombatPanel();
+    }
+
     // Initialize action bar
     const actionContainer = document.getElementById("action-container");
     if (actionContainer) new ActionBar(actionContainer);
+
+    // Setup DM controls
+    this.setupDMControls();
 
     // Language selector change handler (in-game)
     document.getElementById("locale-select")?.addEventListener("change", () => {
@@ -884,6 +948,94 @@ class App {
 
     if (statusEl) statusEl.textContent = t("settings.fetch_success", { count: result.models.length });
     return result;
+  }
+
+  // ---- Combat Panel Methods ----
+
+  private renderCombatPanel(): void {
+    const combatPanel = document.getElementById("combat-panel");
+    if (!combatPanel) return;
+
+    const initiativeOrder = gameState.initiativeOrder || [];
+    const currentRound = gameState.currentRound || 1;
+    const currentTurnIndex = gameState.currentTurnIndex || 0;
+    const currentPlayer = gameState.currentPlayerName;
+
+    if (initiativeOrder.length === 0) {
+      combatPanel.innerHTML = `
+        <h3>${t("combat.title")}</h3>
+        <p class="combat-empty">${t("combat.no_initiative")}</p>
+      `;
+      return;
+    }
+
+    // DM controls (only visible to DM)
+    const dmControls = gameState.currentPlayer?.isDM ? `
+      <div class="dm-controls">
+        <button id="advance-turn-btn" class="secondary">${t("combat.advance_turn")}</button>
+        <button id="end-combat-btn" class="danger">${t("combat.end")}</button>
+      </div>
+    ` : "";
+
+    combatPanel.innerHTML = `
+      <h3>${t("combat.title")} - ${t("combat.round", { round: currentRound })}</h3>
+      <div class="current-turn-indicator">
+        <span class="current-turn-label">${t("combat.current_turn")}: </span>
+        <span class="current-turn-name">${this.escapeHtml(currentPlayer || "Unknown")}</span>
+      </div>
+      <ul class="initiative-list">
+        ${initiativeOrder.map((entry, index) => {
+          const isCurrentTurn = index === currentTurnIndex;
+          const hpPercent = entry.maxHp > 0 ? Math.round((entry.hp / entry.maxHp) * 100) : 0;
+          const hpClass = hpPercent > 60 ? 'high' : hpPercent > 30 ? 'mid' : 'low';
+          
+          return `
+            <li class="initiative-entry ${isCurrentTurn ? 'current-turn' : ''}" data-entity-id="${entry.playerId || entry.npcId}">
+              <div class="initiative-rank">#${index + 1}</div>
+              <div class="initiative-info">
+                <span class="initiative-name">${this.escapeHtml(entry.name)}</span>
+                ${entry.isPlayer ? `<span class="badge-player">${t("combat.player")}</span>` : `<span class="badge-npc">${t("combat.npc")}</span>`}
+              </div>
+              <div class="initiative-stats">
+                <span class="initiative-score">Init: ${entry.score}</span>
+                <span class="initiative-ac">AC: ${entry.ac}</span>
+              </div>
+              <div class="initiative-hp">
+                <div class="hp-bar-mini">
+                  <div class="hp-bar-fill-mini ${hpClass}" style="width:${hpPercent}%"></div>
+                </div>
+                <span class="hp-text">${entry.hp}/${entry.maxHp}</span>
+              </div>
+            </li>
+          `;
+        }).join('')}
+      </ul>
+      ${dmControls}
+    `;
+
+    // Attach DM control event handlers
+    const advanceBtn = document.getElementById("advance-turn-btn");
+    if (advanceBtn) {
+      advanceBtn.addEventListener("click", () => {
+        wsManager.send("TURN_ADVANCE", {});
+      });
+    }
+
+    const endCombatBtn = document.getElementById("end-combat-btn");
+    if (endCombatBtn) {
+      endCombatBtn.addEventListener("click", () => {
+        wsManager.send("COMBAT_END", {});
+      });
+    }
+  }
+
+  private setupDMControls(): void {
+    const startCombatBtn = document.getElementById("start-combat-btn");
+    if (startCombatBtn) {
+      startCombatBtn.addEventListener("click", () => {
+        wsManager.send("COMBAT_START", { startInitiative: true });
+      });
+    }
   }
 }
 

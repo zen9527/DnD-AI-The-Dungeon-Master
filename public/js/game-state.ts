@@ -2,7 +2,16 @@ import type { Game, Player, ChatMessage, NPC, StructuredResult, StreamResult } f
 import { parseLLMResponse } from "@llm/parser.js";
 
 interface GameStateListener {
-  (state: { game: Game | null; currentPlayer: Player | null; timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null }): void;
+  (state: { 
+    game: Game | null; 
+    currentPlayer: Player | null; 
+    timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null;
+    combatMode: boolean;
+    initiativeOrder: any[];
+    currentRound: number;
+    currentTurnIndex: number;
+    currentPlayerName?: string;
+  }): void;
 }
 
 export class GameState {
@@ -10,12 +19,22 @@ export class GameState {
   private _currentPlayer: Player | null = null;
   private _streamBuffer = "";
   private _timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null = null;
+  private _combatMode: boolean = false;
+  private _initiativeOrder: any[] = [];
+  private _currentRound: number = 1;
+  private _currentTurnIndex: number = 0;
+  private _currentPlayerName: string | undefined = undefined;
   private listeners: GameStateListener[] = [];
 
   get game(): Game | null { return this._game; }
   get currentPlayer(): Player | null { return this._currentPlayer; }
   get streamBuffer(): string { return this._streamBuffer; }
   get timerState(): { remaining: number; currentPlayerId: string; expired?: boolean } | null { return this._timerState; }
+  get combatMode(): boolean { return this._combatMode; }
+  get initiativeOrder(): any[] { return this._initiativeOrder; }
+  get currentRound(): number { return this._currentRound; }
+  get currentTurnIndex(): number { return this._currentTurnIndex; }
+  get currentPlayerName(): string | undefined { return this._currentPlayerName; }
 
   setGame(gameData: Game): void {
     this._game = gameData;
@@ -45,6 +64,26 @@ export class GameState {
 
   setTimerState(state: { remaining: number; currentPlayerId: string; expired?: boolean }): void {
     this._timerState = state;
+    this.notifyListeners();
+  }
+
+  setCombatState(state: { 
+    combatMode: boolean;
+    initiativeOrder: any[];
+    currentRound: number;
+    currentTurnIndex: number;
+    currentPlayerName?: string;
+  }): void {
+    this._combatMode = state.combatMode;
+    this._initiativeOrder = state.initiativeOrder || [];
+    this._currentRound = state.currentRound || 1;
+    this._currentTurnIndex = state.currentTurnIndex || 0;
+    this._currentPlayerName = state.currentPlayerName;
+    this.notifyListeners();
+  }
+
+  setInitiativeOrder(order: any[]): void {
+    this._initiativeOrder = order;
     this.notifyListeners();
   }
 
@@ -113,7 +152,16 @@ export class GameState {
   }
 
   private notifyListeners(): void {
-    this.listeners.forEach(callback => callback({ game: this._game, currentPlayer: this._currentPlayer, timerState: this._timerState }));
+    this.listeners.forEach(callback => callback({ 
+      game: this._game, 
+      currentPlayer: this._currentPlayer, 
+      timerState: this._timerState,
+      combatMode: this._combatMode,
+      initiativeOrder: this._initiativeOrder,
+      currentRound: this._currentRound,
+      currentTurnIndex: this._currentTurnIndex,
+      currentPlayerName: this._currentPlayerName
+    }));
   }
 
   clear(): void {
@@ -121,6 +169,11 @@ export class GameState {
     this._currentPlayer = null;
     this._streamBuffer = "";
     this._timerState = null;
+    this._combatMode = false;
+    this._initiativeOrder = [];
+    this._currentRound = 1;
+    this._currentTurnIndex = 0;
+    this._currentPlayerName = undefined;
     this.notifyListeners();
   }
 }

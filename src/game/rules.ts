@@ -215,12 +215,6 @@ export function getDamageDice(player: Player, weapon?: { damageDice?: { type: nu
   return defaults[player.characterClass] || { type: 6, count: 1 };
 }
 
-export function calculateAttackDamage(rolls: number[], player: Player, weapon?: { attackBonus?: number }): number {
-  const abilityMod = getAttackAttributeMod(player);
-  const weaponBonus = weapon?.attackBonus || 0;
-  return calculateTotal(rolls, abilityMod + weaponBonus);
-}
-
 export function checkCreatureDeath(npc: NPC, damage: number): { npc: NPC; defeated: boolean; status: string } {
   const newHp = Math.max(0, npc.hp - damage);
   const result = handleDeath(newHp - damage, npc.maxHp);
@@ -229,10 +223,6 @@ export function checkCreatureDeath(npc: NPC, damage: number): { npc: NPC; defeat
     defeated: result.dead && newHp === 0,
     status: result.status,
   };
-}
-
-export function calculateInitiative(dex: number): number {
-  return Math.floor(Math.random() * 20) + 1 + calculateModifier(dex);
 }
 
 // ============================================================================
@@ -603,3 +593,142 @@ export function awardXP(players: Player[], xpAmount: number): void {
     }
   }
 }
+
+// ============================================================================
+// COMBAT MECHANICS — Initiative, Attack Resolution, Damage
+// ============================================================================
+
+/**
+ * Calculate initiative score: d20 + Dexterity modifier
+ */
+export function calculateInitiative(dexterity: number): number {
+  const dexMod = calculateModifier(dexterity);
+  const d20Roll = rollDice(20, 1)[0];
+  return d20Roll + dexMod;
+}
+
+/**
+ * Check if an attack hits the target's AC
+ */
+export function checkAttackHit(attackerBonus: number, targetAC: number): { hit: boolean; isCritical: boolean } {
+  const d20Roll = rollDice(20, 1)[0];
+  const total = d20Roll + attackerBonus;
+  
+  // Natural 20 = critical hit
+  if (d20Roll === 20) {
+    return { hit: true, isCritical: true };
+  }
+  
+  // Natural 1 = automatic miss
+  if (d20Roll === 1) {
+    return { hit: false, isCritical: false };
+  }
+  
+  return { hit: total >= targetAC, isCritical: false };
+}
+
+/**
+ * Calculate attack damage with dice rolls
+ */
+export function calculateAttackDamage(damageDice: { type: number; count: number; modifier?: number }): number {
+  const rolls = rollDice(damageDice.type as any, damageDice.count);
+  const total = calculateTotal(rolls, damageDice.modifier || 0);
+  return total;
+}
+
+/**
+ * Apply damage to a creature, considering temporary HP
+ */
+export function applyDamage(creature: { hp: number; maxHp: number; temporaryHp?: number }, damage: number): { 
+  damageDealt: number; 
+  temporaryHpRemaining?: number;
+  isDefeated: boolean;
+} {
+  let tempHp = creature.temporaryHp || 0;
+  
+  // Temporary HP absorbs damage first
+  if (tempHp > 0) {
+    if (damage <= tempHp) {
+      tempHp -= damage;
+      return { 
+        damageDealt: 0, 
+        temporaryHpRemaining: tempHp,
+        isDefeated: false 
+      };
+    } else {
+      damage -= tempHp;
+      tempHp = 0;
+    }
+  }
+  
+  // Remaining damage goes to actual HP
+  const newHp = creature.hp - damage;
+  return {
+    damageDealt: damage,
+    temporaryHpRemaining: 0,
+    isDefeated: newHp <= 0
+  };
+}
+
+/**
+ * Build initiative order from players and NPCs
+ */
+export function buildInitiativeOrder(players: Player[], npcs: NPC[]): { playerId?: string; npcId?: string; score: number }[] {
+  const initiative: { playerId?: string; npcId?: string; score: number }[] = [];
+
+  for (const player of players) {
+    initiative.push({ playerId: player.id, score: player.initiative || calculateInitiative(player.attributes.dex) });
+  }
+
+  for (const npc of npcs) {
+    initiative.push({ npcId: npc.id, score: npc.initiative || calculateInitiative(npc.attributes.dex) });
+  }
+
+  // Sort by initiative (descending), ties broken by random
+  initiative.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return Math.random() - 0.5;
+  });
+
+  return initiative;
+}
+
+/**
+ * Apply temporary HP to a creature
+ */
+export function applyTemporaryHP(creature: { temporaryHp?: number }, newTempHp: number): number {
+  const currentTempHp = creature.temporaryHp || 0;
+  // New temp HP replaces old if higher
+  creature.temporaryHp = Math.max(currentTempHp, newTempHp);
+  return creature.temporaryHp;
+}
+
+/**
+ * Get condition effects (D&D 5e conditions)
+ */
+export const CONDITION_EFFECTS: Record<string, { description: string; bonuses?: Record<string, number>; penalties?: Record<string, number> }> = {
+  "poisoned": { 
+    description: "Disadvantage on attack rolls and ability checks",
+    penalties: { attackRolls: -2, abilityChecks: -2 }
+  },
+  "prone": { 
+    description: "Disadvantage on attack rolls; attacks within 5ft have advantage",
+    penalties: { attackRolls: -2 }
+  },
+  "blinded": { 
+    description: "Can't see, disadvantage on attacks, attacks have advantage against you",
+    penalties: { attackRolls: -2 }
+  },
+  "paralyzed": { 
+    description: "Incapacitated, can't move or speak, attacks within 5ft are auto-crits",
+    penalties: { attackRolls: -10 }
+  },
+  "stunned": { 
+    description: "Incapacitated, can only move, disadvantage on ability checks",
+    penalties: { abilityChecks: -2 }
+  },
+  "invisible": { 
+    description: "Advantage on attack rolls, attacks against you have disadvantage",
+    bonuses: { attackRolls: 2 }
+  },
+};

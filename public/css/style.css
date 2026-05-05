@@ -1518,3 +1518,228 @@ hr {
     0 2px 4px rgba(0,0,0,0.3),
     0 0 16px rgba(212, 168, 67, 0.25);
 }
+
+/* ============================================================================
+   Combat Panel Styles
+   ============================================================================ */
+
+.combat-panel {
+  width: 320px;
+  background: var(--bg-panel);
+  border-left: 3px solid var(--border-color);
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 100px);
+}
+
+.combat-panel.hidden {
+  display: none;
+}
+
+.combat-panel h3 {
+  font-family: 'Cinzel', serif;
+  color: var(--accent-gold);
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.combat-empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.current-turn-indicator {
+  background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-light) 100%);
+  color: var(--ink-black);
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(212, 168, 67, 0.3);
+}
+
+.current-turn-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.current-turn-name {
+  font-size: 1.1rem;
+  font-family: 'Cinzel', serif;
+}
+
+.initiative-list {
+  list-style: none;
+  margin-bottom: 15px;
+}
+
+.initiative-entry {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+}
+
+.initiative-entry.current-turn {
+  border-color: var(--accent-gold);
+  background: rgba(212, 168, 67, 0.1);
+  box-shadow: 0 0 15px rgba(212, 168, 67, 0.2);
+}
+
+.initiative-rank {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.5rem;
+  color: var(--accent-gold);
+  float: left;
+  margin-right: 12px;
+}
+
+.initiative-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.initiative-name {
+  font-weight: bold;
+  color: var(--text-primary);
+  flex-grow: 1;
+}
+
+.badge-player {
+  background: var(--player-green);
+  color: #000;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.badge-npc {
+  background: var(--error-red);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.initiative-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.initiative-score, .initiative-ac {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px 6px;
+  border-radius: 4px;
+}
+
+.initiative-hp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hp-bar-mini {
+  flex-grow: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hp-bar-fill-mini {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.hp-bar-fill-mini.high {
+  background: linear-gradient(90deg, var(--player-green) 0%, #4ade80 100%);
+}
+
+.hp-bar-fill-mini.mid {
+  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.hp-bar-fill-mini.low {
+  background: linear-gradient(90deg, var(--error-red) 0%, #ef4444 100%);
+}
+
+.hp-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+}
+
+.dm-controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid var(--border-color);
+}
+
+.dm-control-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 100;
+}
+
+.dm-control-panel button {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-family: 'Cinzel', serif;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dm-control-panel button.primary {
+  background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-light) 100%);
+  color: var(--ink-black);
+  border: none;
+}
+
+.dm-control-panel button.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(212, 168, 67, 0.4);
+}
+
+.dm-control-panel button.secondary {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+.dm-control-panel button.secondary:hover {
+  border-color: var(--accent-gold);
+  background: rgba(212, 168, 67, 0.1);
+}
+
+.dm-control-panel button.danger {
+  background: var(--error-red);
+  color: #fff;
+  border: none;
+}
+
+.dm-control-panel button.danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(224, 64, 64, 0.4);
+}

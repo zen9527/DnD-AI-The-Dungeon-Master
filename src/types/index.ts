@@ -22,7 +22,11 @@ export interface Player {
   hitDice: { total: number; used: number }; // Hit dice for short rest healing
   deathSaves: { successes: number; failures: number }; // Death save tracking (3/3 = dead/stable)
   xp: number; // Experience points
-  locale: string; // Preferred language for UI and DM narrative (e.g., "en-US", "zh-CN")
+  locale: string; // Preferred language for UI and DM narrative language (e.g., "en-US", "zh-CN")
+  
+  // Combat mechanics
+  initiative?: number; // Initiative score for combat turn order
+  temporaryHp?: number; // Temporary HP that absorbs damage first
 }
 
 export type DiceType = 4 | 6 | 8 | 10 | 12 | 20;
@@ -52,6 +56,10 @@ export interface NPC {
   attributes: Attributes;
   initiative?: number;
   createdAt: number;
+  
+  // Combat mechanics
+  temporaryHp?: number; // Temporary HP that absorbs damage first
+  conditions: string[]; // Combat conditions (poisoned, prone, blinded, etc.)
 }
 
 export interface ChatMessage {
@@ -84,6 +92,17 @@ export interface DiceRoll {
   };
 }
 
+export interface InitiativeEntry {
+  playerId?: string;
+  npcId?: string;
+  score: number;
+  name: string;
+  hp: number;
+  maxHp: number;
+  ac: number;
+  isPlayer: boolean;
+}
+
 export interface StructuredResult {
   hit: boolean;
   isCritical: boolean;
@@ -97,8 +116,9 @@ export interface StructuredResult {
   diceResult?: DiceRoll; // Auto-rolled skill check result
   turn: {
     nextPlayerId: string;
-    initiative: { playerId: string; npcId?: string; score: number }[];
+    initiative: InitiativeEntry[];
     round: number;
+    currentTurnIndex: number;
   };
 }
 
@@ -118,6 +138,12 @@ export interface Game {
   events: Event[];
   conversationHistory: { role: 'system' | 'user' | 'assistant'; content: string }[];
   createdAt: number;
+  
+  // Combat state
+  combatMode: boolean; // True when combat is active
+  initiativeOrder: InitiativeEntry[]; // Current turn order
+  currentRound: number; // Current combat round number
+  currentTurnIndex: number; // Index in initiative order
 }
 
 export type MessageType =
@@ -133,6 +159,10 @@ export type MessageType =
   | 'DICE_ROLL'
   | 'NPC_CREATE'
   | 'EVENT_CREATE'
+  | 'COMBAT_START'        // NEW: Start combat mode
+  | 'COMBAT_END'          // NEW: End combat mode
+  | 'INITIATIVE_ROLL'     // NEW: Roll individual initiative
+  | 'TURN_ADVANCE'        // NEW: Manually advance turn
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -151,6 +181,8 @@ export type MessageType =
   | 'STREAM_ERROR'
   | 'LOCALE_UPDATED'
   | 'TURN_TIMER'          // NEW: Turn timer notification
+  | 'COMBAT_STATE'        // NEW: Combat mode state update
+  | 'INITIATIVE_UPDATE'   // NEW: Initiative order update
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

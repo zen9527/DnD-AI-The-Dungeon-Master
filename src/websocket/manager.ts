@@ -18,7 +18,7 @@ function getHitDiceForClass(characterClass: string): number {
   };
   return hdMap[characterClass] || 1;
 }
-import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema } from "../../shared/index.js";
+import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, combatEndSchema, initiativeRollSchema, turnAdvanceSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -110,6 +110,18 @@ export class WebSocketManager {
         break;
       case "EVENT_CREATE":
         this.handleEventCreate(ws, client!, payload);
+        break;
+      case "COMBAT_START":
+        this.handleCombatStart(ws, client!, payload);
+        break;
+      case "COMBAT_END":
+        this.handleCombatEnd(ws, client!, payload);
+        break;
+      case "INITIATIVE_ROLL":
+        this.handleInitiativeRoll(ws, client!, payload);
+        break;
+      case "TURN_ADVANCE":
+        this.handleTurnAdvance(ws, client!, payload);
         break;
       default:
         this.sendError(ws, `Unknown message type: ${message.type}`);
@@ -703,6 +715,149 @@ export class WebSocketManager {
     }, 1000); // Changed from 5000 to 1000 for smoother display
     
     this.timerBroadcastIntervals.set(gameId, interval);
+  }
+
+  // ---- Combat Handlers ----
+
+  private handleCombatStart(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const parsed = combatStartSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can start combat
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can start combat");
+      return;
+    }
+
+    engine.startCombat(parsed.data.startInitiative ?? true);
+
+    // Broadcast combat state to all players
+    this.broadcastToGame(client.gameId, "COMBAT_STATE", {
+      combatMode: true,
+      initiativeOrder: engine.initiativeOrder,
+      currentRound: engine.currentRound,
+      currentTurnIndex: engine.currentTurnIndex,
+      currentPlayerName: engine.getCurrentPlayer()?.characterName,
+    });
+
+    console.log(`[Combat] Combat started in game ${client.gameId}`);
+  }
+
+  private handleCombatEnd(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can end combat
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can end combat");
+      return;
+    }
+
+    engine.endCombat();
+
+    // Broadcast combat state to all players
+    this.broadcastToGame(client.gameId, "COMBAT_STATE", {
+      combatMode: false,
+      initiativeOrder: [],
+      currentRound: 1,
+      currentTurnIndex: 0,
+      currentPlayerName: undefined,
+    });
+
+    console.log(`[Combat] Combat ended in game ${client.gameId}`);
+  }
+
+  private handleInitiativeRoll(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const parsed = initiativeRollSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can roll initiative for others
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can roll initiative");
+      return;
+    }
+
+    const score = engine.rollIndividualInitiative(parsed.data.entityId, parsed.data.isPlayer);
+
+    // Broadcast updated initiative order
+    this.broadcastToGame(client.gameId, "INITIATIVE_UPDATE", {
+      initiativeOrder: engine.initiativeOrder,
+      newEntry: { entityId: parsed.data.entityId, score },
+    });
+
+    console.log(`[Initiative] ${parsed.data.isPlayer ? "Player" : "NPC"} ${parsed.data.entityId} rolled ${score}`);
+  }
+
+  private handleTurnAdvance(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can manually advance turns
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can advance turns");
+      return;
+    }
+
+    engine.advanceTurn();
+
+    // Broadcast updated combat state
+    this.broadcastToGame(client.gameId, "COMBAT_STATE", {
+      combatMode: engine.combatMode,
+      initiativeOrder: engine.initiativeOrder,
+      currentRound: engine.currentRound,
+      currentTurnIndex: engine.currentTurnIndex,
+      currentPlayerName: engine.getCurrentPlayer()?.characterName,
+    });
+
+    console.log(`[Combat] Turn advanced in game ${client.gameId}`);
   }
 
   shutdown(): void {

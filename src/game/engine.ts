@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP } from "./rules.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, applyDamage, checkAttackHit, applyTemporaryHP, CONDITION_EFFECTS } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
@@ -13,6 +13,7 @@ export class GameEngine {
   private llmClient: LLMClient;
   private _currentInitiativeIndex: number;
   private _round: number;
+  private _currentTurnIndex: number;
 
   // Story summary: rolling digest of key events for long-term memory
   // Updated every few turns to keep the DM aware of the big picture
@@ -36,10 +37,16 @@ export class GameEngine {
       ...gameData,
       createdAt: Date.now(),
       conversationHistory: [],
+      // Initialize combat state if not present
+      combatMode: gameData.combatMode ?? false,
+      initiativeOrder: gameData.initiativeOrder ?? [],
+      currentRound: gameData.currentRound ?? 1,
+      currentTurnIndex: gameData.currentTurnIndex ?? 0,
     };
     this.llmClient = new LLMClient(llmBaseUrl, llmApiKey, llmModel);
     this._currentInitiativeIndex = 0;
-    this._round = 1;
+    this._round = this._game.currentRound;
+    this._currentTurnIndex = this._game.currentTurnIndex;
 
     // Use the first player's locale for DM narrative language (default: English)
     const creatorLocale = this._game.players?.[0]?.locale || "en-US";
@@ -57,6 +64,10 @@ export class GameEngine {
   get name(): string { return this._game.name; }
   get timerRemaining(): number { return this._timerRemaining; }
   get timerExpired(): boolean { return this._timerExpired || false; }
+  get combatMode(): boolean { return this._game.combatMode; }
+  get initiativeOrder(): any[] { return this._game.initiativeOrder; }
+  get currentRound(): number { return this._game.currentRound; }
+  get currentTurnIndex(): number { return this._game.currentTurnIndex; }
 
   startTimer(): void {
     if (this._timerInterval) clearInterval(this._timerInterval);
@@ -87,53 +98,189 @@ export class GameEngine {
     }
   }
 
-  // ---- Initiative ----
+  // ---- Initiative & Combat ----
 
-  startInitiative(): void {
-    const initiative: { playerId?: string; npcId?: string; score: number }[] = [];
+  startCombat(startInitiative: boolean = true): void {
+    // Enable combat mode
+    this._game.combatMode = true;
+    
+    // Roll initiative if requested
+    if (startInitiative) {
+      const initiativeOrder = buildInitiativeOrder(this._game.players, this._game.npcs);
+      
+      // Apply initiative scores to players and NPCs
+      for (const entry of initiativeOrder) {
+        if (entry.playerId) {
+          const player = this._game.players.find(p => p.id === entry.playerId);
+          if (player) player.initiative = entry.score;
+        } else if (entry.npcId) {
+          const npc = this._game.npcs.find(n => n.id === entry.npcId);
+          if (npc) npc.initiative = entry.score;
+        }
+      }
+      
+      // Build initiative order with full entity info
+      this._game.initiativeOrder = initiativeOrder.map(entry => {
+        const isPlayer = !!entry.playerId;
+        const entity = isPlayer 
+          ? this._game.players.find(p => p.id === entry.playerId)
+          : this._game.npcs.find(n => n.id === entry.npcId);
+        
+        return {
+          playerId: entry.playerId,
+          npcId: entry.npcId,
+          score: entry.score,
+          name: isPlayer 
+            ? (entity as Player)?.characterName || "Unknown Player"
+            : (entity as NPC)?.name || "Unknown NPC",
+          hp: entity?.hp || 0,
+          maxHp: entity?.maxHp || 0,
+          ac: entity?.ac || 10,
+          isPlayer,
+        };
+      });
+      
+      this._currentInitiativeIndex = 0;
+      this._round = 1;
+      this._game.currentRound = 1;
+      this._game.currentTurnIndex = 0;
 
-    for (const player of this._game.players) {
-      initiative.push({ playerId: player.id, score: calculateInitiative(player.attributes.dex) });
-    }
-
-    for (const npc of this._game.npcs) {
-      initiative.push({ npcId: npc.id, score: calculateInitiative(npc.attributes.dex) });
-    }
-
-    initiative.sort((a, b) => b.score - a.score);
-    this._game.npcs.forEach((npc, i) => {
-      if (initiative[i]?.npcId === npc.id) npc.initiative = initiative[i].score;
-    });
-
-    this._currentInitiativeIndex = 0;
-    this._round = 1;
-
-    const narrative = `${getLocalizedMessage("en-US", "initiative.rolled")}\n${initiative.map((entry, i) => {
-      const name = entry.playerId
-        ? this._game.players.find(p => p.id === entry.playerId)?.characterName
-        : this._game.npcs.find(n => n.id === entry.npcId)?.name;
-      return `${i + 1}. ${name || "Unknown"} (${entry.score})`;
+    const narrative = `${getLocalizedMessage("en-US", "initiative.rolled")}\n${this._game.initiativeOrder.map((entry, i) => {
+      return `${i + 1}. ${entry.name} (${entry.score})`;
     }).join("\n")}`;
 
     this._game.conversationHistory.push({ role: "assistant", content: narrative });
+    } else {
+      // Just enable combat mode without rolling initiative
+      this._game.initiativeOrder = [];
+      this._currentInitiativeIndex = 0;
+      this._round = 1;
+      this._game.currentRound = 1;
+      this._game.currentTurnIndex = 0;
+    }
   }
 
-  getCurrentPlayer(): Player | undefined {
-    const allEntities: (NPC | Player)[] = this._game.npcs.length > 0
-      ? [...this._game.npcs, ...this._game.players].sort((a, b) => (b as any).initiative! - (a as any).initiative!)
-      : this._game.players as unknown as (NPC | Player)[];
-    return allEntities[this._currentInitiativeIndex % allEntities.length] as Player | undefined;
+  endCombat(): void {
+    this._game.combatMode = false;
+    // Clear initiative scores but keep NPC data
+    this._game.players.forEach(p => delete p.initiative);
+    this._game.initiativeOrder = [];
+    this._currentInitiativeIndex = 0;
+    this._round = 1;
+    this._game.currentRound = 1;
+    this._game.currentTurnIndex = 0;
+    
+    const narrative = getLocalizedMessage("en-US", "combat.ended");
+    this._game.conversationHistory.push({ role: "assistant", content: narrative });
+  }
+
+  rollIndividualInitiative(entityId: string, isPlayer: boolean): number {
+    const score = calculateInitiative(
+      isPlayer 
+        ? this._game.players.find(p => p.id === entityId)?.attributes.dex || 10
+        : this._game.npcs.find(n => n.id === entityId)?.attributes.dex || 10
+    );
+    
+    // Add to initiative order
+    const entity = isPlayer
+      ? this._game.players.find(p => p.id === entityId)
+      : this._game.npcs.find(n => n.id === entityId);
+    
+    if (entity) {
+      const entry = {
+        playerId: isPlayer ? entityId : undefined,
+        npcId: !isPlayer ? entityId : undefined,
+        score,
+        name: isPlayer 
+          ? (entity as Player).characterName 
+          : (entity as NPC).name,
+        hp: entity.hp,
+        maxHp: entity.maxHp,
+        ac: entity.ac,
+        isPlayer,
+      };
+      
+      this._game.initiativeOrder.push(entry);
+      this._game.initiativeOrder.sort((a, b) => b.score - a.score);
+      
+      // Update entity's initiative score
+      if (isPlayer) {
+        const player = this._game.players.find(p => p.id === entityId);
+        if (player) player.initiative = score;
+      } else {
+        const npc = this._game.npcs.find(n => n.id === entityId);
+        if (npc) npc.initiative = score;
+      }
+    }
+    
+    return score;
   }
 
   advanceTurn(): void {
-    const allEntities: (NPC | Player)[] = this._game.npcs.length > 0
-      ? [...this._game.npcs, ...this._game.players].sort((a, b) => (b as any).initiative! - (a as any).initiative!)
-      : this._game.players as unknown as (NPC | Player)[];
-    this._currentInitiativeIndex = (this._currentInitiativeIndex + 1) % allEntities.length;
-    if (this._currentInitiativeIndex === 0) this._round++;
+    if (!this._game.combatMode || this._game.initiativeOrder.length === 0) {
+      // Non-combat turn advancement
+      const allEntities: (NPC | Player)[] = this._game.npcs.length > 0
+        ? [...this._game.npcs, ...this._game.players].sort((a, b) => (b as any).initiative! - (a as any).initiative!)
+        : this._game.players as unknown as (NPC | Player)[];
+      this._currentInitiativeIndex = (this._currentInitiativeIndex + 1) % allEntities.length;
+      if (this._currentInitiativeIndex === 0) this._round++;
+    } else {
+      // Combat turn advancement
+      this._currentTurnIndex = (this._currentTurnIndex + 1) % this._game.initiativeOrder.length;
+      this._game.currentTurnIndex = this._currentTurnIndex;
+      
+      if (this._currentTurnIndex === 0) {
+        this._round++;
+        this._game.currentRound = this._round;
+      }
+    }
     
     // Reset timer for new player
     this.startTimer();
+  }
+
+  getCurrentPlayer(): Player | undefined {
+    if (!this._game.combatMode || this._game.initiativeOrder.length === 0) {
+      // Non-combat: just return next player in rotation
+      const allEntities: (NPC | Player)[] = this._game.npcs.length > 0
+        ? [...this._game.npcs, ...this._game.players].sort((a, b) => (b as any).initiative! - (a as any).initiative!)
+        : this._game.players as unknown as (NPC | Player)[];
+      return allEntities[this._currentInitiativeIndex % allEntities.length] as Player | undefined;
+    } else {
+      // Combat: follow initiative order
+      const currentEntry = this._game.initiativeOrder[this._currentTurnIndex];
+      if (!currentEntry?.playerId) return undefined;
+      return this._game.players.find(p => p.id === currentEntry.playerId);
+    }
+  }
+
+  getCurrentCombatEntity(): { name: string; hp: number; maxHp: number; ac: number; isPlayer: boolean } | undefined {
+    if (!this._game.combatMode || this._game.initiativeOrder.length === 0) return undefined;
+    return this._game.initiativeOrder[this._currentTurnIndex];
+  }
+
+  updateNPCHP(npcId: string, newHp: number): void {
+    const npc = this._game.npcs.find(n => n.id === npcId);
+    if (npc) {
+      npc.hp = Math.max(0, newHp);
+      
+      // Update initiative order if combat is active
+      const entry = this._game.initiativeOrder.find(e => e.npcId === npcId);
+      if (entry) {
+        entry.hp = npc.hp;
+        entry.maxHp = npc.maxHp;
+      }
+    }
+  }
+
+  applyTemporaryHP(entityId: string, isPlayer: boolean, amount: number): void {
+    if (isPlayer) {
+      const player = this._game.players.find(p => p.id === entityId);
+      if (player) applyTemporaryHP(player, amount);
+    } else {
+      const npc = this._game.npcs.find(n => n.id === entityId);
+      if (npc) applyTemporaryHP(npc, amount);
+    }
   }
 
   // ---- World State (compact game state for LLM context) ----
@@ -659,6 +806,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       ac: 11,
       attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
       createdAt: Date.now(),
+      conditions: [],
     };
     this._game.npcs.push(npc);
   }
