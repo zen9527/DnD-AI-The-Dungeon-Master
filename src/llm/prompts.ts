@@ -204,7 +204,36 @@ DEATH SAVES:
 - When player reaches 0 HP → they fall unconscious and start rolling death saves
 - Each turn at 0HP: roll d20. 10+ = success, 9 or less = failure, natural 20 = recover 1 HP
 - 3 successes = stable (no longer dying). 3 failures = dead.
-- Narrate the struggle between life and death dramatically`;
+- Narrate the struggle between life and death dramatically
+
+JSON OUTPUT FORMAT FOR SKILL CHECKS:
+
+When a skill check is required (player attempts uncertain action):
+1. Narrate the scene and the challenge in the text portion
+2. In the JSON block, include diceResult with the following fields:
+   - skill: skill name in English (e.g., "Persuasion", "Stealth", "Perception")
+   - dc: difficulty class number (5-25 based on difficulty table)
+   - success: true/false based on whether the roll meets or exceeds DC
+   - total: the final roll result (d20 + modifier)
+   - roll: the raw d20 roll value
+   - modifier: the ability modifier + proficiency bonus (if skilled)
+
+Example JSON output for a Persuasion check:
+{
+  "diceResult": {
+    "skill": "Persuasion",
+    "dc": 15,
+    "success": true,
+    "total": 18,
+    "roll": 14,
+    "modifier": 4
+  }
+}
+
+The LLM should simulate the roll result based on narrative context:
+- High rolls (15+) = successful outcome, narrate positively
+- Low rolls (below DC) = failure with consequences, narrate negatively
+- Natural 20 = critical success, natural 1 = critical failure`;
 }
 
 /**
