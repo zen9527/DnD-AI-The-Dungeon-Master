@@ -1277,7 +1277,7 @@ class App {
           <div class="form-group">
             <label>${t("dm_control.player_select")}</label>
             <select name="playerId">
-              ${players.map(p => `<option value="${p.id}">${this.escapeHtml(p.characterName || p.name)} (Lv.${p.level})</option>`).join('')}
+              ${players.map(p => `<option value="${p.id}">${this.escapeHtml(p.characterName || p.name)} (${t("level.abbreviation")}${p.level})</option>`).join('')}
             </select>
           </div>
           <button type="submit" class="btn-small">${t("dm_control.btn_level_up")}</button>
