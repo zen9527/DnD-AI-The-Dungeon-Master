@@ -1,5 +1,5 @@
 import { wsManager } from "./websocket.js";
-import { getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames } from "./i18n.js";
+import { getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { raceOptions, classOptions, scenarioOptions } from "../../shared/schemas/game.js";
 
 interface Attributes { str: number; dex: number; con: number; int: number; wis: number; cha: number };
@@ -277,8 +277,8 @@ export class CharacterCreator {
 
   private showCreateForm(): void {
     // Use localized race/class names for dropdown display
-    const races = raceOptions.map(r => `<option value="${r}">${t(`race.${r.toLowerCase()}`)}</option>`).join("");
-    const classes = classOptions.map(c => `<option value="${c}">${t(`class.${c.toLowerCase()}`)}</option>`).join("");
+    const races = raceOptions.map(r => `<option value="${r}">${getLocalizedRaceName(r)}</option>`).join("");
+    const classes = classOptions.map(c => `<option value="${c}">${getLocalizedClassName(c)}</option>`).join("");
 
     this.element!.innerHTML = `
       <div class="welcome-screen">

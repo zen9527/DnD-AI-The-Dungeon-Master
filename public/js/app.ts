@@ -3,7 +3,7 @@ import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { CharacterCreator } from "./character.js";
 import { ActionBar } from "./action-bar.js";
-import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios } from "./i18n.js";
+import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import type { Player, ChatMessage, Game, StreamResult, EndpointPreset, DiceRoll } from "../../shared/index.js";
@@ -627,10 +627,10 @@ class App {
                   
                   return `
                     <li class="player-status ${isCurrentPlayer ? 'current-player' : ''}" data-player-id="${this.escapeHtml(p.id)}">
-                      <div class="player-info">
-                        <span class="character-name">${this.escapeHtml(p.characterName)}</span>
-                        <span class="player-detail">${this.escapeHtml(p.race)} ${this.escapeHtml(p.characterClass)} ${t("level.abbreviation")}${p.level}</span>
-                      </div>
+                       <div class="player-info">
+                         <span class="character-name">${this.escapeHtml(p.characterName)}</span>
+                         <span class="player-detail">${this.escapeHtml(getLocalizedRaceName(p.race))} ${this.escapeHtml(getLocalizedClassName(p.characterClass))} ${t("level.abbreviation")}${p.level}</span>
+                       </div>
                       ${p.hp !== undefined && p.maxHp > 0 ? `
                         <div class="hp-bar-container">
                           <div class="hp-bar-track">
