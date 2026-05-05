@@ -654,12 +654,7 @@ class App {
         </div>
         
         <!-- DM Control Panel (only visible to DM) -->
-        ${player.isDM ? `
-          <div class="dm-control-panel">
-            <button id="start-combat-btn" class="primary">${t("combat.start")}</button>
-            <button id="create-npc-btn" class="secondary">${t("npc.create_btn")}</button>
-          </div>
-        ` : ''}
+        ${player.isDM ? `<div class="dm-control-panel hidden" id="dm-control-panel"></div>` : ''}
       </div>
     `;
 
@@ -680,8 +675,7 @@ class App {
     const actionContainer = document.getElementById("action-container");
     if (actionContainer) new ActionBar(actionContainer);
 
-    // Setup DM controls
-    this.setupDMControls();
+    // Setup DM control panel toggle
     this.setupDMControlPanelToggle();
 
     // Language selector change handler (in-game)
@@ -1170,15 +1164,6 @@ class App {
     }
   }
 
-  private setupDMControls(): void {
-    const startCombatBtn = document.getElementById("start-combat-btn");
-    if (startCombatBtn) {
-      startCombatBtn.addEventListener("click", () => {
-        wsManager.send("COMBAT_START", { startInitiative: true });
-      });
-    }
-  }
-
   // ---- DM Control Panel Methods ----
 
   private renderDMControlPanel(): void {
@@ -1191,7 +1176,16 @@ class App {
     const npcs = gameState.npcs || [];
     const players = gameState.players || [];
 
+    // DM quick actions (always at top)
+    const dmQuickActions = `
+      <div class="dm-quick-actions">
+        <button id="start-combat-btn" class="primary">${t("combat.start")}</button>
+        <button id="create-npc-btn" class="secondary">${t("npc.create_btn")}</button>
+      </div>
+    `;
+
     panel.innerHTML = `
+      ${dmQuickActions}
       <div class="dm-control-section">
         <h4>${t("dm_control.npc_conditions")}</h4>
         <ul class="npc-list">
@@ -1408,6 +1402,26 @@ class App {
         });
 
         form.reset();
+      });
+    }
+
+    // Start Combat button
+    const startCombatBtn = panel.querySelector("#start-combat-btn");
+    if (startCombatBtn) {
+      startCombatBtn.addEventListener("click", () => {
+        wsManager.send("COMBAT_START", { startInitiative: true });
+      });
+    }
+
+    // Create NPC button — focuses the NPC name input for quick entry
+    const createNpcBtn = panel.querySelector("#create-npc-btn");
+    if (createNpcBtn) {
+      createNpcBtn.addEventListener("click", () => {
+        const npcNameInput = panel.querySelector<HTMLInputElement>('input[name="name"]');
+        if (npcNameInput) {
+          npcNameInput.focus();
+          npcNameInput.placeholder = "Enter NPC name...";
+        }
       });
     }
   }
