@@ -123,6 +123,25 @@ export class WebSocketManager {
       case "TURN_ADVANCE":
         this.handleTurnAdvance(ws, client!, payload);
         break;
+      // DM Control handlers
+      case "NPC_UPDATE_HP":
+        this.handleNPCUpdateHP(ws, client!, payload);
+        break;
+      case "NPC_APPLY_CONDITION":
+        this.handleNPCApplyCondition(ws, client!, payload);
+        break;
+      case "NPC_REMOVE_CONDITION":
+        this.handleNPCRemoveCondition(ws, client!, payload);
+        break;
+      case "NPC_DELETE":
+        this.handleNPCDelete(ws, client!, payload);
+        break;
+      case "PLAYER_AWARD_XP":
+        this.handlePlayerAwardXP(ws, client!, payload);
+        break;
+      case "PLAYER_LEVEL_UP":
+        this.handlePlayerLevelUp(ws, client!, payload);
+        break;
       default:
         this.sendError(ws, `Unknown message type: ${message.type}`);
     }
@@ -858,6 +877,214 @@ export class WebSocketManager {
     });
 
     console.log(`[Combat] Turn advanced in game ${client.gameId}`);
+  }
+
+  // ---- DM Control Handlers ----
+
+  private handleNPCUpdateHP(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can update NPC HP
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can update NPC HP");
+      return;
+    }
+
+    const npcId = payload.npcId as string;
+    const newHp = payload.newHp as number;
+
+    engine.updateNPCHP(npcId, newHp);
+
+    // Broadcast updated state to all players
+    this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
+      action: "npc_update_hp",
+      npcId,
+      newHp,
+      gameState: engine.game,
+    });
+
+    console.log(`[DM Control] Updated NPC ${npcId} HP to ${newHp}`);
+  }
+
+  private handleNPCApplyCondition(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can apply conditions
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can apply conditions");
+      return;
+    }
+
+    const npcId = payload.npcId as string;
+    const condition = payload.condition as string;
+
+    engine.applyConditionToNPC(npcId, condition);
+
+    // Broadcast updated state to all players
+    this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
+      action: "npc_apply_condition",
+      npcId,
+      condition,
+      gameState: engine.game,
+    });
+
+    console.log(`[DM Control] Applied condition ${condition} to NPC ${npcId}`);
+  }
+
+  private handleNPCRemoveCondition(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can remove conditions
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can remove conditions");
+      return;
+    }
+
+    const npcId = payload.npcId as string;
+    const condition = payload.condition as string;
+
+    engine.removeConditionFromNPC(npcId, condition);
+
+    // Broadcast updated state to all players
+    this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
+      action: "npc_remove_condition",
+      npcId,
+      condition,
+      gameState: engine.game,
+    });
+
+    console.log(`[DM Control] Removed condition ${condition} from NPC ${npcId}`);
+  }
+
+  private handleNPCDelete(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can delete NPCs
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can delete NPCs");
+      return;
+    }
+
+    const npcId = payload.npcId as string;
+
+    engine.deleteNPC(npcId);
+
+    // Broadcast updated state to all players
+    this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
+      action: "npc_delete",
+      npcId,
+      gameState: engine.game,
+    });
+
+    console.log(`[DM Control] Deleted NPC ${npcId}`);
+  }
+
+  private handlePlayerAwardXP(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can award XP
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can award XP");
+      return;
+    }
+
+    const playerId = payload.playerId as string;
+    const amount = payload.amount as number;
+
+    engine.awardXPToPlayer(playerId, amount);
+
+    // Broadcast updated state to all players
+    this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
+      action: "player_award_xp",
+      playerId,
+      amount,
+      gameState: engine.game,
+    });
+
+    console.log(`[DM Control] Awarded ${amount} XP to player ${playerId}`);
+  }
+
+  private handlePlayerLevelUp(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can level up players
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can level up players");
+      return;
+    }
+
+    const playerId = payload.playerId as string;
+
+    engine.levelUpPlayer(playerId);
+
+    // Broadcast updated state to all players
+    this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
+      action: "player_level_up",
+      playerId,
+      gameState: engine.game,
+    });
+
+    console.log(`[DM Control] Leveled up player ${playerId}`);
   }
 
   shutdown(): void {

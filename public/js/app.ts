@@ -413,6 +413,45 @@ class App {
       this.renderCombatPanel();
       this.showNotification(t("initiative.rolled_for", { name: p.newEntry.entityId, score: p.newEntry.score }), "info");
     });
+
+    wsManager.on("DM_CONTROL_UPDATE", (payload) => {
+      const p = payload as { 
+        action: string;
+        gameState: Game;
+        [key: string]: unknown;
+      };
+      
+      // Update game state
+      if (p.gameState) {
+        gameState.setGame(p.gameState);
+      }
+      
+      // Refresh DM control panel if visible
+      const panel = document.getElementById("dm-control-panel");
+      if (panel) {
+        this.renderDMControlPanel();
+      }
+      
+      // Show notification based on action
+      const player = gameState.currentPlayer;
+      switch (p.action) {
+        case "npc_delete":
+          this.showNotification(t("dm_control.npc_deleted", { name: p.npcId }), "info");
+          break;
+        case "player_award_xp":
+          if (player) {
+            const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
+            this.showNotification(t("dm_control.xp_awarded", { amount: p.amount, playerName: targetPlayer?.characterName || p.playerId }), "success");
+          }
+          break;
+        case "player_level_up":
+          if (player) {
+            const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
+            this.showNotification(t("dm_control.player_leveled", { playerName: targetPlayer?.characterName || p.playerId, level: targetPlayer?.level || 1 }), "success");
+          }
+          break;
+      }
+    });
   }
 
   private showGameUI(): void {
@@ -542,6 +581,7 @@ class App {
 
     // Setup DM controls
     this.setupDMControls();
+    this.setupDMControlPanelToggle();
 
     // Language selector change handler (in-game)
     document.getElementById("locale-select")?.addEventListener("change", () => {
@@ -1036,6 +1076,278 @@ class App {
         wsManager.send("COMBAT_START", { startInitiative: true });
       });
     }
+  }
+
+  // ---- DM Control Panel Methods ----
+
+  private renderDMControlPanel(): void {
+    // Only render if current player is DM
+    if (!gameState.currentPlayer?.isDM) return;
+
+    const panel = document.getElementById("dm-control-panel");
+    if (!panel) return;
+
+    const npcs = gameState.npcs || [];
+    const players = gameState.players || [];
+
+    panel.innerHTML = `
+      <div class="dm-control-section">
+        <h4>${t("dm_control.npc_conditions")}</h4>
+        <ul class="npc-list">
+          ${npcs.map(npc => {
+            const hpPercent = npc.maxHp > 0 ? Math.round((npc.hp / npc.maxHp) * 100) : 0;
+            return `
+              <li class="npc-item" data-npc-id="${npc.id}">
+                <div class="npc-header">
+                  <span class="npc-name">${this.escapeHtml(npc.name)}</span>
+                  <span class="npc-role ${npc.role}">${t(`dm_control.role_${npc.role}`)}</span>
+                </div>
+                <div class="hp-slider-container">
+                  <input type="range" class="hp-slider" min="0" max="${npc.maxHp}" value="${npc.hp}" data-npc-id="${npc.id}">
+                  <div class="hp-display">${npc.hp}/${npc.maxHp} (${hpPercent}%)</div>
+                </div>
+                <div class="conditions-list">
+                  ${this.renderConditionCheckboxes(npc)}
+                </div>
+                <button class="btn-small btn-danger-small" data-action="delete-npc" data-npc-id="${npc.id}">${t("dm_control.btn_delete")}</button>
+              </li>
+            `;
+          }).join('')}
+        </ul>
+      </div>
+
+      <div class="dm-control-section">
+        <h4>${t("dm_control.npc_create")}</h4>
+        <form id="create-npc-form">
+          <div class="form-group">
+            <label>${t("dm_control.npc_name")}</label>
+            <input type="text" name="name" required placeholder="Goblin Warrior">
+          </div>
+          <div class="form-group">
+            <label>${t("dm_control.npc_description")}</label>
+            <input type="text" name="description" placeholder="A hostile goblin scout">
+          </div>
+          <div class="form-group">
+            <label>${t("dm_control.npc_role")}</label>
+            <select name="role">
+              <option value="hostile">${t("dm_control.role_hostile")}</option>
+              <option value="neutral">${t("dm_control.role_neutral")}</option>
+              <option value="friendly">${t("dm_control.role_friendly")}</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>${t("dm_control.npc_hp_label")}</label>
+              <input type="number" name="hp" min="0" value="10" required>
+            </div>
+            <div class="form-group">
+              <label>${t("dm_control.npc_max_hp")}</label>
+              <input type="number" name="maxHp" min="0" value="10" required>
+            </div>
+            <div class="form-group">
+              <label>${t("dm_control.npc_ac")}</label>
+              <input type="number" name="ac" min="0" value="12" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-small">${t("dm_control.btn_create")}</button>
+        </form>
+      </div>
+
+      <div class="dm-control-section">
+        <h4>${t("dm_control.xp_award")}</h4>
+        <form id="award-xp-form">
+          <div class="form-group">
+            <label>${t("dm_control.player_select")}</label>
+            <select name="playerId">
+              ${players.map(p => `<option value="${p.id}">${this.escapeHtml(p.characterName || p.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>${t("dm_control.xp_amount")}</label>
+            <input type="number" name="amount" min="0" value="100" required>
+          </div>
+          <button type="submit" class="btn-small">${t("dm_control.btn_award")}</button>
+        </form>
+      </div>
+
+      <div class="dm-control-section">
+        <h4>${t("dm_control.level_up")}</h4>
+        <form id="level-up-form">
+          <div class="form-group">
+            <label>${t("dm_control.player_select")}</label>
+            <select name="playerId">
+              ${players.map(p => `<option value="${p.id}">${this.escapeHtml(p.characterName || p.name)} (Lv.${p.level})</option>`).join('')}
+            </select>
+          </div>
+          <button type="submit" class="btn-small">${t("dm_control.btn_level_up")}</button>
+        </form>
+      </div>
+    `;
+
+    // Attach event handlers
+    this.attachDMControlHandlers();
+  }
+
+  private renderConditionCheckboxes(npc: any): string {
+    const conditions = [
+      "blinded", "charmed", "deafened", "frightened", "grappled",
+      "incapacitated", "invisible", "paralyzed", "petrified", "poisoned",
+      "prone", "restrained", "stunned", "unconscious"
+    ];
+
+    return conditions.map(cond => {
+      const isChecked = npc.conditions?.includes(cond) ? "checked" : "";
+      return `
+        <label class="condition-checkbox">
+          <input type="checkbox" ${isChecked} data-npc-id="${npc.id}" data-condition="${cond}">
+          ${t(`dm_control.condition_${cond}`)}
+        </label>
+      `;
+    }).join('');
+  }
+
+  private attachDMControlHandlers(): void {
+    const panel = document.getElementById("dm-control-panel");
+    if (!panel) return;
+
+    // HP slider changes
+    panel.querySelectorAll(".hp-slider").forEach(slider => {
+      slider.addEventListener("input", (e) => {
+        const target = e.target as HTMLInputElement;
+        const npcId = target.dataset.npcId;
+        const newHp = parseInt(target.value);
+        
+        // Update display
+        const hpDisplay = target.parentElement?.querySelector(".hp-display");
+        if (hpDisplay) {
+          const maxHp = parseInt(target.max);
+          const percent = Math.round((newHp / maxHp) * 100);
+          hpDisplay.textContent = `${newHp}/${maxHp} (${percent}%)`;
+        }
+
+        // Send to server
+        wsManager.send("NPC_UPDATE_HP", { npcId, newHp });
+      });
+    });
+
+    // Condition checkboxes
+    panel.querySelectorAll(".condition-checkbox input").forEach(checkbox => {
+      checkbox.addEventListener("change", (e) => {
+        const target = e.target as HTMLInputElement;
+        const npcId = target.dataset.npcId;
+        const condition = target.dataset.condition;
+        
+        if (target.checked) {
+          wsManager.send("NPC_APPLY_CONDITION", { npcId, condition });
+        } else {
+          wsManager.send("NPC_REMOVE_CONDITION", { npcId, condition });
+        }
+      });
+    });
+
+    // Delete NPC buttons
+    panel.querySelectorAll("[data-action='delete-npc']").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        const npcId = target.dataset.npcId;
+        const npcName = target.closest(".npc-item")?.querySelector(".npc-name")?.textContent || "NPC";
+        
+        if (confirm(`Delete ${npcName}?`)) {
+          wsManager.send("NPC_DELETE", { npcId });
+        }
+      });
+    });
+
+    // Create NPC form
+    const createForm = document.getElementById("create-npc-form");
+    if (createForm) {
+      createForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+        
+        wsManager.send("NPC_CREATE", {
+          name: formData.get("name") as string,
+          description: formData.get("description") as string || "",
+          role: formData.get("role") as "friendly" | "neutral" | "hostile",
+        });
+
+        // Note: Full stats NPC creation will be added as a separate endpoint
+        form.reset();
+      });
+    }
+
+    // Award XP form
+    const awardForm = document.getElementById("award-xp-form");
+    if (awardForm) {
+      awardForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+        
+        wsManager.send("PLAYER_AWARD_XP", {
+          playerId: formData.get("playerId") as string,
+          amount: parseInt(formData.get("amount") as string),
+        });
+
+        form.reset();
+      });
+    }
+
+    // Level Up form
+    const levelForm = document.getElementById("level-up-form");
+    if (levelForm) {
+      levelForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+        
+        wsManager.send("PLAYER_LEVEL_UP", {
+          playerId: formData.get("playerId") as string,
+        });
+
+        form.reset();
+      });
+    }
+  }
+
+  private setupDMControlPanelToggle(): void {
+    // Create toggle button if not exists
+    let toggleBtn = document.getElementById("dm-control-toggle");
+    if (!toggleBtn) {
+      toggleBtn = document.createElement("button");
+      toggleBtn.id = "dm-control-toggle";
+      toggleBtn.className = "dm-control-panel-toggle";
+      toggleBtn.textContent = "🎛️";
+      toggleBtn.style.display = "none"; // Hide by default
+      document.body.appendChild(toggleBtn);
+    }
+
+    // Show toggle button only for DM
+    if (gameState.currentPlayer?.isDM) {
+      toggleBtn.style.display = "flex";
+    } else {
+      toggleBtn.style.display = "none";
+      document.getElementById("dm-control-panel")?.remove();
+    }
+
+    // Toggle panel visibility
+    toggleBtn.addEventListener("click", () => {
+      const panel = document.getElementById("dm-control-panel");
+      if (panel) {
+        panel.remove();
+      } else {
+        this.renderDMControlPanel();
+      }
+    });
+
+    // Listen for DM_CONTROL_UPDATE to refresh panel
+    wsManager.addMessageHandler("DM_CONTROL_UPDATE", () => {
+      const panel = document.getElementById("dm-control-panel");
+      if (panel) {
+        this.renderDMControlPanel();
+      }
+    });
   }
 }
 

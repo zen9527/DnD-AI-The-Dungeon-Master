@@ -1743,3 +1743,209 @@ hr {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(224, 64, 64, 0.4);
 }
+
+/* Enhanced DM Control Panel */
+.dm-control-panel-expanded {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 350px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: 2px solid var(--accent-gold);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 99;
+}
+
+.dm-control-panel-expanded .dm-control-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dm-control-panel-expanded .dm-control-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dm-control-panel-expanded h4 {
+  font-family: 'Cinzel', serif;
+  color: var(--accent-gold);
+  margin-bottom: 10px;
+  font-size: 1rem;
+}
+
+.dm-control-panel-expanded .npc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dm-control-panel-expanded .npc-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.dm-control-panel-expanded .npc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.dm-control-panel-expanded .npc-name {
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.dm-control-panel-expanded .npc-role {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.dm-control-panel-expanded .npc-role.friendly {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.dm-control-panel-expanded .npc-role.neutral {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+}
+
+.dm-control-panel-expanded .npc-role.hostile {
+  background: rgba(224, 64, 64, 0.2);
+  color: #e04040;
+}
+
+.dm-control-panel-expanded .hp-slider-container {
+  margin-bottom: 8px;
+}
+
+.dm-control-panel-expanded .hp-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  appearance: none;
+}
+
+.dm-control-panel-expanded .hp-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-gold);
+  cursor: pointer;
+}
+
+.dm-control-panel-expanded .hp-display {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.dm-control-panel-expanded .conditions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dm-control-panel-expanded .condition-checkbox {
+  font-size: 0.7rem;
+  padding: 2px 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.dm-control-panel-expanded .condition-checkbox:checked {
+  background: var(--accent-gold);
+  color: var(--ink-black);
+  border-color: var(--accent-gold);
+}
+
+.dm-control-panel-expanded .form-group {
+  margin-bottom: 10px;
+}
+
+.dm-control-panel-expanded .form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.dm-control-panel-expanded .form-group input,
+.dm-control-panel-expanded .form-group select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.dm-control-panel-expanded .form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.dm-control-panel-expanded .form-row .form-group {
+  flex: 1;
+}
+
+.dm-control-panel-expanded .btn-small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  background: var(--accent-gold);
+  color: var(--ink-black);
+  font-family: inherit;
+}
+
+.dm-control-panel-expanded .btn-small:hover {
+  opacity: 0.9;
+}
+
+.dm-control-panel-expanded .btn-danger-small {
+  background: var(--error-red);
+  color: #fff;
+}
+
+.dm-control-panel-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-gold-light) 100%);
+  color: var(--ink-black);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dm-control-panel-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(212, 168, 67, 0.4);
+}

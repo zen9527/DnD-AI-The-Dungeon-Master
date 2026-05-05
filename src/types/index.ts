@@ -163,6 +163,13 @@ export type MessageType =
   | 'COMBAT_END'          // NEW: End combat mode
   | 'INITIATIVE_ROLL'     // NEW: Roll individual initiative
   | 'TURN_ADVANCE'        // NEW: Manually advance turn
+  // DM Control (DM-only)
+  | 'NPC_UPDATE_HP'       // NEW: DM update NPC HP
+  | 'NPC_APPLY_CONDITION' // NEW: DM apply condition to NPC
+  | 'NPC_REMOVE_CONDITION'// NEW: DM remove condition from NPC
+  | 'NPC_DELETE'          // NEW: DM delete NPC
+  | 'PLAYER_AWARD_XP'     // NEW: DM award XP to player
+  | 'PLAYER_LEVEL_UP'     // NEW: DM level up player
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -183,6 +190,7 @@ export type MessageType =
   | 'TURN_TIMER'          // NEW: Turn timer notification
   | 'COMBAT_STATE'        // NEW: Combat mode state update
   | 'INITIATIVE_UPDATE'   // NEW: Initiative order update
+  | 'DM_CONTROL_UPDATE'   // NEW: DM control action broadcast
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

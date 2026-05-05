@@ -78,3 +78,28 @@ export type {
 
 // Combat types
 export type { InitiativeEntry } from "../src/types/index.js";
+
+// DM Control schemas
+export {
+  npcUpdateHpSchema,
+  npcApplyConditionSchema,
+  npcRemoveConditionSchema,
+  npcCreateEnhancedSchema,
+  npcDeleteSchema,
+  playerAwardXpSchema,
+  playerLevelUpSchema,
+  playerResetXpSchema,
+  conditionOptions,
+} from "./schemas/dm-control.js";
+export type {
+  NPCUpdateHpInput,
+  NPCApplyConditionInput,
+  NPCRemoveConditionInput,
+  NPCCreateEnhancedInput,
+  NPCDeleteInput,
+  PlayerAwardXpInput,
+  PlayerLevelUpInput,
+  PlayerResetXpInput,
+  NPCListOutput,
+  PlayerListOutput,
+} from "./schemas/dm-control.js";

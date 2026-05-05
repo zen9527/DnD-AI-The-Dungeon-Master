@@ -811,6 +811,180 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     this._game.npcs.push(npc);
   }
 
+  // ---- DM NPC Control (Enhanced) ----
+
+  /**
+   * Create NPC with full stats (DM-only control)
+   */
+  createNPC(npcData: {
+    name: string;
+    description?: string;
+    role: "friendly" | "neutral" | "hostile";
+    hp: number;
+    maxHp: number;
+    ac: number;
+    attributes: { str: number; dex: number; con: number; int: number; wis: number; cha: number };
+  }): void {
+    const npc: NPC = {
+      id: generateId(),
+      name: npcData.name,
+      description: npcData.description || "",
+      role: npcData.role,
+      hp: Math.max(0, npcData.hp),
+      maxHp: Math.max(0, npcData.maxHp),
+      ac: Math.max(0, npcData.ac),
+      attributes: npcData.attributes,
+      createdAt: Date.now(),
+      conditions: [],
+    };
+    this._game.npcs.push(npc);
+  }
+
+  /**
+   * Apply condition to NPC (DM-only)
+   */
+  applyConditionToNPC(npcId: string, condition: string): void {
+    const npc = this._game.npcs.find(n => n.id === npcId);
+    if (npc) {
+      // Prevent duplicates
+      if (!npc.conditions.includes(condition)) {
+        npc.conditions.push(condition);
+      }
+    }
+  }
+
+  /**
+   * Remove condition from NPC (DM-only)
+   */
+  removeConditionFromNPC(npcId: string, condition: string): void {
+    const npc = this._game.npcs.find(n => n.id === npcId);
+    if (npc) {
+      npc.conditions = npc.conditions.filter(c => c !== condition);
+    }
+  }
+
+  /**
+   * Delete NPC from game (DM-only)
+   */
+  deleteNPC(npcId: string): void {
+    const idx = this._game.npcs.findIndex(n => n.id === npcId);
+    if (idx >= 0) {
+      this._game.npcs.splice(idx, 1);
+      
+      // Remove from initiative order if combat is active
+      const initiativeIdx = this._game.initiativeOrder.findIndex(e => e.npcId === npcId);
+      if (initiativeIdx >= 0) {
+        this._game.initiativeOrder.splice(initiativeIdx, 1);
+      }
+    }
+  }
+
+  /**
+   * Get all NPCs in game
+   */
+  getAllNPCs(): NPC[] {
+    return JSON.parse(JSON.stringify(this._game.npcs));
+  }
+
+  // ---- DM XP & Level Control ----
+
+  /**
+   * Award XP to a specific player (DM-only)
+   */
+  awardXPToPlayer(playerId: string, amount: number): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (player) {
+      player.xp += amount;
+      
+      // Check for level up
+      const xpForNextLevel = player.level * 500; // Simplified: 500 XP per level
+      if (player.xp >= xpForNextLevel) {
+        this.levelUpPlayer(playerId);
+      }
+    }
+  }
+
+  /**
+   * Award XP to all players (DM-only)
+   */
+  awardXPToAllPlayers(amount: number): void {
+    this._game.players.forEach(player => {
+      player.xp += amount;
+      
+      // Check for level up
+      const xpForNextLevel = player.level * 500; // Simplified: 500 XP per level
+      if (player.xp >= xpForNextLevel) {
+        this.levelUpPlayer(player.id);
+      }
+    });
+  }
+
+  /**
+   * Level up a player (DM-only)
+   */
+  levelUpPlayer(playerId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (player) {
+      player.level++;
+      
+      // Recalculate proficiency bonus based on new level
+      // D&D 5e: +2 at levels 1-4, +3 at 5-8, +4 at 9-12, +5 at 13-16, +6 at 17-20
+      const proficiencyMap: Record<number, number> = {
+        1: 2, 2: 2, 3: 2, 4: 2,
+        5: 3, 6: 3, 7: 3, 8: 3,
+        9: 4, 10: 4, 11: 4, 12: 4,
+        13: 5, 14: 5, 15: 5, 16: 5,
+        17: 6, 18: 6, 19: 6, 20: 6,
+      };
+      player.proficiencyBonus = proficiencyMap[player.level] || 6;
+      
+      // Increase max HP (average of hit die + CON mod)
+      const hitDieSizes: Record<string, number> = {
+        Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
+        Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+        Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
+      };
+      const hitDie = hitDieSizes[player.characterClass] || 8;
+      const conMod = calculateModifier(player.attributes.con);
+      const hpIncrease = Math.max(1, Math.floor(hitDie / 2) + 1 + conMod);
+      player.maxHp += hpIncrease;
+      player.hp += hpIncrease; // Heal on level up
+      
+      // Recalculate proficiency bonus using the dice utility
+      player.proficiencyBonus = calculateProficiencyBonus(player.level);
+    }
+  }
+
+  /**
+   * Reset player XP and level (DM-only)
+   */
+  resetPlayerXP(playerId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (player) {
+      player.xp = 0;
+      player.level = 1;
+      player.proficiencyBonus = calculateProficiencyBonus(1);
+      
+      // Reset HP to level 1 values
+      const hitDieSizes: Record<string, number> = {
+        Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
+        Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+        Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
+      };
+      const hitDie = hitDieSizes[player.characterClass] || 8;
+      const conMod = calculateModifier(player.attributes.con);
+      player.maxHp = hitDie + conMod;
+      player.hp = player.maxHp;
+    }
+  }
+
+  /**
+   * Get all players in game
+   */
+  getAllPlayers(): Player[] {
+    return JSON.parse(JSON.stringify(this._game.players));
+  }
+
   // ---- Event ----
 
   addEvent(title: string, description: string): void {
