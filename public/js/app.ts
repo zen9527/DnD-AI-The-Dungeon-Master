@@ -610,18 +610,14 @@ class App {
                 ${(game.players || []).map((p: Player) => {
                   const isCurrentPlayer = gameState.currentPlayer?.id === p.id;
                   
-                  // Calculate XP threshold for next level
-                  function calculateXPThreshold(level: number): number {
-                    const thresholds: Record<number, number> = {
-                      1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500,
-                      6: 14000, 7: 23000, 8: 34000, 9: 48000, 10: 64000,
-                      11: 85000, 12: 100000, 13: 120000, 14: 140000, 15: 165000,
-                      16: 195000, 17: 225000, 18: 265000, 19: 305000, 20: 355000
-                    };
-                    return thresholds[level] || 355000;
-                  }
-                  
-                  const nextLevelXP = calculateXPThreshold(p.level + 1);
+                  // Calculate XP threshold for next level (using shared constant)
+                  const xpThresholds: Record<number, number> = {
+                    1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500,
+                    6: 14000, 7: 23000, 8: 34000, 9: 48000, 10: 64000,
+                    11: 85000, 12: 100000, 13: 120000, 14: 140000, 15: 165000,
+                    16: 195000, 17: 225000, 18: 265000, 19: 305000, 20: 355000
+                  };
+                  const nextLevelXP = xpThresholds[p.level + 1] || 355000;
                   const xpProgress = p.level < 20 ? Math.round((p.xp / nextLevelXP) * 100) : 100;
                   
                   return `
@@ -1452,6 +1448,75 @@ class App {
       if (panel) {
         this.renderDMControlPanel();
       }
+    });
+  }
+
+  // ---- Inventory Panel Methods ----
+
+  private renderInventoryPanel(): void {
+    const player = gameState.currentPlayer;
+    if (!player) return;
+
+    let inventoryPanel = document.getElementById("inventory-panel");
+    if (!inventoryPanel) {
+      inventoryPanel = document.createElement("aside");
+      inventoryPanel.id = "inventory-panel";
+      inventoryPanel.className = "combat-panel hidden"; // Reuse combat panel styles
+      const mainContent = document.querySelector(".main-content");
+      if (mainContent) {
+        mainContent.insertAdjacentElement("afterend", inventoryPanel);
+      }
+    }
+
+    inventoryPanel.innerHTML = `
+      <h3>${t("inventory.title")}</h3>
+      ${player.inventory?.length ? `
+        <ul class="inventory-list">
+          ${player.inventory.map(item => `
+            <li class="inventory-item" data-item-id="${item.id}">
+              <div class="item-header">
+                <span class="item-name">${this.escapeHtml(item.name)}</span>
+                <span class="item-type">${t(`item.type_${item.type}`)}</span>
+              </div>
+              ${item.description ? `<div class="item-desc">${this.escapeHtml(item.description)}</div>` : ''}
+              <div class="item-stats">
+                ${item.stats?.attackBonus ? `<span>Attack: +${item.stats.attackBonus}</span>` : ''}
+                ${item.stats?.armorClassBonus ? `<span>AC: +${item.stats.armorClassBonus}</span>` : ''}
+                ${item.stats?.healingAmount ? `<span>Heal: ${item.stats.healingAmount} HP</span>` : ''}
+              </div>
+              <div class="item-actions">
+                ${item.type === "weapon" ? `
+                  <button class="btn-small ${player.equippedWeapon?.id === item.id ? 'btn-active' : ''}" data-action="equip-weapon" data-item-id="${item.id}">${player.equippedWeapon?.id === item.id ? t("inventory.unequip_btn") : t("inventory.equip_btn")}</button>
+                ` : ''}
+                ${item.type === "armor" ? `
+                  <button class="btn-small ${player.equippedArmor?.id === item.id ? 'btn-active' : ''}" data-action="equip-armor" data-item-id="${item.id}">${player.equippedArmor?.id === item.id ? t("inventory.unequip_btn") : t("inventory.equip_btn")}</button>
+                ` : ''}
+                ${item.type === "consumable" ? `
+                  <button class="btn-small btn-use" data-action="use-item" data-item-id="${item.id}">${t("inventory.use_btn")}</button>
+                ` : ''}
+              </div>
+            </li>
+          `).join('')}
+        </ul>
+        <div class="inventory-weight">${t("inventory.weight", { weight: player.inventory.reduce((sum, i) => sum + i.weight, 0) })}</div>
+      ` : `<p class="combat-empty">${t("inventory.empty")}</p>`}
+    `;
+
+    // Attach event handlers
+    inventoryPanel.querySelectorAll("[data-action]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        const action = target.getAttribute("data-action");
+        const itemId = target.getAttribute("data-item-id");
+        
+        if (action === "equip-weapon" && itemId) {
+          wsManager.send("EQUIP_WEAPON", { itemId });
+        } else if (action === "equip-armor" && itemId) {
+          wsManager.send("EQUIP_ARMOR", { itemId });
+        } else if (action === "use-item" && itemId) {
+          wsManager.send("USE_ITEM", { itemId });
+        }
+      });
     });
   }
 }

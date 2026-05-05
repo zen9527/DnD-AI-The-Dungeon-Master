@@ -1695,7 +1695,7 @@ hr {
 .dm-control-panel {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 20px; /* Changed from right to left to avoid overlap with combat panel */
   display: flex;
   gap: 10px;
   z-index: 100;
@@ -1748,7 +1748,7 @@ hr {
 .dm-control-panel-expanded {
   position: fixed;
   bottom: 80px;
-  right: 20px;
+  left: 20px; /* Changed from right to left */
   width: 350px;
   max-height: 70vh;
   overflow-y: auto;
