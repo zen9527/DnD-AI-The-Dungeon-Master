@@ -636,7 +636,7 @@ class App {
                       ` : ''}
                       <div class="xp-bar">
                         <span class="xp-text">XP: ${p.xp} / ${nextLevelXP}</span>
-                        ${p.level < 20 ? `<span class="xp-progress">${xpProgress}%</span>` : '<span class="max-level">MAX LEVEL</span>'}
+                        ${p.level < 20 ? `<span class="xp-progress">${xpProgress}%</span>` : `<span class="max-level">${t("level.max")}</span>`}
                       </div>
                     </li>
                   `;
@@ -867,7 +867,7 @@ class App {
 
   private getCurrentPlayerName(): string {
     const player = gameState.currentPlayer;
-    return player?.characterName || player?.name || "Unknown";
+    return player?.characterName || player?.name || t("player.unknown");
   }
 
   // ---- Settings Modal ----
@@ -1116,7 +1116,7 @@ class App {
       <h3>${t("combat.title")} - ${t("combat.round", { round: currentRound })}</h3>
       <div class="current-turn-indicator">
         <span class="current-turn-label">${t("combat.current_turn")}: </span>
-        <span class="current-turn-name">${this.escapeHtml(currentPlayer || "Unknown")}</span>
+        <span class="current-turn-name">${this.escapeHtml(currentPlayer || t("player.unknown"))}</span>
       </div>
       <ul class="initiative-list">
         ${initiativeOrder.map((entry, index) => {

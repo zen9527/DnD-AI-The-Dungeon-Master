@@ -182,5 +182,6 @@
   "saved_games.empty": "아직 저장된 게임이 없습니다. 플레이 중 게임을 저장하면 여기에 표시됩니다.",
   "saved_games.load_btn": "게임 로드",
   "saved_games.date_format": "{date}",
-  "npc.create_btn": "NPC 생성"
+  "npc.create_btn": "NPC 생성",
+  "level.max": "최대 레벨"
 }

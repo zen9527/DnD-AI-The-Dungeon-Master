@@ -182,5 +182,6 @@
   "saved_games.empty": "まだセーブデータがありません。プレイ中にゲームを保存するとここに表示されます。",
   "saved_games.load_btn": "ロード",
   "saved_games.date_format": "{date}",
-  "npc.create_btn": "NPC作成"
+  "npc.create_btn": "NPC作成",
+  "level.max": "MAXレベル"
 }

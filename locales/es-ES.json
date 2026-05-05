@@ -182,5 +182,6 @@
   "saved_games.empty": "Aún no hay partidas guardadas. Guarda una partida durante la jugabilidad para verla aquí.",
   "saved_games.load_btn": "Cargar Juego",
   "saved_games.date_format": "{date}",
-  "npc.create_btn": "Crear NPC"
+  "npc.create_btn": "Crear NPC",
+  "level.max": "NIVEL MÁXIMO"
 }

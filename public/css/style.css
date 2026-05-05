@@ -1536,6 +1536,11 @@ hr {
   display: none;
 }
 
+/* Generic hidden utility class */
+.hidden {
+  display: none !important;
+}
+
 .combat-panel h3 {
   font-family: 'Cinzel', serif;
   color: var(--accent-gold);

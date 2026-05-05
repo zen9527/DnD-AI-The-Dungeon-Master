@@ -565,5 +565,6 @@
   "saved_games.empty": "还没有存档。在游戏中保存后，这里会显示可用的存档。",
   "saved_games.load_btn": "加载游戏",
   "saved_games.date_format": "{date}",
-  "npc.create_btn": "创建NPC"
+  "npc.create_btn": "创建NPC",
+  "level.max": "已满级"
 }
