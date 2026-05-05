@@ -1047,16 +1047,11 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     const item = player.inventory.find(i => i.id === itemId);
     if (!item) throw new Error("Item not found in inventory");
     
-    // Initialize equipped if not present
-    if (!player.equipped) {
-      player.equipped = {};
-    }
-    
     // Unequip any existing item in this slot
     if (slot === "weapon") {
-      player.equipped.weapon = item;
+      player.equippedWeapon = item;
     } else {
-      player.equipped.armor = item;
+      player.equippedArmor = item;
     }
   }
 
@@ -1067,12 +1062,10 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     const player = this._game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
     
-    if (!player.equipped) return;
-    
     if (slot === "weapon") {
-      player.equipped.weapon = undefined;
+      player.equippedWeapon = undefined;
     } else {
-      player.equipped.armor = undefined;
+      player.equippedArmor = undefined;
     }
   }
 
@@ -1114,14 +1107,129 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
 
   /**
    * Get player's equipped items
-   */
+    */
   getEquippedItems(playerId: string): { weapon?: any; armor?: any } {
     const player = this._game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
     
     return {
-      weapon: player.equipped?.weapon,
-      armor: player.equipped?.armor,
+      weapon: player.equippedWeapon,
+      armor: player.equippedArmor,
+    };
+  }
+
+  /**
+   * Equip weapon to player
+   */
+  equipWeapon(playerId: string, itemId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    const item = player.inventory?.find(i => i.id === itemId);
+    if (!item) throw new Error("Item not found in inventory");
+    if (item.type !== "weapon") throw new Error("Item is not a weapon");
+    
+    player.equippedWeapon = item;
+    
+    // Recalculate AC based on equipped armor (if any)
+    this.recalculatePlayerAC(player);
+  }
+
+  /**
+   * Equip armor to player
+   */
+  equipArmor(playerId: string, itemId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    const item = player.inventory?.find(i => i.id === itemId);
+    if (!item) throw new Error("Item not found in inventory");
+    if (item.type !== "armor") throw new Error("Item is not armor");
+    
+    player.equippedArmor = item;
+    
+    // Recalculate AC based on equipped armor
+    this.recalculatePlayerAC(player);
+  }
+
+  /**
+   * Unequip weapon from player
+   */
+  unequipWeapon(playerId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    player.equippedWeapon = undefined;
+    
+    // Recalculate AC
+    this.recalculatePlayerAC(player);
+  }
+
+  /**
+   * Unequip armor from player
+   */
+  unequipArmor(playerId: string): void {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    player.equippedArmor = undefined;
+    
+    // Recalculate AC
+    this.recalculatePlayerAC(player);
+  }
+
+  /**
+   * Recalculate player AC based on equipped armor
+   */
+  private recalculatePlayerAC(player: any): void {
+    // Base AC = 10 + DEX modifier
+    const baseAC = 10 + Math.floor((player.attributes.dex - 10) / 2);
+    
+    // Add armor bonus if equipped
+    const armorBonus = player.equippedArmor?.stats?.armorClassBonus || 0;
+    
+    player.ac = baseAC + armorBonus;
+  }
+
+  /**
+   * Use consumable item (potion, etc.)
+   */
+  useItem(playerId: string, itemId: string, targetId?: string): { healed?: number; message: string } {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) throw new Error("Player not found");
+    
+    const item = player.inventory?.find(i => i.id === itemId);
+    if (!item) throw new Error("Item not found in inventory");
+    if (item.type !== "consumable") throw new Error("Item is not consumable");
+    if (!item.stats?.healingAmount) throw new Error("Item has no healing effect");
+    
+    const healingAmount = item.stats.healingAmount;
+    const target = targetId 
+      ? this._game.players.find(p => p.id === targetId) || this._game.npcs.find(n => n.id === targetId)
+      : player;
+    
+    if (!target) throw new Error("Target not found");
+    
+    // Apply healing
+    const oldHp = target.hp;
+    target.hp = Math.min(target.maxHp, target.hp + healingAmount);
+    const actualHealed = target.hp - oldHp;
+    
+    // Mark item as used (consume it)
+    if (!player.usedItems) {
+      player.usedItems = [];
+    }
+    player.usedItems.push(itemId);
+    
+    // Remove from inventory (consumed)
+    const itemIndex = player.inventory.findIndex(i => i.id === itemId);
+    if (itemIndex >= 0) {
+      player.inventory.splice(itemIndex, 1);
+    }
+    
+    return {
+      healed: actualHealed,
+      message: `Used ${item.name} and healed ${actualHealed} HP`
     };
   }
 

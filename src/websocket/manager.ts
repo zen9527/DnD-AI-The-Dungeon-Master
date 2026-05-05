@@ -142,6 +142,25 @@ export class WebSocketManager {
       case "PLAYER_LEVEL_UP":
         this.handlePlayerLevelUp(ws, client!, payload);
         break;
+      // Inventory & Equipment handlers
+      case "INVENTORY_ADD_ITEM":
+        this.handleInventoryAddItem(ws, client!, payload);
+        break;
+      case "EQUIP_WEAPON":
+        this.handleEquipWeapon(ws, client!, payload);
+        break;
+      case "EQUIP_ARMOR":
+        this.handleEquipArmor(ws, client!, payload);
+        break;
+      case "UNEQUIP_WEAPON":
+        this.handleUnequipWeapon(ws, client!, payload);
+        break;
+      case "UNEQUIP_ARMOR":
+        this.handleUnequipArmor(ws, client!, payload);
+        break;
+      case "USE_ITEM":
+        this.handleUseItem(ws, client!, payload);
+        break;
       default:
         this.sendError(ws, `Unknown message type: ${message.type}`);
     }
@@ -173,7 +192,9 @@ export class WebSocketManager {
       spellSlots: {},
       spells: [],
       inventory: [],
-      equipped: { weapon: undefined, armor: undefined },
+      equippedWeapon: undefined,
+      equippedArmor: undefined,
+      usedItems: [],
       conditions: [],
       hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
       deathSaves: { successes: 0, failures: 0 },
@@ -315,7 +336,9 @@ export class WebSocketManager {
       spellSlots: {},
       spells: [],
       inventory: [],
-      equipped: { weapon: undefined, armor: undefined },
+      equippedWeapon: undefined,
+      equippedArmor: undefined,
+      usedItems: [],
       conditions: [],
       hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
       deathSaves: { successes: 0, failures: 0 },
@@ -1087,6 +1110,171 @@ export class WebSocketManager {
     });
 
     console.log(`[DM Control] Leveled up player ${playerId}`);
+  }
+
+  // ---- Inventory & Equipment Handlers ----
+
+  private handleInventoryAddItem(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    // Only DM can add items to player inventory
+    const player = engine.game.players.find(p => p.id === client.playerId);
+    if (!player?.isDM) {
+      this.sendError(ws, "Only the DM can add items");
+      return;
+    }
+
+    const itemPayload = payload.item as Record<string, unknown>;
+    const itemId = payload.itemId as string;
+    const itemName = itemPayload.name as string;
+    const itemType = itemPayload.type as string;
+    const itemWeight = (itemPayload.weight as number) || 0;
+
+    engine.addItemToInventory(client.playerId, {
+      id: itemId || `item_${Date.now()}`,
+      name: itemName,
+      type: itemType as "weapon" | "armor" | "consumable" | "misc",
+      description: itemPayload.description as string,
+      weight: itemWeight,
+      stats: itemPayload.stats as any,
+    });
+
+    this.broadcastToGame(client.gameId, "INVENTORY_UPDATE", {
+      playerId: client.playerId,
+      action: "add_item",
+      item: { id: itemId, name: itemName, type: itemType },
+    });
+
+    console.log(`[Inventory] Added item ${itemName} to player ${client.playerId}`);
+  }
+
+  private handleEquipWeapon(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    const itemId = payload.itemId as string;
+    engine.equipWeapon(client.playerId, itemId);
+
+    this.broadcastToGame(client.gameId, "EQUIPMENT_UPDATE", {
+      playerId: client.playerId,
+      slot: "weapon",
+      itemId,
+    });
+
+    console.log(`[Equipment] Player ${client.playerId} equipped weapon ${itemId}`);
+  }
+
+  private handleEquipArmor(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    const itemId = payload.itemId as string;
+    engine.equipArmor(client.playerId, itemId);
+
+    this.broadcastToGame(client.gameId, "EQUIPMENT_UPDATE", {
+      playerId: client.playerId,
+      slot: "armor",
+      itemId,
+    });
+
+    console.log(`[Equipment] Player ${client.playerId} equipped armor ${itemId}`);
+  }
+
+  private handleUnequipWeapon(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    engine.unequipWeapon(client.playerId);
+
+    this.broadcastToGame(client.gameId, "EQUIPMENT_UPDATE", {
+      playerId: client.playerId,
+      slot: "weapon",
+      itemId: null,
+    });
+
+    console.log(`[Equipment] Player ${client.playerId} unequipped weapon`);
+  }
+
+  private handleUnequipArmor(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    engine.unequipArmor(client.playerId);
+
+    this.broadcastToGame(client.gameId, "EQUIPMENT_UPDATE", {
+      playerId: client.playerId,
+      slot: "armor",
+      itemId: null,
+    });
+
+    console.log(`[Equipment] Player ${client.playerId} unequipped armor`);
+  }
+
+  private handleUseItem(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
+    if (!client.gameId || !client.playerId) {
+      this.sendError(ws, "Not in a game");
+      return;
+    }
+
+    const engine = gameStore.getGame(client.gameId);
+    if (!engine) {
+      this.sendError(ws, "Game not found");
+      return;
+    }
+
+    const itemId = payload.itemId as string;
+    const targetId = payload.targetId as string | undefined;
+
+    engine.useItem(client.playerId, itemId, targetId);
+
+    this.broadcastToGame(client.gameId, "ITEM_USED", {
+      playerId: client.playerId,
+      itemId,
+      targetId,
+    });
+
+    console.log(`[Inventory] Player ${client.playerId} used item ${itemId}`);
   }
 
   shutdown(): void {

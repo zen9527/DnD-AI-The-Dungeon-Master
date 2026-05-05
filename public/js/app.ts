@@ -447,6 +447,111 @@ class App {
         case "player_level_up":
           if (player) {
             const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
+            this.showNotification(t("dm_control.level_up", { playerName: targetPlayer?.characterName || p.playerId }), "success");
+          }
+          break;
+        case "add_item":
+          this.showNotification(t("inventory.item_added", { name: p.item?.name }), "info");
+          break;
+      }
+    });
+
+    wsManager.on("INVENTORY_UPDATE", (payload) => {
+      const p = payload as { 
+        playerId: string;
+        action: string;
+        item?: any;
+      };
+      
+      // Update game state
+      if (gameState.game) {
+        gameState.setGame(gameState.game);
+      }
+      
+      // Refresh inventory panel if visible
+      const inventoryPanel = document.getElementById("inventory-panel");
+      if (inventoryPanel) {
+        this.renderInventoryPanel();
+      }
+      
+      this.showNotification(t(`inventory.${p.action}`), "info");
+    });
+
+    wsManager.on("EQUIPMENT_UPDATE", (payload) => {
+      const p = payload as { 
+        playerId: string;
+        slot: string;
+        itemId: string | null;
+      };
+      
+      // Update game state
+      if (gameState.game) {
+        gameState.setGame(gameState.game);
+      }
+      
+      // Refresh inventory panel if visible
+      const inventoryPanel = document.getElementById("inventory-panel");
+      if (inventoryPanel) {
+        this.renderInventoryPanel();
+      }
+      
+      this.showNotification(t(`equipment.${p.itemId ? "equipped" : "unequipped"}`, { slot: p.slot }), "info");
+    });
+
+    wsManager.on("ITEM_USED", (payload) => {
+      const p = payload as { 
+        playerId: string;
+        itemId: string;
+        targetId?: string;
+      };
+      
+      // Update game state
+      if (gameState.game) {
+        gameState.setGame(gameState.game);
+      }
+      
+      // Refresh inventory panel if visible
+      const inventoryPanel = document.getElementById("inventory-panel");
+      if (inventoryPanel) {
+        this.renderInventoryPanel();
+      }
+      
+      this.showNotification(t("inventory.item_used"), "info");
+    });
+
+    wsManager.on("DM_CONTROL_UPDATE", (payload) => {
+      const p = payload as { 
+        action: string;
+        gameState: Game;
+        [key: string]: unknown;
+      };
+      
+      // Update game state
+      if (p.gameState) {
+        gameState.setGame(p.gameState);
+      }
+      
+      // Refresh DM control panel if visible
+      const panel = document.getElementById("dm-control-panel");
+      if (panel) {
+        this.renderDMControlPanel();
+      }
+      
+      // Show notification based on action
+      const player = gameState.currentPlayer;
+      switch (p.action) {
+        case "npc_delete":
+          this.showNotification(t("dm_control.npc_deleted", { name: p.npcId }), "info");
+          break;
+        case "player_award_xp":
+          if (player) {
+            const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
+            this.showNotification(t("dm_control.xp_awarded", { amount: p.amount, playerName: targetPlayer?.characterName || p.playerId }), "success");
+          }
+          break;
+        case "player_level_up":
+          if (player) {
+            const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
             this.showNotification(t("dm_control.player_leveled", { playerName: targetPlayer?.characterName || p.playerId, level: targetPlayer?.level || 1 }), "success");
           }
           break;

@@ -16,7 +16,6 @@ export interface Player {
   spellSlots: Record<string, number>;
   spells: Spell[]; // Learned spells with levels
   inventory: Item[]; // Potions and other consumables
-  equipped: { weapon?: Item; armor?: Item }; // Equipped weapon and armor
   conditions: string[];
 
   // D&D 5e extended mechanics
@@ -28,6 +27,11 @@ export interface Player {
   // Combat mechanics
   initiative?: number; // Initiative score for combat turn order
   temporaryHp?: number; // Temporary HP that absorbs damage first
+  
+  // Equipment system
+  equippedWeapon?: Item; // Currently equipped weapon
+  equippedArmor?: Item; // Currently equipped armor
+  usedItems: string[]; // IDs of consumed items (potions, etc.)
 }
 
 export type DiceType = 4 | 6 | 8 | 10 | 12 | 20;
@@ -169,13 +173,18 @@ export type MessageType =
   | 'COMBAT_END'          // NEW: End combat mode
   | 'INITIATIVE_ROLL'     // NEW: Roll individual initiative
   | 'TURN_ADVANCE'        // NEW: Manually advance turn
-  // DM Control (DM-only)
   | 'NPC_UPDATE_HP'       // NEW: DM update NPC HP
   | 'NPC_APPLY_CONDITION' // NEW: DM apply condition to NPC
   | 'NPC_REMOVE_CONDITION'// NEW: DM remove condition from NPC
   | 'NPC_DELETE'          // NEW: DM delete NPC
   | 'PLAYER_AWARD_XP'     // NEW: DM award XP to player
   | 'PLAYER_LEVEL_UP'     // NEW: DM level up player
+  | 'INVENTORY_ADD_ITEM'  // NEW: Add item to inventory
+  | 'EQUIP_WEAPON'        // NEW: Equip weapon
+  | 'EQUIP_ARMOR'         // NEW: Equip armor
+  | 'UNEQUIP_WEAPON'      // NEW: Unequip weapon
+  | 'UNEQUIP_ARMOR'       // NEW: Unequip armor
+  | 'USE_ITEM'            // NEW: Use consumable item
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -197,6 +206,9 @@ export type MessageType =
   | 'COMBAT_STATE'        // NEW: Combat mode state update
   | 'INITIATIVE_UPDATE'   // NEW: Initiative order update
   | 'DM_CONTROL_UPDATE'   // NEW: DM control action broadcast
+  | 'INVENTORY_UPDATE'    // NEW: Inventory updated
+  | 'EQUIPMENT_UPDATE'    // NEW: Equipment changed
+  | 'ITEM_USED'           // NEW: Item consumed
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

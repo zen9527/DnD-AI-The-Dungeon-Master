@@ -189,8 +189,8 @@ export function getAttackBonus(player: Player, weaponAttackBonus: number = 0): n
   
   // Add weapon attack bonus from equipped weapon if present
   let weaponBonus = weaponAttackBonus;
-  if (player.equipped?.weapon?.stats?.attackBonus) {
-    weaponBonus += player.equipped.weapon.stats.attackBonus;
+  if (player.equippedWeapon?.stats?.attackBonus) {
+    weaponBonus += player.equippedWeapon.stats.attackBonus;
   }
   
   return proficiency + abilityMod + weaponBonus;
@@ -212,8 +212,8 @@ export function calculateAC(player: Player): number {
   
   // Add armor bonus if armor is equipped
   let armorBonus = 0;
-  if (player.equipped?.armor?.stats?.armorClassBonus) {
-    armorBonus = player.equipped.armor.stats.armorClassBonus;
+  if (player.equippedArmor?.stats?.armorClassBonus) {
+    armorBonus = player.equippedArmor.stats.armorClassBonus;
   }
   
   return base + dexMod + armorBonus;
