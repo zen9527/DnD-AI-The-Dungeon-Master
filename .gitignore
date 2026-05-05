@@ -18,3 +18,7 @@ nul
 
 # AI agent workspace (OpenCode superpowers)
 .superpowers/
+
+# Agent configuration files (local development settings)
+AGENTS.md
+YOLO-MODE.md
