@@ -163,6 +163,124 @@ export class CharacterCreator {
     this.fetchSavedGames();
   }
 
+  private showLoadCharacterForm(gameId: string): void {
+    const races = raceOptions.map(r => `<option value="${r}">${getLocalizedRaceName(r)}</option>`).join("");
+    const classes = classOptions.map(c => `<option value="${c}">${getLocalizedClassName(c)}</option>`).join("");
+
+    this.element!.innerHTML = `
+      <div class="welcome-screen">
+        ${this.renderLocaleDropdown()}
+        <h2>${t("load_game_page.title")}</h2>
+        <p class="subtitle">${t("load_game_page.subtitle", { gameId })}</p>
+        <form id="load-game-form">
+          <label>${t("player_name.label")}
+            <input type="text" id="player-name" placeholder="${t("player_name.placeholder")}" required>
+          </label>
+          <label>${t("character_name.label")}
+            <input type="text" id="character-name" placeholder="${t("character_name.placeholder")}" required>
+          </label>
+          <div class="form-row">
+            <label>${t("race.label")}
+              <select id="race">${races}</select>
+            </label>
+            <label>${t("class.label")}
+              <select id="character-class">${classes}</select>
+            </label>
+          </div>
+          
+          <!-- Race/Class Description Display -->
+          <div class="selection-description">
+            <div id="race-description" class="desc-box race-desc"></div>
+            <div id="class-description" class="desc-box class-desc"></div>
+          </div>
+          
+          <button type="button" id="auto-fill-btn" class="secondary">${t("auto_fill.btn")}</button>
+          <h3>${t("attributes.title")}</h3>
+          <div class="attributes-grid">
+            <label>${t("attributes.str")} <input type="number" id="attr-str" min="3" max="18" value="10"></label>
+            <label>${t("attributes.dex")} <input type="number" id="attr-dex" min="3" max="18" value="10"></label>
+            <label>${t("attributes.con")} <input type="number" id="attr-con" min="3" max="18" value="10"></label>
+            <label>${t("attributes.int")} <input type="number" id="attr-int" min="3" max="18" value="10"></label>
+            <label>${t("attributes.wis")} <input type="number" id="attr-wis" min="3" max="18" value="10"></label>
+            <label>${t("attributes.cha")} <input type="number" id="attr-cha" min="3" max="18" value="10"></label>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary">${t("load_game.join_btn")}</button>
+            <button type="button" id="back-btn">${t("back.btn")}</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.getElementById("locale-select")?.addEventListener("change", () => {
+      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
+      setLocale(newLocale);
+      location.reload();
+    });
+
+    document.getElementById("back-btn")?.addEventListener("click", () => this.showForm());
+
+    // Auto-fill on class/race change
+    const raceSelect = document.getElementById("race") as HTMLSelectElement;
+    const classSelect = document.getElementById("character-class") as HTMLSelectElement;
+    const autoFillBtn = document.getElementById("auto-fill-btn") as HTMLButtonElement;
+
+    // Create named handlers for cleanup (fixes event listener leak)
+    this.raceChangeHandler = () => {
+      this.autoFillAttributesAndName();
+      this.showRaceDescription(raceSelect.value);
+    };
+    this.classChangeHandler = () => {
+      this.autoFillAttributesAndName();
+      this.showClassDescription(classSelect.value);
+    };
+
+    // Remove old handlers first to prevent accumulation
+    raceSelect.removeEventListener("change", this.raceChangeHandler as EventListener);
+    classSelect.removeEventListener("change", this.classChangeHandler as EventListener);
+    
+    // Add fresh handlers
+    raceSelect.addEventListener("change", this.raceChangeHandler!);
+    classSelect.addEventListener("change", this.classChangeHandler!);
+    autoFillBtn?.addEventListener("click", () => this.autoFillAttributesAndName());
+    
+    // Track character name edits
+    const characterNameInput = document.getElementById("character-name") as HTMLInputElement;
+    characterNameInput?.addEventListener("input", () => {
+      this.isCharacterNameDirty = true;
+    });
+
+    // Show initial descriptions for default selections
+    if (raceSelect.value) this.showRaceDescription(raceSelect.value);
+    if (classSelect.value) this.showClassDescription(classSelect.value);
+
+    document.getElementById("load-game-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.loadGame(gameId);
+    });
+  }
+
+  private loadGame(gameId: string): void {
+    const payload = {
+      gameId,
+      playerName: (document.getElementById("player-name") as HTMLInputElement).value.trim(),
+      characterName: (document.getElementById("character-name") as HTMLInputElement).value.trim(),
+      race: (document.getElementById("race") as HTMLSelectElement).value,
+      characterClass: (document.getElementById("character-class") as HTMLSelectElement).value,
+      attributes: {
+        str: parseInt((document.getElementById("attr-str") as HTMLInputElement).value),
+        dex: parseInt((document.getElementById("attr-dex") as HTMLInputElement).value),
+        con: parseInt((document.getElementById("attr-con") as HTMLInputElement).value),
+        int: parseInt((document.getElementById("attr-int") as HTMLInputElement).value),
+        wis: parseInt((document.getElementById("attr-wis") as HTMLInputElement).value),
+        cha: parseInt((document.getElementById("attr-cha") as HTMLInputElement).value),
+      },
+      locale: getLocale(),
+    };
+
+    wsManager.send({ type: "JOIN_GAME", payload });
+  }
+
   private async fetchSavedGames(): Promise<void> {
     try {
       const response = await fetch("/api/saved-games");
@@ -191,6 +309,7 @@ export class CharacterCreator {
           <div class="game-card-header">
             <span class="scenario-badge">💾</span>
             <h3>${this.escapeHtml(g.name)}</h3>
+            <button class="delete-saved-btn" data-saved-id="${this.escapeHtml(g.id)}" title="${t("saved_games.delete_btn")}">🗑️</button>
           </div>
           <div class="game-card-body">
             <span class="game-scenario-label">${t("saved_games.date_format", { date: dateStr })}</span>
@@ -212,7 +331,47 @@ export class CharacterCreator {
         e.stopPropagation();
         const savedId = (btn as HTMLElement).getAttribute("data-saved-id");
         if (savedId) {
-          window.location.href = `?game=${savedId}`;
+          // Show character creation form for loading saved games
+          this.showLoadCharacterForm(savedId);
+        }
+      });
+    });
+
+    // Attach delete handlers
+    container.querySelectorAll(".delete-saved-btn").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const savedId = (btn as HTMLElement).getAttribute("data-saved-id");
+        if (savedId) {
+          const gameCard = btn.closest(".game-card");
+          const gameName = gameCard?.querySelector("h3")?.textContent || "this game";
+          
+          if (confirm(t("saved_games.confirm_delete", { name: gameName }))) {
+            try {
+              const response = await fetch(`/api/saved-games/${savedId}`, { method: "DELETE" });
+              const data = await response.json();
+              
+              if (response.ok && data.success) {
+                // Remove the card from DOM
+                gameCard?.remove();
+                
+                // Check if there are no more saved games
+                const remainingCards = container.querySelectorAll(".game-card");
+                if (remainingCards.length === 0) {
+                  container.innerHTML = `<p class="no-games">${t("saved_games.empty")}</p>`;
+                  const section = document.getElementById("saved-games-section");
+                  if (section) section.style.display = "none";
+                }
+                
+                this.showNotification(t("saved_games.deleted"), "success");
+              } else {
+                this.showNotification(data.error || t("saved_games.delete_error"), "error");
+              }
+            } catch (error) {
+              this.showNotification(t("saved_games.delete_error"), "error");
+              console.error("Delete failed:", error);
+            }
+          }
         }
       });
     });
@@ -503,5 +662,16 @@ export class CharacterCreator {
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private showNotification(text: string, type: "success" | "error" | "info"): void {
+    const existing = document.querySelector(".notification");
+    if (existing) existing.remove();
+
+    const notif = document.createElement("div");
+    notif.className = `notification notification-${type}`;
+    notif.textContent = text;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 4000);
   }
 }

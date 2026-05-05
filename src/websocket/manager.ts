@@ -370,7 +370,8 @@ export class WebSocketManager {
       locale: (payload.locale as string) || "en-US",
     };
 
-    gameStore.joinGame(p.gameId, player);
+    // Add player to the game engine
+    currentEngine.addPlayer(player);
     this.clients.set(ws, { id: this.clients.get(ws)!.id, gameId: currentEngine.id, playerId: player.id });
 
     // Send join notification to all players
@@ -392,34 +393,56 @@ export class WebSocketManager {
     // Broadcast updated state to other players (excluding the joining player)
     this.broadcastToGame(currentEngine.id, "PLAYER_JOINED", { player, gameState: currentEngine.game }, ws);
 
-    // If this is the first player joining (DM already in game), generate a welcome scene from DM
-    if (currentEngine.game.players.length > 1 && currentEngine.game.chatHistory.length <= 1) {
-      // DM is already in the game but no opening scene yet — generate one for the new player
-      const dmPlayer = currentEngine.game.players.find(pl => pl.isDM);
-      if (dmPlayer) {
-        this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(joinLocale, "status.dm_preparing"), isFinal: false });
-        setTimeout(() => {
-          currentEngine.generateOpeningScene({
-            onChunk: (chunk: string) => {
-              this.broadcastToGame(currentEngine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
-            },
-            onEnd: () => {},
-            onError: (error: Error) => {
-              const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
-              currentEngine.addEvent("DM", fallback);
-              this.broadcastToGame(currentEngine.id, "STREAM_ERROR", {
-                message: error.message,
-                fallbackNarrative: fallback,
-              });
-            },
-          }).then((result) => {
-            this.broadcastToGame(currentEngine.id, "STREAM_END", {
-              fullNarrative: result.fullNarrative,
-              structured: currentEngine.game,
+    // If this is a saved game being loaded for the first time (no DM in game yet), generate opening scene
+    const dmPlayer = currentEngine.game.players.find(pl => pl.isDM);
+    if (!dmPlayer && currentEngine.game.chatHistory.length <= 1) {
+      // No DM in the loaded game - generate opening scene for the new player
+      this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(joinLocale, "status.dm_preparing"), isFinal: false });
+      setTimeout(() => {
+        currentEngine.generateOpeningScene({
+          onChunk: (chunk: string) => {
+            this.broadcastToGame(currentEngine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+          },
+          onEnd: () => {},
+          onError: (error: Error) => {
+            const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
+            currentEngine.addEvent("DM", fallback);
+            this.broadcastToGame(currentEngine.id, "STREAM_ERROR", {
+              message: error.message,
+              fallbackNarrative: fallback,
             });
-          }).catch(() => {});
-        }, 2000);
-      }
+          },
+        }).then((result) => {
+          this.broadcastToGame(currentEngine.id, "STREAM_END", {
+            fullNarrative: result.fullNarrative,
+            structured: currentEngine.game,
+          });
+        }).catch(() => {});
+      }, 2000);
+    } else if (dmPlayer) {
+      // DM is already in the game - generate welcome scene for new player
+      this.send(ws, "STREAM_CHUNK", { content: getLocalizedMessage(joinLocale, "status.dm_preparing"), isFinal: false });
+      setTimeout(() => {
+        currentEngine.generateOpeningScene({
+          onChunk: (chunk: string) => {
+            this.broadcastToGame(currentEngine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
+          },
+          onEnd: () => {},
+          onError: (error: Error) => {
+            const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
+            currentEngine.addEvent("DM", fallback);
+            this.broadcastToGame(currentEngine.id, "STREAM_ERROR", {
+              message: error.message,
+              fallbackNarrative: fallback,
+            });
+          },
+        }).then((result) => {
+          this.broadcastToGame(currentEngine.id, "STREAM_END", {
+            fullNarrative: result.fullNarrative,
+            structured: currentEngine.game,
+          });
+        }).catch(() => {});
+      }, 2000);
     }
   }
 

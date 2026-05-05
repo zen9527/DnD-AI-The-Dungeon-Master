@@ -38,6 +38,7 @@ import { gameStore } from "./game/store.js";
 import { configSchema } from "../shared/schemas/config.js";
 import gamesSavePostHandler from "./routes/games.save.post.js";
 import gamesLoadGetHandler from "./routes/games.load.get.js";
+import gamesDeleteHandler from "./routes/games.delete.js";
 import { listGames as listSavedGames } from "./utils/storage.js";
 
 // Use config from ConfigManager (already loaded above)
@@ -179,6 +180,8 @@ app.get("/api/saved-games", (_req, res) => {
     res.status(500).json({ error: "Failed to list saved games" });
   }
 });
+
+app.delete("/api/saved-games/:id", gamesDeleteHandler);
 
 server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
