@@ -447,7 +447,7 @@ class App {
         case "player_level_up":
           if (player) {
             const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
-            this.showNotification(t("dm_control.level_up", { playerName: targetPlayer?.characterName || p.playerId }), "success");
+            this.showNotification(t("dm_control.level_up", { playerName: targetPlayer?.characterName || p.playerId, level: targetPlayer?.level || 1 }), "success");
           }
           break;
         case "add_item":
@@ -522,45 +522,6 @@ class App {
       }
       
       this.showNotification(t("inventory.item_used"), "info");
-    });
-
-    wsManager.on("DM_CONTROL_UPDATE", (payload) => {
-      const p = payload as { 
-        action: string;
-        gameState: Game;
-        [key: string]: unknown;
-      };
-      
-      // Update game state
-      if (p.gameState) {
-        gameState.setGame(p.gameState);
-      }
-      
-      // Refresh DM control panel if visible
-      const panel = document.getElementById("dm-control-panel");
-      if (panel) {
-        this.renderDMControlPanel();
-      }
-      
-      // Show notification based on action
-      const player = gameState.currentPlayer;
-      switch (p.action) {
-        case "npc_delete":
-          this.showNotification(t("dm_control.npc_deleted", { name: p.npcId }), "info");
-          break;
-        case "player_award_xp":
-          if (player) {
-            const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
-            this.showNotification(t("dm_control.xp_awarded", { amount: p.amount, playerName: targetPlayer?.characterName || p.playerId }), "success");
-          }
-          break;
-        case "player_level_up":
-          if (player) {
-            const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
-            this.showNotification(t("dm_control.player_leveled", { playerName: targetPlayer?.characterName || p.playerId, level: targetPlayer?.level || 1 }), "success");
-          }
-          break;
-      }
     });
   }
 
@@ -687,10 +648,8 @@ class App {
     document.getElementById("locale-select")?.addEventListener("change", () => {
       const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
       setLocale(newLocale);
-      // Send locale update to server (no reload needed for DM language)
-      if (this.wsManager) {
-        this.wsManager.send({ type: "SET_LOCALE", payload: { locale: newLocale } });
-      }
+      // Send locale update to server before reload
+      wsManager.send({ type: "SET_LOCALE", payload: { locale: newLocale } });
       location.reload();
     });
 

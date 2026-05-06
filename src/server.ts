@@ -30,7 +30,11 @@ Object.assign(process.env, {
 const app = express();
 const server = createServer(app);
 
-app.use(express.static(path.join(__dirname, "../public")));
+// In production, serve Vite-built assets from dist/public/
+// In dev (when running node dist/src/server.js directly), fall back to public/
+const distPublic = path.join(__dirname, "../dist/public");
+const srcPublic = path.join(__dirname, "../public");
+app.use(express.static(fs.existsSync(distPublic) && fs.existsSync(path.join(distPublic, "assets")) ? distPublic : srcPublic));
 app.use("/api", express.json());
 
 import { WebSocketManager } from "./websocket/manager.js";

@@ -211,8 +211,8 @@ describe("CONDITIONS", () => {
       description: "Stunned",
       checkAdvantage: false,
       attackAdvantage: false,
-      saveAdvantage: false,
-      canAttack: false
+      canAttack: false,
+      incapacitated: true
     });
   });
 });

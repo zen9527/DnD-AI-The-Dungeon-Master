@@ -50,6 +50,7 @@ export const joinGameSchema = z.object({
     wis: z.number().int().min(3).max(18),
     cha: z.number().int().min(3).max(18),
   }),
+  locale: z.string().optional(),
 });
 
 export const npcSchema = z.object({

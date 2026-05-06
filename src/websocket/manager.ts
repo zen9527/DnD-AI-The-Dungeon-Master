@@ -10,16 +10,14 @@ import { getLocalizedMessage } from "../utils/locale-loader.js";
 import { z } from "zod";
 import { generateId } from "../utils/id.js";
 
-// Hit dice by class (D&D 5e standard)
-function getHitDiceForClass(characterClass: string): number {
-  const hdMap: Record<string, number> = {
-    Barbarian: 4, Fighter: 3, Paladin: 3, Ranger: 3,
-    Cleric: 2, Druid: 2, Monk: 2, Rogue: 2,
-    Sorcerer: 1, Warlock: 1, Wizard: 1, Bard: 1,
-  };
-  return hdMap[characterClass] || 1;
-}
-import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, combatEndSchema, initiativeRollSchema, turnAdvanceSchema, saveGameSchema } from "../../shared/index.js";
+// Hit die types by class (D&D 5e standard) — used when creating new players
+const HIT_DIE_BY_CLASS: Record<string, number> = {
+  Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
+  Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+  Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
+};
+
+import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, combatEndSchema, initiativeRollSchema, turnAdvanceSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -210,7 +208,7 @@ export class WebSocketManager {
       usedItems: [],
       conditions: [],
       buffs: [],
-      hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
+      hitDice: { total: HIT_DIE_BY_CLASS[p.characterClass] || 8, used: 0 },
       deathSaves: { successes: 0, failures: 0 },
       xp: 0,
       locale: (payload.locale as string) || "en-US",
@@ -364,7 +362,7 @@ export class WebSocketManager {
       usedItems: [],
       conditions: [],
       buffs: [],
-      hitDice: { total: getHitDiceForClass(p.characterClass), used: 0 },
+      hitDice: { total: HIT_DIE_BY_CLASS[p.characterClass] || 8, used: 0 },
       deathSaves: { successes: 0, failures: 0 },
       xp: 0,
       locale: (payload.locale as string) || "en-US",
@@ -972,20 +970,23 @@ export class WebSocketManager {
       return;
     }
 
-    const npcId = payload.npcId as string;
-    const newHp = payload.newHp as number;
+    const parsed = npcUpdateHpSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.updateNPCHP(npcId, newHp);
+    engine.updateNPCHP(parsed.data.npcId, parsed.data.newHp);
 
     // Broadcast updated state to all players
     this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
       action: "npc_update_hp",
-      npcId,
-      newHp,
+      npcId: parsed.data.npcId,
+      newHp: parsed.data.newHp,
       gameState: engine.game,
     });
 
-    console.log(`[DM Control] Updated NPC ${npcId} HP to ${newHp}`);
+    console.log(`[DM Control] Updated NPC ${parsed.data.npcId} HP to ${parsed.data.newHp}`);
   }
 
   private handleNPCApplyCondition(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1007,20 +1008,23 @@ export class WebSocketManager {
       return;
     }
 
-    const npcId = payload.npcId as string;
-    const condition = payload.condition as string;
+    const parsed = npcApplyConditionSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.applyConditionToNPC(npcId, condition);
+    engine.applyConditionToNPC(parsed.data.npcId, parsed.data.condition);
 
     // Broadcast updated state to all players
     this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
       action: "npc_apply_condition",
-      npcId,
-      condition,
+      npcId: parsed.data.npcId,
+      condition: parsed.data.condition,
       gameState: engine.game,
     });
 
-    console.log(`[DM Control] Applied condition ${condition} to NPC ${npcId}`);
+    console.log(`[DM Control] Applied condition ${parsed.data.condition} to NPC ${parsed.data.npcId}`);
   }
 
   private handleNPCRemoveCondition(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1042,20 +1046,23 @@ export class WebSocketManager {
       return;
     }
 
-    const npcId = payload.npcId as string;
-    const condition = payload.condition as string;
+    const parsed = npcRemoveConditionSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.removeConditionFromNPC(npcId, condition);
+    engine.removeConditionFromNPC(parsed.data.npcId, parsed.data.condition);
 
     // Broadcast updated state to all players
     this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
       action: "npc_remove_condition",
-      npcId,
-      condition,
+      npcId: parsed.data.npcId,
+      condition: parsed.data.condition,
       gameState: engine.game,
     });
 
-    console.log(`[DM Control] Removed condition ${condition} from NPC ${npcId}`);
+    console.log(`[DM Control] Removed condition ${parsed.data.condition} from NPC ${parsed.data.npcId}`);
   }
 
   private handleNPCDelete(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1077,18 +1084,22 @@ export class WebSocketManager {
       return;
     }
 
-    const npcId = payload.npcId as string;
+    const parsed = npcDeleteSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.deleteNPC(npcId);
+    engine.deleteNPC(parsed.data.npcId);
 
     // Broadcast updated state to all players
     this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
       action: "npc_delete",
-      npcId,
+      npcId: parsed.data.npcId,
       gameState: engine.game,
     });
 
-    console.log(`[DM Control] Deleted NPC ${npcId}`);
+    console.log(`[DM Control] Deleted NPC ${parsed.data.npcId}`);
   }
 
   private handlePlayerAwardXP(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1110,20 +1121,23 @@ export class WebSocketManager {
       return;
     }
 
-    const playerId = payload.playerId as string;
-    const amount = payload.amount as number;
+    const parsed = playerAwardXpSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.awardXPToPlayer(playerId, amount);
+    engine.awardXPToPlayer(parsed.data.playerId, parsed.data.amount);
 
     // Broadcast updated state to all players
     this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
       action: "player_award_xp",
-      playerId,
-      amount,
+      playerId: parsed.data.playerId,
+      amount: parsed.data.amount,
       gameState: engine.game,
     });
 
-    console.log(`[DM Control] Awarded ${amount} XP to player ${playerId}`);
+    console.log(`[DM Control] Awarded ${parsed.data.amount} XP to player ${parsed.data.playerId}`);
   }
 
   private handlePlayerLevelUp(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1145,18 +1159,22 @@ export class WebSocketManager {
       return;
     }
 
-    const playerId = payload.playerId as string;
+    const parsed = playerLevelUpSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.levelUpPlayer(playerId);
+    engine.levelUpPlayer(parsed.data.playerId);
 
     // Broadcast updated state to all players
     this.broadcastToGame(client.gameId, "DM_CONTROL_UPDATE", {
       action: "player_level_up",
-      playerId,
+      playerId: parsed.data.playerId,
       gameState: engine.game,
     });
 
-    console.log(`[DM Control] Leveled up player ${playerId}`);
+    console.log(`[DM Control] Leveled up player ${parsed.data.playerId}`);
   }
 
   // ---- Inventory & Equipment Handlers ----

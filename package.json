@@ -9,7 +9,7 @@
     "build": "npm run build:backend && npm run build:frontend",
     "dev:backend": "tsc --watch",
     "start": "npm run build && node dist/src/server.js",
-    "dev": "concurrently \"npm run dev:backend\" \"vite\"",
+    "dev": "npm run build && concurrently \"npm run dev:backend\" \"vite\" \"node dist/src/server.js\"",
     "stop": "powershell -Command \"netstat -ano | findstr :3000 | findstr LISTENING | for %%a in (%%a) { taskkill /F /PID %%a }\"",
     "test": "vitest run",
     "test:watch": "vitest"

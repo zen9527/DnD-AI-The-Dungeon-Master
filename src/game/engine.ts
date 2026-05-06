@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, applyDamage, checkAttackHit, applyTemporaryHP, CONDITION_EFFECTS } from "./rules.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, applyDamage, checkAttackHit, applyTemporaryHP } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";

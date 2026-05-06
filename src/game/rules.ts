@@ -385,16 +385,23 @@ export const CONDITIONS: Record<string, {
   saveAdvantage?: boolean;
   speedZero?: boolean;
   canAttack?: boolean;
-  invisible?: boolean;
+  incapacitated?: boolean;
 }> = {
-  "poisoned": { description: "Poisoned", checkAdvantage: false, attackAdvantage: false },
-  "prone": { description: "Prone", speedZero: true },
   "blinded": { description: "Blinded", checkAdvantage: false, attackAdvantage: false, saveAdvantage: true },
   "charmed": { description: "Charmed", canAttack: false },
+  "deafened": { description: "Deafened", checkAdvantage: false },
+  "exhaustion": { description: "Exhaustion", checkAdvantage: false, speedZero: true },
   "frightened": { description: "Frightened", checkAdvantage: false, attackAdvantage: false },
   "grappled": { description: "Grappled", speedZero: true },
-  "stunned": { description: "Stunned", checkAdvantage: false, attackAdvantage: false, saveAdvantage: false, canAttack: false },
-  "invisible": { description: "Invisible", invisible: true }
+  "incapacitated": { description: "Incapacitated", canAttack: false, incapacitated: true },
+  "invisible": { description: "Invisible", attackAdvantage: false },
+  "paralyzed": { description: "Paralyzed", canAttack: false, incapacitated: true, speedZero: true },
+  "petrified": { description: "Petrified", speedZero: true, incapacitated: true },
+  "poisoned": { description: "Poisoned", checkAdvantage: false, attackAdvantage: false },
+  "prone": { description: "Prone", speedZero: true },
+  "restrained": { description: "Restrained", checkAdvantage: false, attackAdvantage: false },
+  "stunned": { description: "Stunned", checkAdvantage: false, attackAdvantage: false, canAttack: false, incapacitated: true },
+  "unconscious": { description: "Unconscious", canAttack: false, incapacitated: true, speedZero: true },
 };
 
 export function getConditionModifier(
@@ -747,32 +754,4 @@ export function applyTemporaryHP(creature: { temporaryHp?: number }, newTempHp: 
   return creature.temporaryHp;
 }
 
-/**
- * Get condition effects (D&D 5e conditions)
- */
-export const CONDITION_EFFECTS: Record<string, { description: string; bonuses?: Record<string, number>; penalties?: Record<string, number> }> = {
-  "poisoned": { 
-    description: "Disadvantage on attack rolls and ability checks",
-    penalties: { attackRolls: -2, abilityChecks: -2 }
-  },
-  "prone": { 
-    description: "Disadvantage on attack rolls; attacks within 5ft have advantage",
-    penalties: { attackRolls: -2 }
-  },
-  "blinded": { 
-    description: "Can't see, disadvantage on attacks, attacks have advantage against you",
-    penalties: { attackRolls: -2 }
-  },
-  "paralyzed": { 
-    description: "Incapacitated, can't move or speak, attacks within 5ft are auto-crits",
-    penalties: { attackRolls: -10 }
-  },
-  "stunned": { 
-    description: "Incapacitated, can only move, disadvantage on ability checks",
-    penalties: { abilityChecks: -2 }
-  },
-  "invisible": { 
-    description: "Advantage on attack rolls, attacks against you have disadvantage",
-    bonuses: { attackRolls: 2 }
-  },
-};
+
