@@ -144,11 +144,17 @@ export function calculatePassiveScore(player: Player, skill: string): number {
 // SPELL DC — For spell save DCs (e.g., fireball requires DEX save vs this DC)
 // ============================================================================
 
-export function getSpellSaveDC(player: Player): number {
-  const isSpellcaster = ["Wizard", "Sorcerer", "Cleric", "Paladin", "Ranger"].includes(player.characterClass);
-  const spellAbility = isSpellcaster ? player.attributes.int : player.attributes.cha;
-  return 8 + calculateModifier(spellAbility) + calculateProficiencyBonus(player.level);
-}
+ export function getSpellSaveDC(player: Player): number {
+   // D&D 5e spellcasting ability by class
+    const spellAbilityMap: Record<string, keyof Player['attributes']> = {
+      Wizard: "int", Sorcerer: "cha", Warlock: "cha",
+      Cleric: "wis", Druid: "wis", Bard: "cha",
+      Paladin: "cha", Ranger: "wis",
+    };
+    const spellAbilityKey = spellAbilityMap[player.characterClass] || "cha";
+    const spellAbility = player.attributes[spellAbilityKey];
+   return 8 + calculateModifier(spellAbility) + calculateProficiencyBonus(player.level);
+ }
 
 // ============================================================================
 // DEATH SAVES — D&D 5e death save rules (3 successes = stable, 3 failures = dead)
@@ -206,11 +212,17 @@ export function getAttackBonus(player: Player, weaponAttackBonus: number = 0): n
   return proficiency + abilityMod + weaponBonus + buffBonus;
 }
 
-export function getAttackAttributeMod(player: Player): number {
-  const isSpellcaster = ["Wizard", "Sorcerer", "Cleric", "Paladin", "Ranger"].includes(player.characterClass);
-  if (isSpellcaster) return calculateModifier(player.attributes.int);
-  return calculateModifier(player.attributes.str);
-}
+ export function getAttackAttributeMod(player: Player): number {
+   // D&D 5e attack ability by class (melee = STR, spellcaster = correct ability)
+   const spellcasterMap: Record<string, keyof Player['attributes']> = {
+     Wizard: "int", Sorcerer: "cha", Warlock: "cha",
+     Cleric: "wis", Druid: "wis", Bard: "cha",
+     Paladin: "cha", Ranger: "wis",
+   };
+   const spellAbility = spellcasterMap[player.characterClass];
+   if (spellAbility) return calculateModifier(player.attributes[spellAbility]);
+   return calculateModifier(player.attributes.str); // Default to STR for melee
+ }
 
 /**
  * Calculate Armor Class (AC) including armor bonus from equipped armor
@@ -560,11 +572,7 @@ export function checkLevelUp(xp: number, currentLevel: number): {
    const conMod = 0; // Will be applied with actual CON mod
    const hpIncrease = Math.floor((hd + 1) / 2) + conMod; // Average + 1
    
-   let proficiencyBonus = 2;
-   if (newLevel >= 5) proficiencyBonus = 3;
-   if (newLevel >= 9) proficiencyBonus = 4;
-   if (newLevel >= 13) proficiencyBonus = 5;
-   if (newLevel >= 17) proficiencyBonus = 6;
+   const proficiencyBonus = calculateProficiencyBonus(newLevel);
    
    const benefits: {
      hpIncrease: number;

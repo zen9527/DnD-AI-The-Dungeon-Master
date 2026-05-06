@@ -1,4 +1,3 @@
-import { generateId } from "../utils/id.js";
 import type { DiceRoll } from "../types/index.js";
 
 export function rollDice(type: number, count: number): number[] {

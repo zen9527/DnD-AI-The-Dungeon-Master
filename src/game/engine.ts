@@ -1,6 +1,6 @@
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, applyDamage, checkAttackHit, applyTemporaryHP } from "./rules.js";
+import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, applyDamage, checkAttackHit, applyTemporaryHP, checkLevelUp } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
@@ -881,72 +881,61 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
 
   // ---- DM XP & Level Control ----
 
-  /**
-   * Award XP to a specific player (DM-only)
-   */
-  awardXPToPlayer(playerId: string, amount: number): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (player) {
-      player.xp += amount;
-      
-      // Check for level up
-      const xpForNextLevel = player.level * 500; // Simplified: 500 XP per level
-      if (player.xp >= xpForNextLevel) {
-        this.levelUpPlayer(playerId);
-      }
-    }
-  }
+   /**
+    * Award XP to a specific player (DM-only)
+    */
+   awardXPToPlayer(playerId: string, amount: number): void {
+     const player = this._game.players.find(p => p.id === playerId);
+     if (player) {
+       player.xp += amount;
+       
+       // Check for level up using proper D&D 5e XP thresholds
+       const { shouldLevelUp } = checkLevelUp(player.xp, player.level);
+       if (shouldLevelUp) {
+         this.levelUpPlayer(playerId);
+       }
+     }
+   }
 
-  /**
-   * Award XP to all players (DM-only)
-   */
-  awardXPToAllPlayers(amount: number): void {
-    this._game.players.forEach(player => {
-      player.xp += amount;
-      
-      // Check for level up
-      const xpForNextLevel = player.level * 500; // Simplified: 500 XP per level
-      if (player.xp >= xpForNextLevel) {
-        this.levelUpPlayer(player.id);
-      }
-    });
-  }
+   /**
+    * Award XP to all players (DM-only)
+    */
+   awardXPToAllPlayers(amount: number): void {
+     this._game.players.forEach(player => {
+       player.xp += amount;
+       
+       // Check for level up using proper D&D 5e XP thresholds
+       const { shouldLevelUp } = checkLevelUp(player.xp, player.level);
+       if (shouldLevelUp) {
+         this.levelUpPlayer(player.id);
+       }
+     });
+   }
 
-  /**
-   * Level up a player (DM-only)
-   */
-  levelUpPlayer(playerId: string): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (player) {
-      player.level++;
-      
-      // Recalculate proficiency bonus based on new level
-      // D&D 5e: +2 at levels 1-4, +3 at 5-8, +4 at 9-12, +5 at 13-16, +6 at 17-20
-      const proficiencyMap: Record<number, number> = {
-        1: 2, 2: 2, 3: 2, 4: 2,
-        5: 3, 6: 3, 7: 3, 8: 3,
-        9: 4, 10: 4, 11: 4, 12: 4,
-        13: 5, 14: 5, 15: 5, 16: 5,
-        17: 6, 18: 6, 19: 6, 20: 6,
-      };
-      player.proficiencyBonus = proficiencyMap[player.level] || 6;
-      
-      // Increase max HP (average of hit die + CON mod)
-      const hitDieSizes: Record<string, number> = {
-        Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
-        Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
-        Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
-      };
-      const hitDie = hitDieSizes[player.characterClass] || 8;
-      const conMod = calculateModifier(player.attributes.con);
-      const hpIncrease = Math.max(1, Math.floor(hitDie / 2) + 1 + conMod);
-      player.maxHp += hpIncrease;
-      player.hp += hpIncrease; // Heal on level up
-      
-      // Recalculate proficiency bonus using the dice utility
-      player.proficiencyBonus = calculateProficiencyBonus(player.level);
-    }
-  }
+   /**
+    * Level up a player (DM-only)
+    */
+   levelUpPlayer(playerId: string): void {
+     const player = this._game.players.find(p => p.id === playerId);
+     if (player) {
+       player.level++;
+       
+       // Increase max HP (average of hit die + CON mod)
+       const hitDieSizes: Record<string, number> = {
+         Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
+         Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+         Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
+       };
+       const hitDie = hitDieSizes[player.characterClass] || 8;
+       const conMod = calculateModifier(player.attributes.con);
+       const hpIncrease = Math.max(1, Math.floor(hitDie / 2) + 1 + conMod);
+       player.maxHp += hpIncrease;
+       player.hp += hpIncrease; // Heal on level up
+       
+       // Recalculate proficiency bonus using the dice utility
+       player.proficiencyBonus = calculateProficiencyBonus(player.level);
+     }
+   }
 
   /**
    * Reset player XP and level (DM-only)
