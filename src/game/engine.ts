@@ -91,8 +91,9 @@ export class GameEngine {
     }, 1000);
     
     // Broadcast timer state every 5 seconds
-    // Note: This requires WebSocketManager reference, which engine doesn't have
-    // Instead, we'll rely on manager to poll or use a callback mechanism
+    // Note: Engine doesn't have WebSocketManager reference, so it can't broadcast directly
+    // The WebSocketManager polls the engine's timer state and broadcasts to clients
+    // See manager.ts for timerBroadcastIntervals Map that handles periodic broadcasts
   }
 
   stopTimer(): void {

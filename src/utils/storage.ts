@@ -73,9 +73,3 @@ export function deleteGame(gameId: string): boolean {
   console.log(`[Storage] Deleted game ${gameId}`);
   return true;
 }
-
-export function setupAutoSave(game: Game, intervalMs: number = 60000): NodeJS.Timeout {
-  return setInterval(() => {
-    saveGame(game);
-  }, intervalMs);
-}
