@@ -8,6 +8,7 @@ import { buildSystemPrompt } from "../llm/prompts.js";
 import { type Scenario } from "../../shared/schemas/scenario.js";
 import { getLocalizedMessage } from "../utils/locale-loader.js";
 import { z } from "zod";
+import { rollDice, calculateTotal } from "../game/dice.js";
 import { generateId } from "../utils/id.js";
 
 // Hit die types by class (D&D 5e standard) — used when creating new players
@@ -718,8 +719,8 @@ export class WebSocketManager {
     const diceType = (payload.diceType as number) || 20;
     const count = (payload.count as number) || 1;
     const modifier = (payload.modifier as number) || 0;
-    const rolls = Array.from({ length: count }, () => Math.floor(Math.random() * diceType) + 1);
-    const total = rolls.reduce((s, r) => s + r, 0) + modifier;
+    const rolls = rollDice(diceType, count);
+    const total = calculateTotal(rolls, modifier);
     this.broadcastToGame(client.gameId, "DICE_ROLL_RESULT", {
       result: {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,

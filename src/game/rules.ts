@@ -544,48 +544,45 @@ export function checkLevelUp(xp: number, currentLevel: number): {
   return { shouldLevelUp, newLevel, xpToNext };
 }
 
-export function getLevelUpBenefits(characterClass: string, newLevel: number): {
-  hpIncrease: number;
-  proficiencyBonus: number;
-  newSpellSlots?: Record<string, number>;
-  newFeatures?: string[];
-} {
-  const hd = getHitDiceForClass(characterClass);
-  const conMod = 0; // Will be applied with actual CON mod
-  const hpIncrease = Math.floor((hd + 1) / 2) + conMod; // Average + 1
-  
-  let proficiencyBonus = 2;
-  if (newLevel >= 5) proficiencyBonus = 3;
-  if (newLevel >= 9) proficiencyBonus = 4;
-  if (newLevel >= 13) proficiencyBonus = 5;
-  if (newLevel >= 17) proficiencyBonus = 6;
-  
-  const benefits: {
-    hpIncrease: number;
-    proficiencyBonus: number;
-    newSpellSlots?: Record<string, number>;
-    newFeatures?: string[];
-  } = { hpIncrease, proficiencyBonus };
+ export function getLevelUpBenefits(characterClass: string, newLevel: number): {
+   hpIncrease: number;
+   proficiencyBonus: number;
+   newSpellSlots?: Record<string, number>;
+   newFeatures?: string[];
+ } {
+   // Hit die types by class (D&D 5e standard)
+   const hitDieByClass: Record<string, number> = {
+     Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
+     Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+     Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
+   };
+   const hd = hitDieByClass[characterClass] || 8;
+   const conMod = 0; // Will be applied with actual CON mod
+   const hpIncrease = Math.floor((hd + 1) / 2) + conMod; // Average + 1
+   
+   let proficiencyBonus = 2;
+   if (newLevel >= 5) proficiencyBonus = 3;
+   if (newLevel >= 9) proficiencyBonus = 4;
+   if (newLevel >= 13) proficiencyBonus = 5;
+   if (newLevel >= 17) proficiencyBonus = 6;
+   
+   const benefits: {
+     hpIncrease: number;
+     proficiencyBonus: number;
+     newSpellSlots?: Record<string, number>;
+     newFeatures?: string[];
+   } = { hpIncrease, proficiencyBonus };
 
-  if (["Wizard", "Sorcerer", "Cleric", "Paladin", "Ranger", "Bard", "Warlock"].includes(characterClass)) {
-    benefits.newSpellSlots = calculateNewSpellSlots(newLevel);
-  }
+   if (["Wizard", "Sorcerer", "Cleric", "Paladin", "Ranger", "Bard", "Warlock"].includes(characterClass)) {
+     benefits.newSpellSlots = calculateNewSpellSlots(newLevel);
+   }
 
-  benefits.newFeatures = getClassFeaturesAtLevel(characterClass, newLevel);
-  
-  return benefits;
-}
+   benefits.newFeatures = getClassFeaturesAtLevel(characterClass, newLevel);
+   
+   return benefits;
+ }
 
-function getHitDiceForClass(characterClass: string): number {
-  const defaults: Record<string, number> = {
-    Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 8,
-    Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
-    Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8
-  };
-  return defaults[characterClass] || 8;
-}
-
-function calculateNewSpellSlots(level: number): Record<string, number> {
+ function calculateNewSpellSlots(level: number): Record<string, number> {
   const slots: Record<string, number> = {};
   
   if (level >= 1) slots["level-1"] = 2;
