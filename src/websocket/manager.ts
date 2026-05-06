@@ -18,7 +18,7 @@ const HIT_DIE_BY_CLASS: Record<string, number> = {
   Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
 };
 
-import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, combatEndSchema, initiativeRollSchema, turnAdvanceSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema } from "../../shared/index.js";
+import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
