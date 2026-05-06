@@ -66,8 +66,11 @@ export class GameEngine {
   get timerRemaining(): number { return this._timerRemaining; }
   get timerExpired(): boolean { return this._timerExpired || false; }
   get combatMode(): boolean { return this._game.combatMode; }
+  /** Get initiative order (untyped array for compatibility) */
   get initiativeOrder(): any[] { return this._game.initiativeOrder; }
+  /** Get current combat round number */
   get currentRound(): number { return this._game.currentRound; }
+  /** Get current turn index in initiative order */
   get currentTurnIndex(): number { return this._game.currentTurnIndex; }
 
   startTimer(): void {
@@ -351,6 +354,10 @@ Format as bullet points. Keep it factual, not narrative.`;
 
   // ---- Player Action ----
 
+  /**
+   * Handle player action and trigger LLM streaming for DM response.
+   * Sends action to chat history, then streams LLM narrative with structured result.
+   */
   async handlePlayerAction(
     payload: PlayerActionPayload,
     playerId: string,
@@ -717,6 +724,10 @@ Format as bullet points. Keep it factual, not narrative.`;
 
   // ---- Opening Scene ----
 
+  /**
+   * Generate the opening scene for a new game or player joining.
+   * Creates immersive narrative context via LLM streaming.
+   */
   async generateOpeningScene(
     callbacks: LLMCallbacks
   ): Promise<StreamResult> {

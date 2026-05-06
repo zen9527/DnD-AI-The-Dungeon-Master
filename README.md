@@ -178,7 +178,7 @@ tests/                  # Vitest unit tests
 ## 🎮 Feature Highlights · 功能亮点
 
 ### 🎲 Full D&D 5e Mechanics
-- **12 Classes** × **8 Races** with unique abilities and racial traits
+- **8 Classes** × **8 Races** with unique abilities and racial traits
 - **Auto-generate** optimal starting stats and character names
 - **Combat system** with initiative, HP tracking, and turn order
 - **Death saves** — 3 successes = stable, 3 failures = death
@@ -218,6 +218,12 @@ POST /api/config/test
 
 # List active games
 GET  /api/games
+
+# List saved games
+GET  /api/saved-games
+
+# Delete saved game
+DELETE /api/saved-games/:id
 ```
 
 ---

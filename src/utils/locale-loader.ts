@@ -8,6 +8,10 @@ const LOCALES_DIR = path.join(process.cwd(), "locales");
 // Cache loaded locale data
 const localeCache: Record<string, Record<string, string>> = {};
 
+/**
+ * Load locale JSON with fallback chain (locale → en-US → empty).
+ * Caches loaded locales to avoid repeated file reads.
+ */
 export function loadLocale(locale: string, visited: Set<string> = new Set()): Record<string, string> {
   if (localeCache[locale]) return localeCache[locale];
 

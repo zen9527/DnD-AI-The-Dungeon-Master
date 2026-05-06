@@ -180,9 +180,9 @@ export type MessageType =
   | 'JOIN_GAME'
   | 'LIST_GAMES'
   | 'PLAYER_ACTION'
-  | 'PLAYER_CHAT'
-  | 'PLAYER_EMOTE'        // NEW: Emote command support
-  | 'PRIVATE_CHAT'        // NEW: Private messaging
+  | 'CHAT_MESSAGE'        // Chat message from player
+  | 'PLAYER_EMOTE'        // Emote command support
+  | 'PRIVATE_CHAT'        // Private messaging
   | 'SET_LOCALE'
   | 'DICE_ROLL'
   | 'NPC_CREATE'

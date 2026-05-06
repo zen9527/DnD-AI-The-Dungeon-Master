@@ -123,5 +123,6 @@ export type EventInput = z.infer<typeof eventSchema>;
 export type DiceRollInput = z.infer<typeof diceRollSchema>;
 export type Item = z.infer<typeof itemSchema>;
 
+// Scenario options and descriptions
 export { scenarioOptions, scenarioDescriptions } from "./scenario.js";
 export type { Scenario } from "./scenario.js";

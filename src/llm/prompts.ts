@@ -309,7 +309,11 @@ IMPORTANT: Emojis should FEEL natural to the scene. A horror dungeon might use ð
 }
 
 /**
- * Language directive for DM narrative output.
+  * Language directive for DM narrative output.
+  */
+/**
+ * Build language directive for i18n support.
+ * Maps locale codes to language names and sets narrative language requirements.
  */
 function buildLanguageDirective(locale: string): string {
   const langNames: Record<string, string> = {
@@ -366,6 +370,10 @@ ALWAYS include the JSON block. It must be valid JSON between the ---JSON--- mark
 // PUBLIC API â€” Combined system prompt and action prompt builders
 // ============================================================================
 
+/**
+ * Build the complete system prompt for the LLM.
+ * Combines core identity, scenario tone, narrative style, and language directive.
+ */
 export function buildSystemPrompt(scenario: Scenario = "dungeon", locale: string = "en-US"): string {
   return [
     buildCoreIdentity(),
@@ -390,6 +398,10 @@ export function buildSystemPrompt(scenario: Scenario = "dungeon", locale: string
   ].join('\n\n');
 }
 
+/**
+ * Build the action prompt for player actions.
+ * Includes current context, action text, and structured output format.
+ */
 export function buildActionPrompt(
   action: string,
   context: {

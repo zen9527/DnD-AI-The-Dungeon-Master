@@ -464,6 +464,10 @@ export function removeCondition(player: Player, condition: string): void {
 // COMBINED SKILL CHECK — Multiple players helping on one check (+2 per helper)
 // ============================================================================
 
+/**
+ * Calculate combined skill check with multiple helpers.
+ * Each proficient helper adds +2 to the total (D&D 5e rule).
+ */
 export function calculateCombinedCheck(
   mainRoll: number,
   mainModifier: number,

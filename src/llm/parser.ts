@@ -1,5 +1,9 @@
 import type { StreamResult, StructuredResult } from "../types/index.js";
 
+/**
+ * Parse LLM response and extract structured result from JSON block.
+ * Uses flexible ---JSON--- markers with whitespace handling.
+ */
 export function parseLLMResponse(content: string): StreamResult {
   // Try to match JSON block with flexible whitespace handling
   const jsonMatch = content.match(/---JSON---\s*([\s\S]*?)\s*---JSON---/);

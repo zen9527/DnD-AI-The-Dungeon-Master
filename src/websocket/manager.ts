@@ -178,6 +178,9 @@ export class WebSocketManager {
     }
   }
 
+  /**
+   * Handle CREATE_GAME message - create new game and generate opening scene.
+   */
   private handleCreateGame(ws: WebSocket, payload: Record<string, unknown>): void {
     const parsed = createGameSchema.safeParse(payload);
     if (!parsed.success) {
@@ -319,6 +322,9 @@ export class WebSocketManager {
     }, 5000);
   }
 
+  /**
+   * Handle JOIN_GAME message - join existing game (loads from disk if needed).
+   */
   private handleJoinGame(ws: WebSocket, client: { id: string; gameId: string | null }, payload: Record<string, unknown>): void {
     const parsed = joinGameSchema.safeParse(payload);
     if (!parsed.success) {
