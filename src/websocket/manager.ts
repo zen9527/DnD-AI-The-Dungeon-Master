@@ -10,15 +10,7 @@ import { getLocalizedMessage } from "../utils/locale-loader.js";
 import { z } from "zod";
 import { rollDice, calculateTotal } from "../game/dice.js";
 import { generateId } from "../utils/id.js";
-
-// Hit die types by class (D&D 5e standard) — used when creating new players
-const HIT_DIE_BY_CLASS: Record<string, number> = {
-  Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
-  Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
-  Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
-};
-
-import { createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema } from "../../shared/index.js";
+import { HIT_DIE_BY_CLASS, createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -47,8 +39,13 @@ export class WebSocketManager {
       ws.on("close", () => {
         const client = this.clients.get(ws);
         console.log(`[WS] Client disconnected (${connectionId})`);
-        if (client?.gameId) {
-          gameStore.getGame(client.gameId)?.addChatMessage(client.playerId!, `${client.id} has disconnected`);
+        if (client?.gameId && client?.playerId) {
+          const engine = gameStore.getGame(client.gameId);
+          if (engine) {
+            // Remove disconnected player from the engine
+            engine.removePlayer(client.playerId);
+            engine.addChatMessage(client.playerId!, `${client.id} has disconnected`);
+          }
         }
         this.clients.delete(ws);
       });
@@ -422,6 +419,15 @@ export class WebSocketManager {
             fullNarrative: result.fullNarrative,
             structured: currentEngine.game,
           });
+          // Send initial TURN_TIMER so the joining player's timer displays immediately
+          const newDm = currentEngine.game.players.find(p => p.isDM);
+          if (newDm) {
+            this.broadcastToGame(currentEngine.id, "TURN_TIMER", {
+              remaining: currentEngine.timerRemaining,
+              currentPlayerId: newDm.id,
+              characterName: newDm.characterName,
+            });
+          }
         }).catch(() => {});
       }, 2000);
     } else if (dmPlayer) {
@@ -445,6 +451,12 @@ export class WebSocketManager {
           this.broadcastToGame(currentEngine.id, "STREAM_END", {
             fullNarrative: result.fullNarrative,
             structured: currentEngine.game,
+          });
+          // Send initial TURN_TIMER so the joining player's timer displays immediately
+          this.broadcastToGame(currentEngine.id, "TURN_TIMER", {
+            remaining: currentEngine.timerRemaining,
+            currentPlayerId: dmPlayer.id,
+            characterName: dmPlayer.characterName,
           });
         }).catch(() => {});
       }, 2000);
@@ -1375,11 +1387,7 @@ export class WebSocketManager {
     const duration = (payload.duration as number) || 1;
     const isPlayer = (payload.isPlayer as boolean) || true;
 
-    if (isPlayer) {
-      engine.applyTemporaryHP(targetId, amount, duration);
-    } else {
-      engine.applyTemporaryHPToNPC(targetId, amount, duration);
-    }
+    engine.applyTemporaryHP(targetId, isPlayer, amount, duration);
 
     this.broadcastToGame(client.gameId, "BUFF_UPDATE", {
       action: "apply_temporary_hp",
@@ -1415,11 +1423,7 @@ export class WebSocketManager {
     const buff = payload.buff as { name: string; effect: string; bonus?: number; duration: number };
     const isPlayer = (payload.isPlayer as boolean) || true;
 
-    if (isPlayer) {
-      engine.applyBuff(targetId, buff);
-    } else {
-      engine.applyBuffToNPC(targetId, buff);
-    }
+    engine.applyBuff(targetId, isPlayer, buff);
 
     this.broadcastToGame(client.gameId, "BUFF_UPDATE", {
       action: "apply_buff",
@@ -1454,15 +1458,7 @@ export class WebSocketManager {
     const buffName = payload.buffName as string;
     const isPlayer = (payload.isPlayer as boolean) || true;
 
-    if (isPlayer) {
-      engine.removeBuff(targetId, buffName);
-    } else {
-      // NPCs don't have removeBuff method yet, but we can filter directly
-      const npc = engine.game.npcs.find(n => n.id === targetId);
-      if (npc && npc.buffs) {
-        npc.buffs = npc.buffs.filter(b => b.name !== buffName);
-      }
-    }
+    engine.removeBuff(targetId, isPlayer, buffName);
 
     this.broadcastToGame(client.gameId, "BUFF_UPDATE", {
       action: "remove_buff",

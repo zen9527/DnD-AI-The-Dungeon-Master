@@ -1,11 +1,13 @@
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
-import { isHit, getDamageDice, calculateAttackDamage, checkCreatureDeath, calculateInitiative, rollHitDice, rollDeathSave, calculatePassiveScore, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, applyDamage, checkAttackHit, applyTemporaryHP, checkLevelUp } from "./rules.js";
+import { isHit, calculateInitiative, rollHitDice, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, checkLevelUp } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
 import type { Game, Player, NPC, ChatMessage, PlayerActionPayload, StreamResult } from "../types/index.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
+import { HIT_DIE_BY_CLASS } from "../../shared/schemas/game.js";
+import { LOCALE_LLM_NAME } from "../../shared/schemas/locale.js";
 import { getLocalizedMessage } from "../utils/locale-loader.js";
 import * as storage from "../utils/storage.js";
 
@@ -27,6 +29,9 @@ export class GameEngine {
   private _timerInterval: NodeJS.Timeout | null = null;
   private _timerExpired: boolean = false;
   private readonly DEFAULT_TIMER = 60; // Increased from 30 to 60 seconds
+
+  // Cached game snapshot — invalidated on mutation to avoid repeated deep-copy on every read
+  private _snapshot: Game | null = null;
 
   constructor(
     gameData: Omit<Game, "createdAt" | "conversationHistory">,
@@ -58,7 +63,13 @@ export class GameEngine {
   }
 
   get game(): Game {
-    return JSON.parse(JSON.stringify(this._game));
+    if (this._snapshot) return this._snapshot;
+    return this._snapshot = JSON.parse(JSON.stringify(this._game));
+  }
+
+  /** Invalidate the cached snapshot — call after any mutation to _game */
+  private invalidateSnapshot(): void {
+    this._snapshot = null;
   }
 
   get id(): string { return this._game.id; }
@@ -163,6 +174,8 @@ export class GameEngine {
       this._game.currentRound = 1;
       this._game.currentTurnIndex = 0;
     }
+
+    this.invalidateSnapshot();
   }
 
   endCombat(): void {
@@ -177,6 +190,8 @@ export class GameEngine {
     
     const narrative = getLocalizedMessage("en-US", "combat.ended");
     this._game.conversationHistory.push({ role: "assistant", content: narrative });
+
+    this.invalidateSnapshot();
   }
 
   rollIndividualInitiative(entityId: string, isPlayer: boolean): number {
@@ -311,11 +326,7 @@ Combat: ${this._game.npcs.length > 0 ? `Active - Round ${this._round}` : "None"}
     const historyText = recentHistory.map(m => `[${m.role}]: ${m.content.substring(0, 300)}`).join('\n');
 
     const locale = player.locale || "en-US";
-    const langNames: Record<string, string> = {
-      "en-US": "English", "zh-CN": "Chinese (Simplified)", "ja-JP": "Japanese",
-      "es-ES": "Spanish", "ko-KR": "Korean",
-    };
-    const language = langNames[locale] || "English";
+    const language = LOCALE_LLM_NAME[locale as keyof typeof LOCALE_LLM_NAME] || "English";
 
     const summaryPrompt = `You are summarizing a D&D adventure for the Dungeon Master's reference.
 ${this._storySummary ? `CURRENT SUMMARY:\n${this._storySummary}\n\n` : ""}RECENT EVENTS:\n${historyText}
@@ -644,6 +655,7 @@ Format as bullet points. Keep it factual, not narrative.`;
     this._game.chatHistory.push(narrativeMsg);
     if (this._game.chatHistory.length > 100) this._game.chatHistory.shift();
 
+    this.invalidateSnapshot();
     return parsed;
   }
 
@@ -717,6 +729,7 @@ Format as bullet points. Keep it factual, not narrative.`;
     this._game.conversationHistory.push({ role: "user", content: restPrompt });
     this._game.conversationHistory.push({ role: "assistant", content: parsed.fullNarrative });
 
+    this.invalidateSnapshot();
     return {
       fullNarrative: `${narrativeMsg.content}\n\n${parsed.fullNarrative}`,
       structured: parsed.structured,
@@ -774,6 +787,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     this._game.chatHistory.push(narrativeMsg);
     if (this._game.chatHistory.length > 100) this._game.chatHistory.shift();
 
+    this.invalidateSnapshot();
     return parsed;
   }
 
@@ -931,14 +945,9 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
      const player = this._game.players.find(p => p.id === playerId);
      if (player) {
        player.level++;
-       
+
        // Increase max HP (average of hit die + CON mod)
-       const hitDieSizes: Record<string, number> = {
-         Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
-         Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
-         Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
-       };
-       const hitDie = hitDieSizes[player.characterClass] || 8;
+       const hitDie = HIT_DIE_BY_CLASS[player.characterClass] || 8;
        const conMod = calculateModifier(player.attributes.con);
        const hpIncrease = Math.max(1, Math.floor(hitDie / 2) + 1 + conMod);
        player.maxHp += hpIncrease;
@@ -958,14 +967,9 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       player.xp = 0;
       player.level = 1;
       player.proficiencyBonus = calculateProficiencyBonus(1);
-      
+
       // Reset HP to level 1 values
-      const hitDieSizes: Record<string, number> = {
-        Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
-        Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
-        Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
-      };
-      const hitDie = hitDieSizes[player.characterClass] || 8;
+      const hitDie = HIT_DIE_BY_CLASS[player.characterClass] || 8;
       const conMod = calculateModifier(player.attributes.con);
       player.maxHp = hitDie + conMod;
       player.hp = player.maxHp;
@@ -997,6 +1001,10 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
 
   addPlayer(player: Player): void {
     this._game.players.push(player);
+  }
+
+  removePlayer(playerId: string): void {
+    this._game.players = this._game.players.filter(p => p.id !== playerId);
   }
 
   // ---- Inventory & Equipment Management ----
@@ -1064,29 +1072,11 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   }
 
   /**
-   * Use consumable item (potion, etc.)
+   * Use consumable item on self (potion, etc.)
    */
   useConsumable(playerId: string, itemId: string): { healed: number } {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    if (!player.inventory) throw new Error("Inventory not found");
-    
-    const item = player.inventory.find(i => i.id === itemId);
-    if (!item) throw new Error("Item not found in inventory");
-    
-    let healed = 0;
-    
-    // Apply healing if item has healingAmount
-    if (item.stats?.healingAmount) {
-      healed = item.stats.healingAmount;
-      player.hp = Math.min(player.maxHp, player.hp + healed);
-    }
-    
-    // Remove consumable from inventory after use
-    this.removeItemFromInventory(playerId, itemId);
-    
-    return { healed };
+    const result = this.useItem(playerId, itemId);
+    return { healed: result.healed ?? 0 };
   }
 
   /**
@@ -1116,60 +1106,32 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
    * Equip weapon to player
    */
   equipWeapon(playerId: string, itemId: string): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    const item = player.inventory?.find(i => i.id === itemId);
-    if (!item) throw new Error("Item not found in inventory");
-    if (item.type !== "weapon") throw new Error("Item is not a weapon");
-    
-    player.equippedWeapon = item;
-    
-    // Recalculate AC based on equipped armor (if any)
-    this.recalculatePlayerAC(player);
+    this.equipItem(playerId, itemId, "weapon");
+    this.recalculatePlayerAC(this._game.players.find(p => p.id === playerId)!);
   }
 
   /**
    * Equip armor to player
    */
   equipArmor(playerId: string, itemId: string): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    const item = player.inventory?.find(i => i.id === itemId);
-    if (!item) throw new Error("Item not found in inventory");
-    if (item.type !== "armor") throw new Error("Item is not armor");
-    
-    player.equippedArmor = item;
-    
-    // Recalculate AC based on equipped armor
-    this.recalculatePlayerAC(player);
+    this.equipItem(playerId, itemId, "armor");
+    this.recalculatePlayerAC(this._game.players.find(p => p.id === playerId)!);
   }
 
   /**
    * Unequip weapon from player
    */
   unequipWeapon(playerId: string): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    player.equippedWeapon = undefined;
-    
-    // Recalculate AC
-    this.recalculatePlayerAC(player);
+    this.unequipItem(playerId, "weapon");
+    this.recalculatePlayerAC(this._game.players.find(p => p.id === playerId)!);
   }
 
   /**
    * Unequip armor from player
    */
   unequipArmor(playerId: string): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    player.equippedArmor = undefined;
-    
-    // Recalculate AC
-    this.recalculatePlayerAC(player);
+    this.unequipItem(playerId, "armor");
+    this.recalculatePlayerAC(this._game.players.find(p => p.id === playerId)!);
   }
 
   /**
@@ -1244,81 +1206,50 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   // ---- Buff/Debuff System ----
 
   /**
-   * Apply temporary HP with duration
+   * Apply temporary HP to player or NPC with duration
    */
-  applyTemporaryHP(playerId: string, amount: number, duration: number): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    // New temp HP replaces old if higher
-    const currentTempHp = player.temporaryHp || 0;
-    player.temporaryHp = Math.max(currentTempHp, amount);
-    player.temporaryHpRemaining = duration;
+  applyTemporaryHP(targetId: string, isPlayer: boolean, amount: number, duration: number): void {
+    const entity = isPlayer
+      ? this._game.players.find(p => p.id === targetId)
+      : this._game.npcs.find(n => n.id === targetId);
+    if (!entity) throw new Error(`${isPlayer ? "Player" : "NPC"} not found: ${targetId}`);
+
+    const currentTempHp = (entity as any).temporaryHp || 0;
+    (entity as any).temporaryHp = Math.max(currentTempHp, amount);
+    (entity as any).temporaryHpRemaining = duration;
   }
 
   /**
-   * Apply buff to player
+   * Apply buff to player or NPC
    */
-  applyBuff(playerId: string, buff: { name: string; effect: string; bonus?: number; duration: number }): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    if (!player.buffs) {
-      player.buffs = [];
-    }
-    
-    // Check for existing buff with same name and update duration
-    const existingIndex = player.buffs.findIndex(b => b.name === buff.name);
+  applyBuff(targetId: string, isPlayer: boolean, buff: { name: string; effect: string; bonus?: number; duration: number }): void {
+    const entity = isPlayer
+      ? this._game.players.find(p => p.id === targetId)
+      : this._game.npcs.find(n => n.id === targetId);
+    if (!entity) throw new Error(`${isPlayer ? "Player" : "NPC"} not found: ${targetId}`);
+
+    const buffs = (entity as any).buffs || [];
+    const existingIndex = buffs.findIndex((b: any) => b.name === buff.name);
     if (existingIndex >= 0) {
-      player.buffs[existingIndex] = buff;
+      buffs[existingIndex] = buff;
     } else {
-      player.buffs.push(buff);
+      buffs.push(buff);
     }
+    (entity as any).buffs = buffs;
   }
 
   /**
-   * Remove buff from player
+   * Remove buff from player or NPC
    */
-  removeBuff(playerId: string, buffName: string): void {
-    const player = this._game.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    
-    if (!player.buffs) return;
-    
-    player.buffs = player.buffs.filter(b => b.name !== buffName);
-  }
+  removeBuff(targetId: string, isPlayer: boolean, buffName: string): void {
+    const entity = isPlayer
+      ? this._game.players.find(p => p.id === targetId)
+      : this._game.npcs.find(n => n.id === targetId);
+    if (!entity) throw new Error(`${isPlayer ? "Player" : "NPC"} not found: ${targetId}`);
 
-  /**
-   * Apply temporary HP to NPC
-   */
-  applyTemporaryHPToNPC(npcId: string, amount: number, duration: number): void {
-    const npc = this._game.npcs.find(n => n.id === npcId);
-    if (!npc) throw new Error("NPC not found");
-    
-    // New temp HP replaces old if higher
-    const currentTempHp = npc.temporaryHp || 0;
-    npc.temporaryHp = Math.max(currentTempHp, amount);
-    npc.temporaryHpRemaining = duration;
-  }
-
-  /**
-   * Apply buff to NPC
-   */
-  applyBuffToNPC(npcId: string, buff: { name: string; effect: string; bonus?: number; duration: number }): void {
-    const npc = this._game.npcs.find(n => n.id === npcId);
-    if (!npc) throw new Error("NPC not found");
-    
-    if (!npc.buffs) {
-      npc.buffs = [];
-    }
-    
-    // Check for existing buff with same name and update duration
-    const existingIndex = npc.buffs.findIndex(b => b.name === buff.name);
-    if (existingIndex >= 0) {
-      npc.buffs[existingIndex] = buff;
-    } else {
-      npc.buffs.push(buff);
-    }
+    const buffs = (entity as any).buffs;
+    if (!buffs) return;
+    (entity as any).buffs = buffs.filter((b: any) => b.name !== buffName);
   }
 
   /**

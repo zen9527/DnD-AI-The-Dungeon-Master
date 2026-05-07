@@ -22,3 +22,9 @@ nul
 # Agent configuration files (local development settings)
 AGENTS.md
 YOLO-MODE.md
+
+# Claude Code local state
+.claude/
+
+# Saved game data (local test data)
+saved_games/

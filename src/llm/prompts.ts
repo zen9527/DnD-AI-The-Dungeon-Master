@@ -1,5 +1,6 @@
 import type { Player, NPC, DiceRoll } from "../types/index.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
+import { LOCALE_LLM_NAME } from "../../shared/schemas/locale.js";
 
 // ============================================================================
 // SCENARIO TONE DATA — Each scenario has its own prose voice
@@ -316,11 +317,7 @@ IMPORTANT: Emojis should FEEL natural to the scene. A horror dungeon might use �
  * Maps locale codes to language names and sets narrative language requirements.
  */
 function buildLanguageDirective(locale: string): string {
-  const langNames: Record<string, string> = {
-    "en-US": "English", "zh-CN": "Chinese (Simplified)", "ja-JP": "Japanese",
-    "es-ES": "Spanish", "ko-KR": "Korean",
-  };
-  const language = langNames[locale] || "English";
+  const language = LOCALE_LLM_NAME[locale as keyof typeof LOCALE_LLM_NAME] || "English";
   return `LANGUAGE: Respond in ${language}. All narrative text, NPC dialogue, and descriptions should be written in ${language}. Keep D&D terminology (HP, AC, DC, saving throw) recognizable but translate surrounding prose naturally.`;
 }
 
@@ -418,11 +415,7 @@ export function buildActionPrompt(
   const target = context.target;
 
   // Language directive for action response
-  const langNames: Record<string, string> = {
-    "en-US": "English", "zh-CN": "Chinese (Simplified)", "ja-JP": "Japanese",
-    "es-ES": "Spanish", "ko-KR": "Korean",
-  };
-  const language = langNames[context.locale || "en-US"] || "English";
+  const language = LOCALE_LLM_NAME[context.locale as keyof typeof LOCALE_LLM_NAME] || "English";
 
   // Lightweight action prompt — player stats are in WORLD STATE, not repeated here
   let prompt = `Player "${player.characterName}" (${player.characterClass}, ${player.race}, Lv.${player.level}) says: "${action}"`;

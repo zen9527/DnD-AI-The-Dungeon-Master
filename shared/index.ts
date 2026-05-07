@@ -32,6 +32,9 @@ export {
   eventSchema,
   diceRollSchema,
   saveGameSchema,
+  HIT_DIE_BY_CLASS,
+  XP_THRESHOLDS,
+  SPELL_ABILITY_MAP,
 } from "./schemas/game.js";
 
 export type {

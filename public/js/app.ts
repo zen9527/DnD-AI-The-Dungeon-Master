@@ -5,7 +5,7 @@ import { CharacterCreator } from "./character.js";
 import { ActionBar } from "./action-bar.js";
 import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
-import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
+import { scenarioDescriptions, type Scenario, XP_THRESHOLDS } from "../../shared/schemas/game.js";
 import type { Player, ChatMessage, Game, StreamResult, EndpointPreset, DiceRoll } from "../../shared/index.js";
 
 /**
@@ -60,7 +60,11 @@ class App {
     this.setupWebSocketHandlers();
     this.attachGlobalEventDelegation(); // once — covers settings, copy-link, modal close
 
-    if (this.gameId && !gameState.currentPlayer) {
+    // If reloading after "Load" click, defer to WS open handler for auto-join
+    const isReloadForLoad = sessionStorage.getItem("app_reload_for_load") === "true";
+    if (isReloadForLoad) {
+      // WS open handler will attempt auto-join
+    } else if (this.gameId && !gameState.currentPlayer) {
       this.showJoinForm();
     } else {
       new CharacterCreator();
@@ -170,6 +174,8 @@ class App {
 
     document.getElementById("join-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
+      // Prevent duplicate join if auto-join already succeeded
+      if (gameState.currentPlayer) return;
       wsManager.send({
         type: "JOIN_GAME",
         payload: {
@@ -206,9 +212,46 @@ class App {
     return names[locale] || locale;
   }
 
+  /**
+   * Auto-join a game after page reload (triggered by "Load" button).
+   * Uses default player values since original player data is not available after reload.
+   * Falls back to join form if the game no longer exists on the server.
+   */
+  private autoJoinGame(): void {
+    if (!this.gameId) return;
+
+    const playerData = {
+      playerName: "Player",
+      characterName: "Adventurer",
+      race: "Human",
+      characterClass: "Fighter",
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+      locale: getLocale(),
+    };
+
+    wsManager.send({ type: "JOIN_GAME", payload: { gameId: this.gameId, ...playerData } });
+
+    // If no PLAYER_JOINED received within 3s, the game may not exist — show join form
+    setTimeout(() => {
+      if (!gameState.currentPlayer && document.querySelector(".welcome-screen")) {
+        this.showJoinForm();
+      }
+    }, 3000);
+  }
+
   private setupWebSocketHandlers(): void {
     wsManager.on("open", () => {
-      if (this.gameId && !gameState.currentPlayer) this.showJoinForm();
+      if (!this.gameId) return;
+
+      // Check if we're reloading after clicking "Load" — auto-join instead of showing join form
+      const isReloadForLoad = sessionStorage.getItem("app_reload_for_load") === "true";
+      if (isReloadForLoad && !gameState.currentPlayer) {
+        sessionStorage.removeItem("app_reload_for_load");
+        this.autoJoinGame();
+        return;
+      }
+
+      if (!gameState.currentPlayer) this.showJoinForm();
     });
 
     wsManager.on("disconnect", () => {
@@ -546,7 +589,7 @@ class App {
           <h2>${this.escapeHtml(game.name)}</h2>
           <div class="turn-info">
             <span class="current-turn">${this.escapeHtml(this.getCurrentPlayerName())}</span>
-            <span class="timer" id="turn-timer">30s</span>
+            <span class="timer" id="turn-timer">60s</span>
           </div>
           <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
           <div class="game-actions">
@@ -576,14 +619,8 @@ class App {
                 ${(game.players || []).map((p: Player) => {
                   const isCurrentPlayer = gameState.currentPlayer?.id === p.id;
                   
-                  // Calculate XP threshold for next level (using shared constant)
-                  const xpThresholds: Record<number, number> = {
-                    1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500,
-                    6: 14000, 7: 23000, 8: 34000, 9: 48000, 10: 64000,
-                    11: 85000, 12: 100000, 13: 120000, 14: 140000, 15: 165000,
-                    16: 195000, 17: 225000, 18: 265000, 19: 305000, 20: 355000
-                  };
-                  const nextLevelXP = xpThresholds[p.level + 1] || 355000;
+                  // Calculate XP threshold for next level
+                  const nextLevelXP = XP_THRESHOLDS[p.level + 1] || 355000;
                   const xpProgress = p.level < 20 ? Math.round((p.xp / nextLevelXP) * 100) : 100;
                   
                   return `
@@ -659,7 +696,7 @@ class App {
       if (!this.gameId) return;
       
       try {
-        wsManager.send("SAVE_GAME", { gameId: this.gameId });
+        wsManager.send({ type: "SAVE_GAME", payload: { gameId: this.gameId } });
         
         this.showNotification("💾 正在保存...", "info");
       } catch (error) {
@@ -672,14 +709,15 @@ class App {
     const loadBtn = document.getElementById("load-game-btn");
     loadBtn?.addEventListener("click", async () => {
       if (!this.gameId) return;
-      
+
       try {
         const response = await fetch(`/api/games/${this.gameId}/load`);
         const data = await response.json();
-        
+
         if (response.ok && data.success) {
           this.showNotification(t("load.success"), "success");
-          // Reload page to apply loaded state
+          // Mark that we're reloading to load a saved game — used by WS open handler to auto-join
+          sessionStorage.setItem("app_reload_for_load", "true");
           setTimeout(() => window.location.reload(), 1000);
         } else {
           this.showNotification(data.error || t("load.error"), "error");
@@ -690,6 +728,8 @@ class App {
       }
     });
 
+    // Ensure gameId is set so save/load buttons work after PLAYER_JOINED
+    this.gameId = game.id;
   }
 
   // Event delegation — attached once on document body, survives all DOM swaps
@@ -1111,14 +1151,14 @@ class App {
     const advanceBtn = document.getElementById("advance-turn-btn");
     if (advanceBtn) {
       advanceBtn.addEventListener("click", () => {
-        wsManager.send("TURN_ADVANCE", {});
+        wsManager.send({ type: "TURN_ADVANCE", payload: {} });
       });
     }
 
     const endCombatBtn = document.getElementById("end-combat-btn");
     if (endCombatBtn) {
       endCombatBtn.addEventListener("click", () => {
-        wsManager.send("COMBAT_END", {});
+        wsManager.send({ type: "COMBAT_END", payload: {} });
       });
     }
   }
@@ -1280,7 +1320,7 @@ class App {
         }
 
         // Send to server
-        wsManager.send("NPC_UPDATE_HP", { npcId, newHp });
+        wsManager.send({ type: "NPC_UPDATE_HP", payload: { npcId, newHp } });
       });
     });
 
@@ -1292,9 +1332,9 @@ class App {
         const condition = target.dataset.condition;
         
         if (target.checked) {
-          wsManager.send("NPC_APPLY_CONDITION", { npcId, condition });
+          wsManager.send({ type: "NPC_APPLY_CONDITION", payload: { npcId, condition } });
         } else {
-          wsManager.send("NPC_REMOVE_CONDITION", { npcId, condition });
+          wsManager.send({ type: "NPC_REMOVE_CONDITION", payload: { npcId, condition } });
         }
       });
     });
@@ -1307,7 +1347,7 @@ class App {
         const npcName = target.closest(".npc-item")?.querySelector(".npc-name")?.textContent || "NPC";
         
         if (confirm(`Delete ${npcName}?`)) {
-          wsManager.send("NPC_DELETE", { npcId });
+          wsManager.send({ type: "NPC_DELETE", payload: { npcId } });
         }
       });
     });
@@ -1320,11 +1360,11 @@ class App {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
         
-        wsManager.send("NPC_CREATE", {
+        wsManager.send({ type: "NPC_CREATE", payload: {
           name: formData.get("name") as string,
           description: formData.get("description") as string || "",
           role: formData.get("role") as "friendly" | "neutral" | "hostile",
-        });
+        }});
 
         // Note: Full stats NPC creation will be added as a separate endpoint
         form.reset();
@@ -1339,10 +1379,10 @@ class App {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
         
-        wsManager.send("PLAYER_AWARD_XP", {
+        wsManager.send({ type: "PLAYER_AWARD_XP", payload: {
           playerId: formData.get("playerId") as string,
           amount: parseInt(formData.get("amount") as string),
-        });
+        }});
 
         form.reset();
       });
@@ -1356,9 +1396,9 @@ class App {
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
         
-        wsManager.send("PLAYER_LEVEL_UP", {
+        wsManager.send({ type: "PLAYER_LEVEL_UP", payload: {
           playerId: formData.get("playerId") as string,
-        });
+        }});
 
         form.reset();
       });
@@ -1368,7 +1408,7 @@ class App {
     const startCombatBtn = panel.querySelector("#start-combat-btn");
     if (startCombatBtn) {
       startCombatBtn.addEventListener("click", () => {
-        wsManager.send("COMBAT_START", { startInitiative: true });
+        wsManager.send({ type: "COMBAT_START", payload: { startInitiative: true } });
       });
     }
 
@@ -1483,11 +1523,11 @@ class App {
         const itemId = target.getAttribute("data-item-id");
         
         if (action === "equip-weapon" && itemId) {
-          wsManager.send("EQUIP_WEAPON", { itemId });
+          wsManager.send({ type: "EQUIP_WEAPON", payload: { itemId } });
         } else if (action === "equip-armor" && itemId) {
-          wsManager.send("EQUIP_ARMOR", { itemId });
+          wsManager.send({ type: "EQUIP_ARMOR", payload: { itemId } });
         } else if (action === "use-item" && itemId) {
-          wsManager.send("USE_ITEM", { itemId });
+          wsManager.send({ type: "USE_ITEM", payload: { itemId } });
         }
       });
     });

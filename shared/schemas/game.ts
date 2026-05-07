@@ -123,6 +123,32 @@ export type EventInput = z.infer<typeof eventSchema>;
 export type DiceRollInput = z.infer<typeof diceRollSchema>;
 export type Item = z.infer<typeof itemSchema>;
 
+// ============================================================================
+// D&D 5E CONSTANTS — Shared between backend and frontend
+// ============================================================================
+
+/** Hit die types by class (D&D 5e standard) */
+export const HIT_DIE_BY_CLASS: Record<string, number> = {
+  Barbarian: 12, Fighter: 10, Paladin: 10, Ranger: 10,
+  Cleric: 8, Druid: 8, Monk: 8, Rogue: 8,
+  Sorcerer: 6, Warlock: 6, Wizard: 6, Bard: 8,
+};
+
+/** D&D 5e XP thresholds by level */
+export const XP_THRESHOLDS: Record<number, number> = {
+  1: 0, 2: 300, 3: 900, 4: 2700, 5: 6500,
+  6: 14000, 7: 23000, 8: 34000, 9: 48000, 10: 64000,
+  11: 85000, 12: 100000, 13: 120000, 14: 140000, 15: 165000,
+  16: 195000, 17: 225000, 18: 265000, 19: 305000, 20: 355000
+};
+
+/** Spellcasting ability by class — used for spell save DC and attack attribute */
+export const SPELL_ABILITY_MAP: Record<string, string> = {
+  Wizard: "int", Sorcerer: "cha", Warlock: "cha",
+  Cleric: "wis", Druid: "wis", Bard: "cha",
+  Paladin: "cha", Ranger: "wis",
+};
+
 // Scenario options and descriptions
 export { scenarioOptions, scenarioDescriptions } from "./scenario.js";
 export type { Scenario } from "./scenario.js";
