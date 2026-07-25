@@ -4,7 +4,7 @@ import { isHit, calculateInitiative, rollHitDice, DC_DIFFICULTY, getActionSkillC
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
 import { parseLLMResponse } from "../llm/parser.js";
-import type { Game, Player, NPC, ChatMessage, PlayerActionPayload, StreamResult } from "../types/index.js";
+import type { Game, Player, NPC, ChatMessage, PlayerActionPayload, StreamResult, InitiativeEntry, Item } from "../types/index.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import { HIT_DIE_BY_CLASS } from "../../shared/schemas/game.js";
 import { LOCALE_LLM_NAME } from "../../shared/schemas/locale.js";
@@ -78,7 +78,7 @@ export class GameEngine {
   get timerExpired(): boolean { return this._timerExpired || false; }
   get combatMode(): boolean { return this._game.combatMode; }
   /** Get initiative order (untyped array for compatibility) */
-  get initiativeOrder(): any[] { return this._game.initiativeOrder; }
+  get initiativeOrder(): InitiativeEntry[] { return this._game.initiativeOrder; }
   /** Get current combat round number */
   get currentRound(): number { return this._game.currentRound; }
   /** Get current turn index in initiative order */
@@ -115,6 +115,10 @@ export class GameEngine {
   }
 
   // ---- Initiative & Combat ----
+
+  private getPlayerLocale(): string {
+    return this._game.players?.[0]?.locale || "en-US";
+  }
 
   startCombat(startInitiative: boolean = true): void {
     // Enable combat mode
@@ -161,7 +165,7 @@ export class GameEngine {
       this._game.currentRound = 1;
       this._game.currentTurnIndex = 0;
 
-    const narrative = `${getLocalizedMessage("en-US", "initiative.rolled")}\n${this._game.initiativeOrder.map((entry, i) => {
+    const narrative = `${getLocalizedMessage(this.getPlayerLocale(), "initiative.rolled")}\n${this._game.initiativeOrder.map((entry, i) => {
       return `${i + 1}. ${entry.name} (${entry.score})`;
     }).join("\n")}`;
 
@@ -188,7 +192,7 @@ export class GameEngine {
     this._game.currentRound = 1;
     this._game.currentTurnIndex = 0;
     
-    const narrative = getLocalizedMessage("en-US", "combat.ended");
+    const narrative = getLocalizedMessage(this.getPlayerLocale(), "combat.ended");
     this._game.conversationHistory.push({ role: "assistant", content: narrative });
 
     this.invalidateSnapshot();
@@ -1012,7 +1016,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   /**
    * Add item to player inventory
    */
-  addItemToInventory(playerId: string, item: any): void {
+  addItemToInventory(playerId: string, item: Item): void {
     const player = this._game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
     
@@ -1082,7 +1086,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   /**
    * Get player's inventory
    */
-  getPlayerInventory(playerId: string): any[] {
+  getPlayerInventory(playerId: string): Item[] {
     const player = this._game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
     
@@ -1092,7 +1096,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   /**
    * Get player's equipped items
     */
-  getEquippedItems(playerId: string): { weapon?: any; armor?: any } {
+  getEquippedItems(playerId: string): { weapon?: Item; armor?: Item } {
     const player = this._game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
     
@@ -1137,7 +1141,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
   /**
    * Recalculate player AC based on equipped armor
    */
-  private recalculatePlayerAC(player: any): void {
+  private recalculatePlayerAC(player: Player): void {
     // Base AC = 10 + DEX modifier
     const baseAC = 10 + Math.floor((player.attributes.dex - 10) / 2);
     
@@ -1214,9 +1218,9 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       : this._game.npcs.find(n => n.id === targetId);
     if (!entity) throw new Error(`${isPlayer ? "Player" : "NPC"} not found: ${targetId}`);
 
-    const currentTempHp = (entity as any).temporaryHp || 0;
-    (entity as any).temporaryHp = Math.max(currentTempHp, amount);
-    (entity as any).temporaryHpRemaining = duration;
+    const currentTempHp = (entity as Player | NPC).temporaryHp || 0;
+    (entity as Player | NPC).temporaryHp = Math.max(currentTempHp, amount);
+    (entity as Player | NPC).temporaryHpRemaining = duration;
   }
 
   /**
@@ -1228,14 +1232,14 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       : this._game.npcs.find(n => n.id === targetId);
     if (!entity) throw new Error(`${isPlayer ? "Player" : "NPC"} not found: ${targetId}`);
 
-    const buffs = (entity as any).buffs || [];
-    const existingIndex = buffs.findIndex((b: any) => b.name === buff.name);
+    const buffs = (entity as Player | NPC).buffs || [];
+    const existingIndex = buffs.findIndex((b) => b.name === buff.name);
     if (existingIndex >= 0) {
       buffs[existingIndex] = buff;
     } else {
       buffs.push(buff);
     }
-    (entity as any).buffs = buffs;
+    (entity as Player | NPC).buffs = buffs;
   }
 
   /**
@@ -1247,9 +1251,9 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       : this._game.npcs.find(n => n.id === targetId);
     if (!entity) throw new Error(`${isPlayer ? "Player" : "NPC"} not found: ${targetId}`);
 
-    const buffs = (entity as any).buffs;
+    const buffs = (entity as Player | NPC).buffs;
     if (!buffs) return;
-    (entity as any).buffs = buffs.filter((b: any) => b.name !== buffName);
+    (entity as Player | NPC).buffs = buffs.filter((b) => b.name !== buffName);
   }
 
   /**

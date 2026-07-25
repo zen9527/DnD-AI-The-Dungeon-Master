@@ -1407,6 +1407,12 @@ hr {
   border-color: rgba(147, 197, 253, 0.3);
 }
 
+.notification-warning {
+  background: #fff3cd;
+  color: #856404;
+  border-left-color: #ffc107;
+}
+
 @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* ============================================================================

@@ -1,4 +1,4 @@
-import type { Game, Player, ChatMessage, NPC, StructuredResult, StreamResult } from "../../shared/index.js";
+import type { Game, Player, ChatMessage, NPC, StructuredResult, StreamResult, InitiativeEntry } from "../../shared/index.js";
 import { parseLLMResponse } from "@llm/parser.js";
 
 interface GameStateListener {
@@ -7,7 +7,7 @@ interface GameStateListener {
     currentPlayer: Player | null; 
     timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null;
     combatMode: boolean;
-    initiativeOrder: any[];
+    initiativeOrder: InitiativeEntry[];
     currentRound: number;
     currentTurnIndex: number;
     currentPlayerName?: string;
@@ -20,7 +20,7 @@ export class GameState {
   private _streamBuffer = "";
   private _timerState: { remaining: number; currentPlayerId: string; expired?: boolean } | null = null;
   private _combatMode: boolean = false;
-  private _initiativeOrder: any[] = [];
+  private _initiativeOrder: InitiativeEntry[] = [];
   private _currentRound: number = 1;
   private _currentTurnIndex: number = 0;
   private _currentPlayerName: string | undefined = undefined;
@@ -31,7 +31,7 @@ export class GameState {
   get streamBuffer(): string { return this._streamBuffer; }
   get timerState(): { remaining: number; currentPlayerId: string; expired?: boolean } | null { return this._timerState; }
   get combatMode(): boolean { return this._combatMode; }
-  get initiativeOrder(): any[] { return this._initiativeOrder; }
+  get initiativeOrder(): InitiativeEntry[] { return this._initiativeOrder; }
   get currentRound(): number { return this._currentRound; }
   get currentTurnIndex(): number { return this._currentTurnIndex; }
   get currentPlayerName(): string | undefined { return this._currentPlayerName; }
@@ -69,7 +69,7 @@ export class GameState {
 
   setCombatState(state: { 
     combatMode: boolean;
-    initiativeOrder: any[];
+    initiativeOrder: InitiativeEntry[];
     currentRound: number;
     currentTurnIndex: number;
     currentPlayerName?: string;
@@ -82,7 +82,7 @@ export class GameState {
     this.notifyListeners();
   }
 
-  setInitiativeOrder(order: any[]): void {
+  setInitiativeOrder(order: InitiativeEntry[]): void {
     this._initiativeOrder = order;
     this.notifyListeners();
   }
@@ -144,7 +144,16 @@ export class GameState {
 
   subscribe(callback: GameStateListener): () => void {
     this.listeners.push(callback);
-    callback({ game: this._game, currentPlayer: this._currentPlayer });
+    callback({
+      game: this._game,
+      currentPlayer: this._currentPlayer,
+      timerState: this._timerState,
+      combatMode: this._combatMode,
+      initiativeOrder: this._initiativeOrder,
+      currentRound: this._currentRound,
+      currentTurnIndex: this._currentTurnIndex,
+      currentPlayerName: this._currentPlayerName,
+    });
     return () => {
       const index = this.listeners.indexOf(callback);
       if (index > -1) this.listeners.splice(index, 1);

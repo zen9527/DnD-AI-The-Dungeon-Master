@@ -6,7 +6,7 @@ import { ActionBar } from "./action-bar.js";
 import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
 import { scenarioDescriptions, type Scenario, XP_THRESHOLDS } from "../../shared/schemas/game.js";
-import type { Player, ChatMessage, Game, StreamResult, EndpointPreset, DiceRoll } from "../../shared/index.js";
+import type { Player, ChatMessage, Game, StreamResult, EndpointPreset, DiceRoll, Item, NPC } from "../../shared/index.js";
 
 /**
  * Format dice roll result for chat display
@@ -503,7 +503,7 @@ class App {
       const p = payload as { 
         playerId: string;
         action: string;
-        item?: any;
+        item?: Item;
       };
       
       // Update game state
@@ -846,7 +846,7 @@ class App {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  private showNotification(text: string, type: "success" | "error" | "info"): void {
+  private showNotification(text: string, type: "success" | "error" | "info" | "warning"): void {
     const existing = document.querySelector(".notification");
     if (existing) existing.remove();
 
@@ -1282,7 +1282,7 @@ class App {
     this.attachDMControlHandlers();
   }
 
-  private renderConditionCheckboxes(npc: any): string {
+  private renderConditionCheckboxes(npc: NPC): string {
     const conditions = [
       "blinded", "charmed", "deafened", "frightened", "grappled",
       "incapacitated", "invisible", "paralyzed", "petrified", "poisoned",
@@ -1456,7 +1456,7 @@ class App {
     });
 
     // Listen for DM_CONTROL_UPDATE to refresh panel
-    wsManager.addMessageHandler("DM_CONTROL_UPDATE", () => {
+    wsManager.on("DM_CONTROL_UPDATE", () => {
       const panel = document.getElementById("dm-control-panel");
       if (panel) {
         this.renderDMControlPanel();
