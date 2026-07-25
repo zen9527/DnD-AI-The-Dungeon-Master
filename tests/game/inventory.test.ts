@@ -220,8 +220,9 @@ describe("Inventory System - RED Phase", () => {
     });
 
     it("should not exceed max HP when healing", () => {
-      const potion = createTestItem({ 
-        id: "potion-1", 
+      const potion = createTestItem({
+        id: "potion-1",
+        type: "consumable",
         stats: { healingAmount: 20 }
       });
       
@@ -235,7 +236,7 @@ describe("Inventory System - RED Phase", () => {
     });
 
     it("should remove consumable from inventory after use", () => {
-      const potion = createTestItem({ id: "potion-1", type: "consumable" });
+      const potion = createTestItem({ id: "potion-1", type: "consumable", stats: { healingAmount: 10 } });
       
       engine.addItemToInventory("player1", potion);
       expect(engine.getPlayerInventory("player1")).toHaveLength(1);

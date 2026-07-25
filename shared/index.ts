@@ -111,3 +111,7 @@ export type {
   PlayerAwardXpInput,
   PlayerLevelUpInput,
 } from "./schemas/dm-control.js";
+
+// Buff schemas
+export { applyTemporaryHpSchema, applyBuffSchema, removeBuffSchema } from "./schemas/buff.js";
+export type { ApplyTemporaryHpInput, ApplyBuffInput, RemoveBuffInput } from "./schemas/buff.js";

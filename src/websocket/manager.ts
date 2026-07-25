@@ -10,7 +10,7 @@ import { getLocalizedMessage } from "../utils/locale-loader.js";
 import { z } from "zod";
 import { rollDice, calculateTotal } from "../game/dice.js";
 import { generateId } from "../utils/id.js";
-import { HIT_DIE_BY_CLASS, createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema, diceRollSchema, npcSchema, eventSchema, equipItemSchema, useItemSchema } from "../../shared/index.js";
+import { HIT_DIE_BY_CLASS, createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema, diceRollSchema, npcSchema, eventSchema, equipItemSchema, useItemSchema, applyTemporaryHpSchema, applyBuffSchema, removeBuffSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -1413,10 +1413,13 @@ export class WebSocketManager {
       return;
     }
 
-    const targetId = payload.targetId as string;
-    const amount = (payload.amount as number) || 0;
-    const duration = (payload.duration as number) || 1;
-    const isPlayer = (payload.isPlayer as boolean) || true;
+    const parsed = applyTemporaryHpSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const { targetId, amount, duration, isPlayer } = parsed.data;
 
     engine.applyTemporaryHP(targetId, isPlayer, amount, duration);
 
@@ -1450,9 +1453,13 @@ export class WebSocketManager {
       return;
     }
 
-    const targetId = payload.targetId as string;
-    const buff = payload.buff as { name: string; effect: string; bonus?: number; duration: number };
-    const isPlayer = (payload.isPlayer as boolean) || true;
+    const parsed = applyBuffSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const { targetId, buff, isPlayer } = parsed.data;
 
     engine.applyBuff(targetId, isPlayer, buff);
 
@@ -1485,9 +1492,13 @@ export class WebSocketManager {
       return;
     }
 
-    const targetId = payload.targetId as string;
-    const buffName = payload.buffName as string;
-    const isPlayer = (payload.isPlayer as boolean) || true;
+    const parsed = removeBuffSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const { targetId, buffName, isPlayer } = parsed.data;
 
     engine.removeBuff(targetId, isPlayer, buffName);
 

@@ -861,6 +861,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       buffs: [],
     };
     this._game.npcs.push(npc);
+    this.invalidateSnapshot();
   }
 
   /**
@@ -899,6 +900,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       if (initiativeIdx >= 0) {
         this._game.initiativeOrder.splice(initiativeIdx, 1);
       }
+      this.invalidateSnapshot();
     }
   }
 
@@ -977,6 +979,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
       const conMod = calculateModifier(player.attributes.con);
       player.maxHp = hitDie + conMod;
       player.hp = player.maxHp;
+      this.invalidateSnapshot();
     }
   }
 
@@ -1188,7 +1191,7 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
     }
     
     return {
-      healed: actualHealed,
+      healed: healingAmount,
       message: `Used ${item.name} and healed ${actualHealed} HP`
     };
   }
