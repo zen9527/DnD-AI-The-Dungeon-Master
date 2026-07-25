@@ -10,7 +10,7 @@ import { getLocalizedMessage } from "../utils/locale-loader.js";
 import { z } from "zod";
 import { rollDice, calculateTotal } from "../game/dice.js";
 import { generateId } from "../utils/id.js";
-import { HIT_DIE_BY_CLASS, createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema } from "../../shared/index.js";
+import { HIT_DIE_BY_CLASS, createGameSchema, joinGameSchema, playerActionSchema, chatMessageSchema, emoteSchema, privateChatSchema, combatStartSchema, initiativeRollSchema, saveGameSchema, npcUpdateHpSchema, npcApplyConditionSchema, npcRemoveConditionSchema, npcDeleteSchema, playerAwardXpSchema, playerLevelUpSchema, diceRollSchema, npcSchema, eventSchema, equipItemSchema, useItemSchema } from "../../shared/index.js";
 
 export class WebSocketManager {
   private wss: WebSocketServer;
@@ -734,9 +734,13 @@ export class WebSocketManager {
       this.sendError(ws, "Player not found");
       return;
     }
-    const diceType = (payload.diceType as number) || 20;
-    const count = (payload.count as number) || 1;
-    const modifier = (payload.modifier as number) || 0;
+    const parsed = diceRollSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    const { diceType, count, modifier = 0 } = parsed.data;
     const rolls = rollDice(diceType, count);
     const total = calculateTotal(rolls, modifier);
     this.broadcastToGame(client.gameId, "DICE_ROLL_RESULT", {
@@ -759,7 +763,14 @@ export class WebSocketManager {
     if (!client.gameId) { this.sendError(ws, "Not in a game"); return; }
     const engine = gameStore.getGame(client.gameId);
     if (!engine) { this.sendError(ws, "Game not found"); return; }
-    engine.addNPC(payload.name as string, (payload.description as string) || "", (payload.role as "friendly" | "neutral" | "hostile") || "neutral");
+
+    const parsed = npcSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    engine.addNPC(parsed.data.name, parsed.data.description || "", parsed.data.role);
     this.broadcastToGame(engine.id, "NPC_CREATED", { npc: engine.game.npcs[engine.game.npcs.length - 1] });
   }
 
@@ -767,7 +778,14 @@ export class WebSocketManager {
     if (!client.gameId) { this.sendError(ws, "Not in a game"); return; }
     const engine = gameStore.getGame(client.gameId);
     if (!engine) { this.sendError(ws, "Game not found"); return; }
-    engine.addEvent(payload.title as string, (payload.description as string) || "");
+
+    const parsed = eventSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.sendError(ws, parsed.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    engine.addEvent(parsed.data.title, parsed.data.description || "");
     this.broadcastToGame(engine.id, "EVENT_CREATED", { event: engine.game.chatHistory[engine.game.chatHistory.length - 1] });
   }
 
@@ -1253,16 +1271,21 @@ export class WebSocketManager {
       return;
     }
 
-    const itemId = payload.itemId as string;
-    engine.equipWeapon(client.playerId, itemId);
+    const parsedWeapon = equipItemSchema.safeParse({ itemId: payload.itemId, slot: "weapon" });
+    if (!parsedWeapon.success) {
+      this.sendError(ws, parsedWeapon.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    engine.equipWeapon(client.playerId, parsedWeapon.data.itemId);
 
     this.broadcastToGame(client.gameId, "EQUIPMENT_UPDATE", {
       playerId: client.playerId,
       slot: "weapon",
-      itemId,
+      itemId: parsedWeapon.data.itemId,
     });
 
-    console.log(`[Equipment] Player ${client.playerId} equipped weapon ${itemId}`);
+    console.log(`[Equipment] Player ${client.playerId} equipped weapon ${parsedWeapon.data.itemId}`);
   }
 
   private handleEquipArmor(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1277,16 +1300,21 @@ export class WebSocketManager {
       return;
     }
 
-    const itemId = payload.itemId as string;
-    engine.equipArmor(client.playerId, itemId);
+    const parsedArmor = equipItemSchema.safeParse({ itemId: payload.itemId, slot: "armor" });
+    if (!parsedArmor.success) {
+      this.sendError(ws, parsedArmor.error.issues.map(i => i.message).join("; "));
+      return;
+    }
+
+    engine.equipArmor(client.playerId, parsedArmor.data.itemId);
 
     this.broadcastToGame(client.gameId, "EQUIPMENT_UPDATE", {
       playerId: client.playerId,
       slot: "armor",
-      itemId,
+      itemId: parsedArmor.data.itemId,
     });
 
-    console.log(`[Equipment] Player ${client.playerId} equipped armor ${itemId}`);
+    console.log(`[Equipment] Player ${client.playerId} equipped armor ${parsedArmor.data.itemId}`);
   }
 
   private handleUnequipWeapon(ws: WebSocket, client: { id: string; gameId: string | null; playerId: string | null }, payload: Record<string, unknown>): void {
@@ -1347,18 +1375,21 @@ export class WebSocketManager {
       return;
     }
 
-    const itemId = payload.itemId as string;
-    const targetId = payload.targetId as string | undefined;
+    const parsedItem = useItemSchema.safeParse(payload);
+    if (!parsedItem.success) {
+      this.sendError(ws, parsedItem.error.issues.map(i => i.message).join("; "));
+      return;
+    }
 
-    engine.useItem(client.playerId, itemId, targetId);
+    engine.useItem(client.playerId, parsedItem.data.itemId, parsedItem.data.targetId);
 
     this.broadcastToGame(client.gameId, "ITEM_USED", {
       playerId: client.playerId,
-      itemId,
-      targetId,
+      itemId: parsedItem.data.itemId,
+      targetId: parsedItem.data.targetId,
     });
 
-    console.log(`[Inventory] Player ${client.playerId} used item ${itemId}`);
+    console.log(`[Inventory] Player ${client.playerId} used item ${parsedItem.data.itemId}`);
   }
 
   // ---- Buff/Debuff Handlers ----
