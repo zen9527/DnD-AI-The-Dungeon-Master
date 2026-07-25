@@ -2,7 +2,6 @@ import {
   calculateProficiencyBonus,
   calculateModifier,
   calculateHit,
-  handleDeath,
   calculateTotal,
   rollDice,
 } from "./dice.js";
@@ -193,44 +192,6 @@ export const CONDITIONS: Record<string, {
   "unconscious": { description: "Unconscious", canAttack: false, incapacitated: true, speedZero: true },
 };
 
-export function getConditionModifier(
-  selfConditions: string[],
-  targetConditions: string[] = []
-): { attackAdvantage?: boolean; checkAdvantage?: boolean; saveAdvantage?: boolean } {
-  const result: { attackAdvantage?: boolean; checkAdvantage?: boolean; saveAdvantage?: boolean } = {};
-
-  for (const cond of selfConditions) {
-    const effect = CONDITIONS[cond];
-    if (!effect) continue;
-    if (effect.attackAdvantage !== undefined) result.attackAdvantage = effect.attackAdvantage;
-    if (effect.checkAdvantage !== undefined) result.checkAdvantage = effect.checkAdvantage;
-    if (effect.saveAdvantage !== undefined) result.saveAdvantage = effect.saveAdvantage;
-  }
-
-  for (const cond of targetConditions) {
-    const effect = CONDITIONS[cond];
-    if (!effect) continue;
-    if (cond === "prone") result.attackAdvantage = true;
-    if (cond === "invisible") result.attackAdvantage = false;
-  }
-
-  return result;
-}
-
-export function applyCondition(player: Player, condition: string): void {
-  if (!CONDITIONS[condition]) {
-    console.warn(`Unknown condition: ${condition}`);
-    return;
-  }
-  if (!player.conditions.includes(condition)) {
-    player.conditions.push(condition);
-  }
-}
-
-export function removeCondition(player: Player, condition: string): void {
-  player.conditions = player.conditions.filter(c => c !== condition);
-}
-
 // ============================================================================
 // COMBINED SKILL CHECK — Multiple players helping on one check (+2 per helper)
 // ============================================================================
@@ -246,21 +207,6 @@ export function calculateCombinedCheck(
   const total = mainTotal + helperBonus;
 
   return { total, mainTotal, helperBonus, dc: 15, success: total >= 15 };
-}
-
-export function getCombinedCheckDescription(
-  skill: string,
-  helpers: number,
-  success: boolean,
-  locale: string
-): string {
-  const verb = locale === "zh-CN" ? "检定" : "check";
-  const result = success
-    ? (locale === "zh-CN" ? "成功" : "SUCCESS")
-    : (locale === "zh-CN" ? "失败" : "FAILURE");
-
-  if (helpers === 0) return `${skill} ${verb}: ${result}`;
-  return `${skill} ${verb} (with ${helpers} helper${helpers > 1 ? "s" : ""}): ${result}`;
 }
 
 // ============================================================================
@@ -365,7 +311,7 @@ export function awardXP(players: Player[], xpAmount: number): void {
 // HIT DICE & INITIATIVE
 // ============================================================================
 
-export function getHitDice(player: Player): number {
+function getHitDice(player: Player): number {
   return HIT_DIE_BY_CLASS[player.characterClass] || 8;
 }
 

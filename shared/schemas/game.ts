@@ -106,10 +106,6 @@ export const equipItemSchema = z.object({
   slot: z.enum(["weapon", "armor"]),
 });
 
-export const unequipItemSchema = z.object({
-  slot: z.enum(["weapon", "armor"]),
-});
-
 export const useItemSchema = z.object({
   itemId: z.string(),
   targetId: z.string().optional(), // For potions targeting specific entities

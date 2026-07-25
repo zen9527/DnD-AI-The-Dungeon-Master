@@ -34,7 +34,6 @@ export {
   saveGameSchema,
   itemSchema,
   equipItemSchema,
-  unequipItemSchema,
   useItemSchema,
   HIT_DIE_BY_CLASS,
   XP_THRESHOLDS,
@@ -80,15 +79,11 @@ export type { SupportedLocale } from "./schemas/locale.js";
 // Combat schemas
 export {
   combatStartSchema,
-  combatEndSchema,
   initiativeRollSchema,
-  turnAdvanceSchema,
 } from "./schemas/combat.js";
 export type {
   CombatStartInput,
-  CombatEndInput,
   InitiativeRollInput,
-  TurnAdvanceInput,
 } from "./schemas/combat.js";
 
 // DM Control schemas
@@ -96,7 +91,6 @@ export {
   npcUpdateHpSchema,
   npcApplyConditionSchema,
   npcRemoveConditionSchema,
-  npcCreateEnhancedSchema,
   npcDeleteSchema,
   playerAwardXpSchema,
   playerLevelUpSchema,
@@ -106,7 +100,6 @@ export type {
   NPCUpdateHpInput,
   NPCApplyConditionInput,
   NPCRemoveConditionInput,
-  NPCCreateEnhancedInput,
   NPCDeleteInput,
   PlayerAwardXpInput,
   PlayerLevelUpInput,

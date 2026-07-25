@@ -4,6 +4,7 @@ import { gameState } from "./game-state.js";
 import { CharacterCreator } from "./character.js";
 import { ActionBar } from "./action-bar.js";
 import { initI18n, getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
+import { escapeHtml, showNotification, renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
 import { endpointPresets } from "../../shared/schemas/config.js";
 import { scenarioDescriptions, type Scenario, XP_THRESHOLDS } from "../../shared/schemas/game.js";
 import type { Player, ChatMessage, Game, StreamResult, EndpointPreset, DiceRoll, Item, NPC } from "../../shared/index.js";
@@ -107,15 +108,15 @@ class App {
       const statusText = isFull ? t("active_games.full") : t("active_games.players", { current: g.players, max: g.maxPlayers });
 
       return `
-        <div class="game-card ${isFull ? 'full' : ''}" data-game-id="${this.escapeHtml(g.id)}">
+        <div class="game-card ${isFull ? 'full' : ''}" data-game-id="${escapeHtml(g.id)}">
           <div class="game-card-header">
             <span class="scenario-badge">${desc.icon}</span>
-            <h3>${this.escapeHtml(g.name)}</h3>
+            <h3>${escapeHtml(g.name)}</h3>
             <span class="status-badge ${statusClass}">${statusText}</span>
           </div>
           <div class="game-card-body">
             <span class="game-scenario-label">${desc.label}</span>
-            <button class="join-game-btn ${isFull ? 'disabled' : ''}" data-game-id="${this.escapeHtml(g.id)}" ${isFull ? 'disabled' : ''}>
+            <button class="join-game-btn ${isFull ? 'disabled' : ''}" data-game-id="${escapeHtml(g.id)}" ${isFull ? 'disabled' : ''}>
               ${isFull ? t("active_games.full") : t("active_games.join")}
             </button>
           </div>
@@ -141,7 +142,7 @@ class App {
 
     document.getElementById("app")!.innerHTML = `
       <div class="welcome-screen">
-        ${this.renderLocaleDropdown()}
+        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <div class="settings-trigger" title="${t("settings.title")}">⚙️</div>
         <h2>${t("join_game_page.title")}</h2>
         <form id="join-form">
@@ -198,20 +199,6 @@ class App {
     });
   }
 
-  private renderLocaleDropdown(): string {
-    const current = getLocale();
-    return `<select id="locale-select" class="locale-selector">
-      ${SUPPORTED_LOCALES.map(l => `<option value="${l}" ${l === current ? 'selected' : ''}>${this.getLocaleName(l)}</option>`).join("")}
-    </select>`;
-  }
-
-  private getLocaleName(locale: string): string {
-    const names: Record<string, string> = {
-      "en-US": "English", "zh-CN": "简体中文", "ja-JP": "日本語", "es-ES": "Español", "ko-KR": "한국어",
-    };
-    return names[locale] || locale;
-  }
-
   /**
    * Auto-join a game after page reload (triggered by "Load" button).
    * Uses default player values since original player data is not available after reload.
@@ -255,7 +242,7 @@ class App {
     });
 
     wsManager.on("disconnect", () => {
-      this.showNotification(t("disconnect.notification"), "error");
+      showNotification(t("disconnect.notification"), "error");
     });
 
     wsManager.on("GAME_CREATED", (payload) => {
@@ -266,7 +253,7 @@ class App {
       if (dmPlayer) gameState.setCurrentPlayer(dmPlayer);
       window.history.replaceState({}, "", `?game=${this.gameId}`);
       this.showGameUI();
-      this.showNotification(t("game_created.notification", { url: window.location.href }), "success");
+      showNotification(t("game_created.notification", { url: window.location.href }), "success");
     });
 
     wsManager.on("PLAYER_JOINED", (payload) => {
@@ -325,7 +312,7 @@ class App {
         timestamp: Date.now(),
       });
       this.renderChatMessages();
-      this.showNotification(t("dm_error.notification", { message: p.message }), "error");
+      showNotification(t("dm_error.notification", { message: p.message }), "error");
     });
 
     wsManager.on("CHAT_MESSAGE", (payload) => {
@@ -367,22 +354,22 @@ class App {
       if (p.senderPlayerId) {
         // Received private message
         const sender = gameState.game?.players.find(pl => pl.id === p.senderPlayerId);
-        this.showNotification(t("private_chat.received", { senderName: sender?.characterName || "Unknown" }), "info");
+        showNotification(t("private_chat.received", { senderName: sender?.characterName || "Unknown" }), "info");
       } else if (p.targetPlayerId) {
         // Sent private message confirmation
         const target = gameState.game?.players.find(pl => pl.id === p.targetPlayerId);
-        this.showNotification(t("private_chat.sent", { targetName: target?.characterName || "Unknown" }), "info");
+        showNotification(t("private_chat.sent", { targetName: target?.characterName || "Unknown" }), "info");
       }
     });
 
     wsManager.on("NPC_CREATED", (payload) => {
       const p = payload as { npc: { name: string; description: string; role: string } };
-      this.showNotification(t("npc_created.notification", { name: this.escapeHtml(p.npc.name), role: this.escapeHtml(p.npc.role) }), "info");
+      showNotification(t("npc_created.notification", { name: escapeHtml(p.npc.name), role: escapeHtml(p.npc.role) }), "info");
     });
 
     wsManager.on("ERROR", (payload) => {
       const p = payload as { message: string };
-      this.showNotification(t("error.notification", { message: p.message }), "error");
+      showNotification(t("error.notification", { message: p.message }), "error");
     });
 
     wsManager.on("TURN_TIMER", (payload) => {
@@ -407,7 +394,7 @@ class App {
         // Add warning/expired classes based on state
         if (p.expired) {
           timerEl.classList.add("expired");
-          this.showNotification(`⏰ ${p.characterName || 'Current player'}'s time is up!`, "warning");
+          showNotification(`⏰ ${p.characterName || 'Current player'}'s time is up!`, "warning");
         } else if (p.remaining <= 10) {
           timerEl.classList.add("warning");
         }
@@ -432,10 +419,10 @@ class App {
         if (p.combatMode) {
           combatPanel.classList.remove("hidden");
           this.renderCombatPanel();
-          this.showNotification(t("combat.started"), "info");
+          showNotification(t("combat.started"), "info");
         } else {
           combatPanel.classList.add("hidden");
-          this.showNotification(t("combat.ended"), "info");
+          showNotification(t("combat.ended"), "info");
         }
       }
       
@@ -454,7 +441,7 @@ class App {
       
       gameState.setInitiativeOrder(p.initiativeOrder);
       this.renderCombatPanel();
-      this.showNotification(t("initiative.rolled_for", { name: p.newEntry.entityId, score: p.newEntry.score }), "info");
+      showNotification(t("initiative.rolled_for", { name: p.newEntry.entityId, score: p.newEntry.score }), "info");
     });
 
     wsManager.on("DM_CONTROL_UPDATE", (payload) => {
@@ -479,22 +466,22 @@ class App {
       const player = gameState.currentPlayer;
       switch (p.action) {
         case "npc_delete":
-          this.showNotification(t("dm_control.npc_deleted", { name: p.npcId }), "info");
+          showNotification(t("dm_control.npc_deleted", { name: p.npcId }), "info");
           break;
         case "player_award_xp":
           if (player) {
             const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
-            this.showNotification(t("dm_control.xp_awarded", { amount: p.amount, playerName: targetPlayer?.characterName || p.playerId }), "success");
+            showNotification(t("dm_control.xp_awarded", { amount: p.amount, playerName: targetPlayer?.characterName || p.playerId }), "success");
           }
           break;
         case "player_level_up":
           if (player) {
             const targetPlayer = gameState.game.players?.find(pl => pl.id === p.playerId);
-            this.showNotification(t("dm_control.level_up", { playerName: targetPlayer?.characterName || p.playerId, level: targetPlayer?.level || 1 }), "success");
+            showNotification(t("dm_control.level_up", { playerName: targetPlayer?.characterName || p.playerId, level: targetPlayer?.level || 1 }), "success");
           }
           break;
         case "add_item":
-          this.showNotification(t("inventory.item_added", { name: p.item?.name }), "info");
+          showNotification(t("inventory.item_added", { name: p.item?.name }), "info");
           break;
       }
     });
@@ -517,7 +504,7 @@ class App {
         this.renderInventoryPanel();
       }
       
-      this.showNotification(t(`inventory.${p.action}`), "info");
+      showNotification(t(`inventory.${p.action}`), "info");
     });
 
     wsManager.on("EQUIPMENT_UPDATE", (payload) => {
@@ -538,11 +525,11 @@ class App {
         this.renderInventoryPanel();
       }
       
-      this.showNotification(t(`equipment.${p.itemId ? "equipped" : "unequipped"}`, { slot: p.slot }), "info");
+      showNotification(t(`equipment.${p.itemId ? "equipped" : "unequipped"}`, { slot: p.slot }), "info");
     });
 
     wsManager.on("GAME_SAVED", (data) => {
-      this.showNotification(t("save.success"), "success");
+      showNotification(t("save.success"), "success");
       console.log(`[GAME_SAVED] Game ${(data as { gameId: string }).gameId} saved at ${new Date((data as { timestamp: string }).timestamp).toLocaleString()}`);
     });
 
@@ -564,7 +551,7 @@ class App {
         this.renderInventoryPanel();
       }
       
-      this.showNotification(t("inventory.item_used"), "info");
+      showNotification(t("inventory.item_used"), "info");
     });
   }
 
@@ -584,14 +571,14 @@ class App {
 
     container.innerHTML = `
       <div class="game-interface">
-        ${this.renderLocaleDropdown()}
+        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <header class="game-header">
-          <h2>${this.escapeHtml(game.name)}</h2>
+          <h2>${escapeHtml(game.name)}</h2>
           <div class="turn-info">
-            <span class="current-turn">${this.escapeHtml(this.getCurrentPlayerName())}</span>
+            <span class="current-turn">${escapeHtml(this.getCurrentPlayerName())}</span>
             <span class="timer" id="turn-timer">60s</span>
           </div>
-          <span class="game-id">ID: ${this.escapeHtml(game.id)} • ${this.escapeHtml(scenarioLabel)}</span>
+          <span class="game-id">ID: ${escapeHtml(game.id)} • ${escapeHtml(scenarioLabel)}</span>
           <div class="game-actions">
             <button id="save-game-btn" class="secondary" title="${t("save.success")}">💾 Save</button>
             <button id="load-game-btn" class="secondary" title="${t("load.success")}">📂 Load</button>
@@ -608,7 +595,7 @@ class App {
                 <span class="badge-dm">${t("dm.name")}</span>
                 <div class="player-info">
                   <span class="character-name" style="color:var(--accent-gold)">${t("dm.storyteller_name")}</span>
-                  <span class="player-detail">${this.escapeHtml(scenarioLabel)}</span>
+                  <span class="player-detail">${escapeHtml(scenarioLabel)}</span>
                 </div>
                 <div class="dm-status">
                   <span class="status-dot"></span> ${dmStatusText}
@@ -624,10 +611,10 @@ class App {
                   const xpProgress = p.level < 20 ? Math.round((p.xp / nextLevelXP) * 100) : 100;
                   
                   return `
-                    <li class="player-status ${isCurrentPlayer ? 'current-player' : ''}" data-player-id="${this.escapeHtml(p.id)}">
+                    <li class="player-status ${isCurrentPlayer ? 'current-player' : ''}" data-player-id="${escapeHtml(p.id)}">
                        <div class="player-info">
-                         <span class="character-name">${this.escapeHtml(p.characterName)}</span>
-                         <span class="player-detail">${this.escapeHtml(getLocalizedRaceName(p.race))} ${this.escapeHtml(getLocalizedClassName(p.characterClass))} ${t("level.abbreviation")}${p.level}</span>
+                         <span class="character-name">${escapeHtml(p.characterName)}</span>
+                         <span class="player-detail">${escapeHtml(getLocalizedRaceName(p.race))} ${escapeHtml(getLocalizedClassName(p.characterClass))} ${t("level.abbreviation")}${p.level}</span>
                        </div>
                       ${p.hp !== undefined && p.maxHp > 0 ? `
                         <div class="hp-bar-container">
@@ -698,9 +685,9 @@ class App {
       try {
         wsManager.send({ type: "SAVE_GAME", payload: { gameId: this.gameId } });
         
-        this.showNotification("💾 正在保存...", "info");
+        showNotification("💾 正在保存...", "info");
       } catch (error) {
-        this.showNotification(t("save.error"), "error");
+        showNotification(t("save.error"), "error");
         console.error("Save failed:", error);
       }
     });
@@ -715,15 +702,15 @@ class App {
         const data = await response.json();
 
         if (response.ok && data.success) {
-          this.showNotification(t("load.success"), "success");
+          showNotification(t("load.success"), "success");
           // Mark that we're reloading to load a saved game — used by WS open handler to auto-join
           sessionStorage.setItem("app_reload_for_load", "true");
           setTimeout(() => window.location.reload(), 1000);
         } else {
-          this.showNotification(data.error || t("load.error"), "error");
+          showNotification(data.error || t("load.error"), "error");
         }
       } catch (error) {
-        this.showNotification(t("load.error"), "error");
+        showNotification(t("load.error"), "error");
         console.error("Load failed:", error);
       }
     });
@@ -749,7 +736,7 @@ class App {
       // Copy link button
       if (target.id === "copy-link-btn") {
         navigator.clipboard.writeText(window.location.href).then(() => {
-          this.showNotification(t("link_copied.notification"), "success");
+          showNotification(t("link_copied.notification"), "success");
         });
         return;
       }
@@ -777,7 +764,7 @@ class App {
     // Parse the buffer to extract clean narrative (strips JSON block)
     const parsedNarrative = gameState.getParsedNarrative();
     
-    display.innerHTML = `<div class="streaming"><span class="typing">${this.escapeHtml(parsedNarrative)}<span class="cursor">▊</span></span></div>`;
+    display.innerHTML = `<div class="streaming"><span class="typing">${escapeHtml(parsedNarrative)}<span class="cursor">▊</span></span></div>`;
     display.scrollTop = display.scrollHeight;
   }
 
@@ -828,7 +815,7 @@ class App {
     }
     
     // Build content - include dice result if present
-    let content = this.escapeHtml(message.content);
+    let content = escapeHtml(message.content);
     if (message.diceResult) {
       const locale = getLocale();
       const diceText = formatDiceResult(message.diceResult, locale);
@@ -837,31 +824,13 @@ class App {
 
     el.innerHTML = `
       <div class="message-header">
-        <strong class="${isDMNarrative ? 'dm-sender' : ''}">${this.escapeHtml(senderName)}</strong>
+        <strong class="${isDMNarrative ? 'dm-sender' : ''}">${escapeHtml(senderName)}</strong>
         <span class="timestamp">${new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
       <div class="message-content">${content}</div>
     `;
     messagesDiv.appendChild(el);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }
-
-  private showNotification(text: string, type: "success" | "error" | "info" | "warning"): void {
-    const existing = document.querySelector(".notification");
-    if (existing) existing.remove();
-
-    const notif = document.createElement("div");
-    notif.className = `notification notification-${type}`;
-    notif.textContent = text;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 4000);
-  }
-
-  private escapeHtml(text: string): string {
-    if (!text) return "";
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
   }
 
   private getCurrentPlayerName(): string {
@@ -1115,7 +1084,7 @@ class App {
       <h3>${t("combat.title")} - ${t("combat.round", { round: currentRound })}</h3>
       <div class="current-turn-indicator">
         <span class="current-turn-label">${t("combat.current_turn")}: </span>
-        <span class="current-turn-name">${this.escapeHtml(currentPlayer || t("player.unknown"))}</span>
+        <span class="current-turn-name">${escapeHtml(currentPlayer || t("player.unknown"))}</span>
       </div>
       <ul class="initiative-list">
         ${initiativeOrder.map((entry, index) => {
@@ -1127,7 +1096,7 @@ class App {
             <li class="initiative-entry ${isCurrentTurn ? 'current-turn' : ''}" data-entity-id="${entry.playerId || entry.npcId}">
               <div class="initiative-rank">#${index + 1}</div>
               <div class="initiative-info">
-                <span class="initiative-name">${this.escapeHtml(entry.name)}</span>
+                <span class="initiative-name">${escapeHtml(entry.name)}</span>
                 ${entry.isPlayer ? `<span class="badge-player">${t("combat.player")}</span>` : `<span class="badge-npc">${t("combat.npc")}</span>`}
               </div>
               <div class="initiative-stats">
@@ -1193,7 +1162,7 @@ class App {
             return `
               <li class="npc-item" data-npc-id="${npc.id}">
                 <div class="npc-header">
-                  <span class="npc-name">${this.escapeHtml(npc.name)}</span>
+                  <span class="npc-name">${escapeHtml(npc.name)}</span>
                   <span class="npc-role ${npc.role}">${t(`dm_control.role_${npc.role}`)}</span>
                 </div>
                 <div class="hp-slider-container">
@@ -1253,7 +1222,7 @@ class App {
           <div class="form-group">
             <label>${t("dm_control.player_select")}</label>
             <select name="playerId">
-              ${players.map(p => `<option value="${p.id}">${this.escapeHtml(p.characterName || p.name)}</option>`).join('')}
+              ${players.map(p => `<option value="${p.id}">${escapeHtml(p.characterName || p.name)}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
@@ -1270,7 +1239,7 @@ class App {
           <div class="form-group">
             <label>${t("dm_control.player_select")}</label>
             <select name="playerId">
-              ${players.map(p => `<option value="${p.id}">${this.escapeHtml(p.characterName || p.name)} (${t("level.abbreviation")}${p.level})</option>`).join('')}
+              ${players.map(p => `<option value="${p.id}">${escapeHtml(p.characterName || p.name)} (${t("level.abbreviation")}${p.level})</option>`).join('')}
             </select>
           </div>
           <button type="submit" class="btn-small">${t("dm_control.btn_level_up")}</button>
@@ -1488,10 +1457,10 @@ class App {
           ${player.inventory.map(item => `
             <li class="inventory-item" data-item-id="${item.id}">
               <div class="item-header">
-                <span class="item-name">${this.escapeHtml(item.name)}</span>
+                <span class="item-name">${escapeHtml(item.name)}</span>
                 <span class="item-type">${t(`item.type_${item.type}`)}</span>
               </div>
-              ${item.description ? `<div class="item-desc">${this.escapeHtml(item.description)}</div>` : ''}
+              ${item.description ? `<div class="item-desc">${escapeHtml(item.description)}</div>` : ''}
               <div class="item-stats">
                 ${item.stats?.attackBonus ? `<span>Attack: +${item.stats.attackBonus}</span>` : ''}
                 ${item.stats?.armorClassBonus ? `<span>AC: +${item.stats.armorClassBonus}</span>` : ''}

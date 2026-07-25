@@ -1,6 +1,7 @@
 import { wsManager } from "./websocket.js";
 import { getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { raceOptions, classOptions, scenarioOptions } from "../../shared/schemas/game.js";
+import { escapeHtml, showNotification, renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
 
 interface Attributes { str: number; dex: number; con: number; int: number; wis: number; cha: number };
 
@@ -100,7 +101,7 @@ export class CharacterCreator {
   private showForm(): void {
     this.element!.innerHTML = `
       <div class="hero-section">
-        ${this.renderLocaleDropdown()}
+        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <h1 class="hero-title">🎲 DnD AI: The Dungeon Master</h1>
         <p class="hero-subtitle">${t("hero.subtitle")}</p>
       </div>
@@ -169,7 +170,7 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        ${this.renderLocaleDropdown()}
+        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <h2>${t("load_game_page.title")}</h2>
         <p class="subtitle">${t("load_game_page.subtitle", { gameId })}</p>
         <form id="load-game-form">
@@ -305,15 +306,15 @@ export class CharacterCreator {
     container.innerHTML = games.map(g => {
       const dateStr = new Date(g.createdAt).toLocaleDateString();
       return `
-        <div class="game-card saved-game" data-saved-id="${this.escapeHtml(g.id)}">
+        <div class="game-card saved-game" data-saved-id="${escapeHtml(g.id)}">
           <div class="game-card-header">
             <span class="scenario-badge">💾</span>
-            <h3>${this.escapeHtml(g.name)}</h3>
-            <button class="delete-saved-btn" data-saved-id="${this.escapeHtml(g.id)}" title="${t("saved_games.delete_btn")}">🗑️</button>
+            <h3>${escapeHtml(g.name)}</h3>
+            <button class="delete-saved-btn" data-saved-id="${escapeHtml(g.id)}" title="${t("saved_games.delete_btn")}">🗑️</button>
           </div>
           <div class="game-card-body">
             <span class="game-scenario-label">${t("saved_games.date_format", { date: dateStr })}</span>
-            <button class="join-game-btn load-saved-btn" data-saved-id="${this.escapeHtml(g.id)}">
+            <button class="join-game-btn load-saved-btn" data-saved-id="${escapeHtml(g.id)}">
               ${t("saved_games.load_btn")}
             </button>
           </div>
@@ -363,32 +364,18 @@ export class CharacterCreator {
                   if (section) section.style.display = "none";
                 }
                 
-                this.showNotification(t("saved_games.deleted"), "success");
+                showNotification(t("saved_games.deleted"), "success");
               } else {
-                this.showNotification(data.error || t("saved_games.delete_error"), "error");
+                showNotification(data.error || t("saved_games.delete_error"), "error");
               }
             } catch (error) {
-              this.showNotification(t("saved_games.delete_error"), "error");
+              showNotification(t("saved_games.delete_error"), "error");
               console.error("Delete failed:", error);
             }
           }
         }
       });
     });
-  }
-
-  private renderLocaleDropdown(): string {
-    const current = getLocale();
-    return `<select id="locale-select" class="locale-selector">
-      ${SUPPORTED_LOCALES.map(l => `<option value="${l}" ${l === current ? 'selected' : ''}>${this.getLocaleName(l)}</option>`).join("")}
-    </select>`;
-  }
-
-  private getLocaleName(locale: string): string {
-    const names: Record<string, string> = {
-      "en-US": "English", "zh-CN": "简体中文", "ja-JP": "日本語", "es-ES": "Español", "ko-KR": "한국어",
-    };
-    return names[locale] || locale;
   }
 
   private showScenarioSelection(): void {
@@ -406,7 +393,7 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        ${this.renderLocaleDropdown()}
+        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <h2>${t("choose_adventure.title")}</h2>
         <p class="subtitle">${t("choose_adventure.subtitle")}</p>
         <div class="scenario-grid">${cards}</div>
@@ -441,7 +428,7 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        ${this.renderLocaleDropdown()}
+        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <h2>${t("create_game_page.title")}</h2>
         <p class="subtitle">${t("scenario.prefix")}${getLocalizedScenarios()[this.selectedScenario]?.icon ?? "🏰"} ${getLocalizedScenarios()[this.selectedScenario]?.label ?? this.selectedScenario}</p>
         <form id="create-game-form">
@@ -657,21 +644,4 @@ export class CharacterCreator {
     }
   }
 
-  private escapeHtml(text: string): string {
-    if (!text) return "";
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  private showNotification(text: string, type: "success" | "error" | "info"): void {
-    const existing = document.querySelector(".notification");
-    if (existing) existing.remove();
-
-    const notif = document.createElement("div");
-    notif.className = `notification notification-${type}`;
-    notif.textContent = text;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 4000);
-  }
 }

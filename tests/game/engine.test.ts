@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GameEngine } from "../../src/game/engine.js";
-import { calculateCombinedCheck, getCombinedCheckDescription } from "../../src/game/rules.js";
+import { calculateCombinedCheck } from "../../src/game/rules.js";
 
 describe("GameEngine turn timer", () => {
   let engine: GameEngine;
@@ -174,33 +174,5 @@ describe("calculateCombinedCheck", () => {
     // Main: 8 + 3 = 11, Helpers: 3 * 2 = 6, Total: 17 >= 15
     expect(result.total).toBe(17);
     expect(result.success).toBe(true);
-  });
-});
-
-describe("getCombinedCheckDescription", () => {
-  it("should describe success with helpers in English", () => {
-    const result = getCombinedCheckDescription("Athletics", 2, true, "en-US");
-    expect(result).toContain("Athletics check");
-    expect(result).toContain("2 helpers");
-    expect(result).toContain("SUCCESS");
-  });
-
-  it("should describe failure with helpers in English", () => {
-    const result = getCombinedCheckDescription("Stealth", 1, false, "en-US");
-    expect(result).toContain("Stealth check");
-    expect(result).toContain("1 helper");
-    expect(result).toContain("FAILURE");
-  });
-
-  it("should describe success in Chinese", () => {
-    const result = getCombinedCheckDescription("运动", 2, true, "zh-CN");
-    expect(result).toContain("运动 检定");
-    expect(result).toContain("成功");
-  });
-
-  it("should handle zero helpers correctly", () => {
-    const result = getCombinedCheckDescription("Perception", 0, true, "en-US");
-    expect(result).toBe("Perception check: SUCCESS");
-    expect(result).not.toContain("helper");
   });
 });
