@@ -1,6 +1,7 @@
 import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { t } from "./i18n.js";
+import { escapeHtml } from "./utils.js";
 
 // Static preset actions (always available) — both label and action text are localized
 const STATIC_PRESETS = [
@@ -51,14 +52,14 @@ export class ActionBar {
     // Build static preset buttons HTML — label and action are both functions returning translated strings
     let presetsHtml = "";
     for (const preset of STATIC_PRESETS) {
-      presetsHtml += `<button class="preset-btn" data-action="${this.escapeHtml(preset.action())}">${preset.label()}</button>`;
+      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}">${preset.label()}</button>`;
     }
 
     // Build potion buttons — only shown if player has potions available
     let potionsHtml = "";
     if (potions.length > 0) {
       potionsHtml = potions.map(p => 
-        `<button class="action-item-btn potion-btn" data-action="${this.escapeHtml(p.name)}">🧪 ${this.escapeHtml(p.name)}</button>`
+        `<button class="action-item-btn potion-btn" data-action="${escapeHtml(p.name)}">🧪 ${escapeHtml(p.name)}</button>`
       ).join("");
     }
 
@@ -75,7 +76,7 @@ export class ActionBar {
       for (const [level, names] of Object.entries(levelGroups)) {
         dropdownOptions += `<optgroup label="${t("spell.level_group", { level })}">`;
         for (const name of names) {
-          dropdownOptions += `<option value="${this.escapeHtml(name)}">${this.escapeHtml(name)}</option>`;
+          dropdownOptions += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
         }
         dropdownOptions += `</optgroup>`;
       }
@@ -198,13 +199,6 @@ export class ActionBar {
     // Clear free text input after sending
     const input = document.getElementById("action-input") as HTMLInputElement;
     if (input) input.value = "";
-  }
-
-  private escapeHtml(text: string): string {
-    if (!text) return "";
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
   }
 
   destroy(): void {
