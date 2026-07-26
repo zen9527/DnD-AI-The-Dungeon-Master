@@ -1,89 +1,10 @@
 import { wsManager } from "./websocket.js";
-import { getLocale, setLocale, t, tKey, toSupportedLocale, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
+import { getLocale, setLocale, t, tKey, toSupportedLocale, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { raceOptions, classOptions, scenarioOptions } from "../../shared/schemas/game.js";
-import { escapeHtml, showNotification, renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
+import { renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
 import { SettingsModal } from "./views/settings-modal.js";
-
-interface Attributes { str: number; dex: number; con: number; int: number; wis: number; cha: number };
-
-// Default values for auto-generation (matches src/utils/defaults.ts)
-const CLASS_ATTRIBUTE_BONUSES: Record<string, Partial<Attributes>> = {
-  "Barbarian": { str: 16, con: 14 },
-  "Fighter": { str: 15, con: 13 },
-  "Paladin": { str: 15, cha: 13, con: 12 },
-  "Rogue": { dex: 16, int: 12 },
-  "Ranger": { dex: 14, wis: 13, str: 12 },
-  "Wizard": { int: 17, wis: 12 },
-  "Artificer": { int: 15, con: 12 },
-  "Cleric": { wis: 16, cha: 12, con: 13 },
-  "Druid": { wis: 15, int: 12, con: 13 },
-  "Monk": { dex: 14, wis: 14, str: 10 },
-  "Bard": { cha: 16, dex: 12, int: 12 },
-  "Sorcerer": { cha: 15, con: 12 },
-  "Warlock": { cha: 15, wis: 12 },
-};
-
-const RACE_ATTRIBUTE_BONUSES: Record<string, Partial<Attributes>> = {
-  "Human": { str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 },
-  "Elf": { dex: 2 },
-  "Dwarf": { con: 2 },
-  "Halfling": { dex: 2, luck: 1 } as Partial<Attributes>,
-  "Dragonborn": { str: 2, cha: 2 },
-  "Half-Elf": { cha: 2, dex: 1, wis: 1 } as Partial<Attributes>,
-  "Gnome": { int: 2 },
-  "Half-Orc": { str: 2, con: 2 },
-};
-
-function generateDefaultAttributes(characterClass: string, race: string): Attributes {
-  const classBonuses = CLASS_ATTRIBUTE_BONUSES[characterClass] || {};
-  const raceBonuses = RACE_ATTRIBUTE_BONUSES[race] || {};
-  
-  let attrs: Attributes = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
-  
-  if (classBonuses.str) attrs.str += classBonuses.str;
-  if (classBonuses.dex) attrs.dex += classBonuses.dex;
-  if (classBonuses.con) attrs.con += classBonuses.con;
-  if (classBonuses.int) attrs.int += classBonuses.int;
-  if (classBonuses.wis) attrs.wis += classBonuses.wis;
-  if (classBonuses.cha) attrs.cha += classBonuses.cha;
-  
-  if (raceBonuses.str) attrs.str += raceBonuses.str;
-  if (raceBonuses.dex) attrs.dex += raceBonuses.dex;
-  if (raceBonuses.con) attrs.con += raceBonuses.con;
-  if (raceBonuses.int) attrs.int += raceBonuses.int;
-  if (raceBonuses.wis) attrs.wis += raceBonuses.wis;
-  if (raceBonuses.cha) attrs.cha += raceBonuses.cha;
-  
-  return {
-    str: Math.max(3, Math.min(18, attrs.str)),
-    dex: Math.max(3, Math.min(18, attrs.dex)),
-    con: Math.max(3, Math.min(18, attrs.con)),
-    int: Math.max(3, Math.min(18, attrs.int)),
-    wis: Math.max(3, Math.min(18, attrs.wis)),
-    cha: Math.max(3, Math.min(18, attrs.cha)),
-  };
-}
-
-function generateDefaultCharacterName(characterClass: string, race: string): string {
-  // Use localized name data from current locale
-  const raceData = getLocalizedNames(race);
-
-  // Fallback to English if no names found for this race in current locale
-  if (raceData.firstNames.length === 0 || raceData.lastParts.length === 0) {
-    return t("character.fallback_name", { characterClass, race });
-  }
-
-  // Use class name to seed a deterministic but varied selection
-  // This ensures same character gets consistent name across page reloads
-  const classHash = [...characterClass].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const raceHash = [...race].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-
-  // Combine hashes for unique selection per class+race combo
-  const firstIdx = (classHash * 31 + raceHash * 17) % raceData.firstNames.length;
-  const lastIdx = (classHash * 19 + raceHash * 23) % raceData.lastParts.length;
-
-  return `${raceData.firstNames[firstIdx]} ${raceData.lastParts[lastIdx]}`;
-}
+import { generateDefaultAttributes, generateDefaultCharacterName } from "./character-defaults.js";
+import { SavedGamesView } from "./views/saved-games.js";
 
 export class CharacterCreator {
   private element: HTMLElement | null = null;
@@ -92,6 +13,8 @@ export class CharacterCreator {
   private raceChangeHandler: (() => void) | null = null;
   private classChangeHandler: (() => void) | null = null;
   private isCharacterNameDirty: boolean = false;
+  /** Loading a save needs a character to load as, so the list hands back here. */
+  private readonly savedGames = new SavedGamesView(gameId => this.showLoadCharacterForm(gameId));
 
   constructor() {
     this.element = document.getElementById("app");
@@ -162,7 +85,7 @@ export class CharacterCreator {
     (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
 
     // Fetch saved games on load
-    this.fetchSavedGames();
+    void this.savedGames.refresh();
   }
 
   private showLoadCharacterForm(gameId: string): void {
@@ -281,102 +204,6 @@ export class CharacterCreator {
     };
 
     wsManager.send({ type: "JOIN_GAME", payload });
-  }
-
-  private async fetchSavedGames(): Promise<void> {
-    try {
-      const response = await fetch("/api/saved-games");
-      if (!response.ok) return;
-      const games: Array<{ id: string; name: string; createdAt: number }> = await response.json();
-      this.renderSavedGames(games);
-    } catch {
-      // API not available yet — skip
-    }
-  }
-
-  private renderSavedGames(games: Array<{ id: string; name: string; createdAt: number }>): void {
-    const container = document.getElementById("saved-games-container");
-    if (!container) return;
-
-    if (games.length === 0) {
-      container.innerHTML = `<p class="no-games">${t("saved_games.empty")}</p>`;
-      container.parentElement!.style.display = "block";
-      return;
-    }
-
-    container.innerHTML = games.map(g => {
-      const dateStr = new Date(g.createdAt).toLocaleDateString();
-      return `
-        <div class="game-card saved-game" data-saved-id="${escapeHtml(g.id)}">
-          <div class="game-card-header">
-            <span class="scenario-badge">💾</span>
-            <h3>${escapeHtml(g.name)}</h3>
-            <button class="delete-saved-btn" data-saved-id="${escapeHtml(g.id)}" title="${t("saved_games.delete_btn")}">🗑️</button>
-          </div>
-          <div class="game-card-body">
-            <span class="game-scenario-label">${t("saved_games.date_format", { date: dateStr })}</span>
-            <button class="join-game-btn load-saved-btn" data-saved-id="${escapeHtml(g.id)}">
-              ${t("saved_games.load_btn")}
-            </button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    // Make section visible
-    const section = document.getElementById("saved-games-section");
-    if (section) section.style.display = "block";
-
-    // Attach load handlers
-    container.querySelectorAll(".load-saved-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const savedId = (btn as HTMLElement).getAttribute("data-saved-id");
-        if (savedId) {
-          // Show character creation form for loading saved games
-          this.showLoadCharacterForm(savedId);
-        }
-      });
-    });
-
-    // Attach delete handlers
-    container.querySelectorAll(".delete-saved-btn").forEach(btn => {
-      btn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const savedId = (btn as HTMLElement).getAttribute("data-saved-id");
-        if (savedId) {
-          const gameCard = btn.closest(".game-card");
-          const gameName = gameCard?.querySelector("h3")?.textContent || "this game";
-          
-          if (confirm(t("saved_games.confirm_delete", { name: gameName }))) {
-            try {
-              const response = await fetch(`/api/saved-games/${savedId}`, { method: "DELETE" });
-              const data = await response.json();
-              
-              if (response.ok && data.success) {
-                // Remove the card from DOM
-                gameCard?.remove();
-                
-                // Check if there are no more saved games
-                const remainingCards = container.querySelectorAll(".game-card");
-                if (remainingCards.length === 0) {
-                  container.innerHTML = `<p class="no-games">${t("saved_games.empty")}</p>`;
-                  const section = document.getElementById("saved-games-section");
-                  if (section) section.style.display = "none";
-                }
-                
-                showNotification(t("saved_games.deleted"), "success");
-              } else {
-                showNotification(data.error || t("saved_games.delete_error"), "error");
-              }
-            } catch (error) {
-              showNotification(t("saved_games.delete_error"), "error");
-              console.error("Delete failed:", error);
-            }
-          }
-        }
-      });
-    });
   }
 
   private showScenarioSelection(): void {
