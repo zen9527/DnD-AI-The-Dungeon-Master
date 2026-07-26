@@ -15,6 +15,8 @@ import type { Game } from "../types/index.js";
 export class GameState {
   private game: Game;
   private cachedSnapshot: Game | null = null;
+  /** Set by every mutation, cleared once the game is written to disk. */
+  private dirty = false;
 
   constructor(game: Game) {
     this.game = game;
@@ -42,6 +44,17 @@ export class GameState {
       return fn(this.game);
     } finally {
       this.cachedSnapshot = null;
+      this.dirty = true;
     }
+  }
+
+  /** True when there are changes the autosave has not yet written. */
+  get hasUnsavedChanges(): boolean {
+    return this.dirty;
+  }
+
+  /** Called after a successful write. */
+  markSaved(): void {
+    this.dirty = false;
   }
 }

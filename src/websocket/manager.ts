@@ -5,6 +5,7 @@ import type { MessageType, WebSocketMessage } from "../types/index.js";
 import { gameStore } from "../game/store.js";
 import { messageHandlers } from "./handlers/index.js";
 import type { HandlerContext, ManagerApi, WebSocketClient } from "./types.js";
+import { LLMRateLimiter } from "./rate-limit.js";
 
 /** How often the server pushes the turn countdown to clients. */
 const TIMER_BROADCAST_INTERVAL_MS = 1000;
@@ -19,6 +20,7 @@ export class WebSocketManager implements ManagerApi {
   private clients: Map<WebSocket, WebSocketClient>;
   private nextConnectionId: number;
   private timerBroadcastIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private readonly llmRateLimiter = new LLMRateLimiter();
 
   constructor(server: HttpServer) {
     this.wss = new WebSocketServer({ server });
@@ -61,6 +63,7 @@ export class WebSocketManager implements ManagerApi {
         });
       }
     }
+    this.llmRateLimiter.forget(connectionId);
     this.clients.delete(ws);
   }
 
@@ -86,6 +89,14 @@ export class WebSocketManager implements ManagerApi {
     const client = this.clients.get(ws);
     if (!client) {
       this.sendError(ws, "Connection not registered");
+      return;
+    }
+
+    // Anyone with the game link can send these, and each one costs LLM tokens.
+    if (!this.llmRateLimiter.tryConsume(client.id, message.type)) {
+      const retryAfter = this.llmRateLimiter.retryAfterSeconds(client.id);
+      console.warn(`[WS] Rate limited ${message.type} from ${client.id}`);
+      this.sendError(ws, `Too many requests — wait ${retryAfter}s before trying again.`);
       return;
     }
 

@@ -92,9 +92,13 @@ export class CombatService {
     return this.state.raw.currentTurnIndex;
   }
 
-  /** DM narration language, taken from the game's creator. */
+  /**
+   * Language for the shared combat lines. These go into one conversation
+   * history for everyone, so they pick a single voice: the DM's.
+   */
   private get locale(): string {
-    return this.state.raw.players?.[0]?.locale || "en-US";
+    const players = this.state.raw.players ?? [];
+    return (players.find(p => p.isDM) ?? players[0])?.locale || "en-US";
   }
 
   /**

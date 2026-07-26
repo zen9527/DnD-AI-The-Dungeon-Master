@@ -167,6 +167,10 @@ export class SettingsModal {
     }
   }
 
+  /**
+   * The key field is pre-filled with a mask. Sending it back unchanged tells
+   * the server to keep the stored key — see utils/secrets.ts.
+   */
   private currentConfig(): LLMConfig {
     return {
       llmBaseUrl: this.urlInput.value.trim(),

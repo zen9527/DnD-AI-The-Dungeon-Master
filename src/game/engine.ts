@@ -19,8 +19,11 @@ import { InventoryService } from "./inventory.js";
 import { LevelingService } from "./leveling.js";
 import { LLMInteractionService } from "./llm-interaction.js";
 
-/** Chat log is trimmed to this many messages to bound memory and save size. */
-const MAX_CHAT_HISTORY = 100;
+/**
+ * Recent chat kept in memory. Older messages are not lost — `storage.saveGame`
+ * merges this window with what is already on disk.
+ */
+const MAX_CHAT_HISTORY = 500;
 
 const DEFAULT_NPC_STATS = { hp: 10, maxHp: 10, ac: 11 } as const;
 const DEFAULT_NPC_ATTRIBUTES = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 } as const;
@@ -113,8 +116,12 @@ export class GameEngine {
     return this.narration.handlePlayerAction(payload, playerId, callbacks);
   }
 
-  generateOpeningScene(callbacks: LLMCallbacks): Promise<StreamResult> {
-    return this.narration.generateOpeningScene(callbacks);
+  /**
+   * `forPlayerId` selects whose language the scene is written in — the creator
+   * on a new game, the arriving player on a join.
+   */
+  generateOpeningScene(callbacks: LLMCallbacks, forPlayerId?: string): Promise<StreamResult> {
+    return this.narration.generateOpeningScene(callbacks, forPlayerId);
   }
 
   // ---- Chat & events ----
@@ -297,8 +304,12 @@ export class GameEngine {
 
   // ---- Persistence ----
 
+  /** True when the game has changed since it was last written to disk. */
+  get hasUnsavedChanges(): boolean { return this.state.hasUnsavedChanges; }
+
   saveGame(): void {
     storage.saveGame(this.state.raw);
+    this.state.markSaved();
   }
 
   /**

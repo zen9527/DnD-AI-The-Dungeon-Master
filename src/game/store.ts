@@ -132,9 +132,11 @@ export class GameStore {
     return this.games.size;
   }
 
+  /** Write every game that has changed since its last save. */
   saveAllGames(): void {
-    for (const [id, engine] of this.games.entries()) {
-      storage.saveGame(engine.game);
+    for (const engine of this.games.values()) {
+      if (!engine.hasUnsavedChanges) continue;
+      engine.saveGame();
     }
   }
 

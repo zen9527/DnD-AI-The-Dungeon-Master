@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Request, Response } from "express";
 import { configManager } from "../utils/config.js";
 import { normalizeLlmBaseUrl } from "../utils/normalizeUrl.js";
+import { maskApiKey, resolveApiKey } from "../utils/secrets.js";
 import {
   ANTHROPIC_MODELS,
   configSchema,
@@ -16,7 +17,8 @@ export function getConfigHandler(_req: Request, res: Response): void {
   const config = configManager.read();
   res.json({
     llmBaseUrl: config.llmBaseUrl,
-    llmApiKey: config.llmApiKey || "",
+    // Masked: anyone who can reach this endpoint would otherwise read the key.
+    llmApiKey: maskApiKey(config.llmApiKey),
     llmModel: config.llmModel,
     llmProvider: config.llmProvider,
   });
@@ -31,7 +33,9 @@ export function postConfigHandler(req: Request, res: Response): void {
   }
 
   const { llmBaseUrl, llmApiKey, llmModel, llmProvider } = parsed.data;
-  configManager.write({ llmBaseUrl, llmApiKey, llmModel, llmProvider });
+  // The dialog is pre-filled with a mask; an unedited field means "keep it".
+  const key = resolveApiKey(llmApiKey, configManager.read().llmApiKey);
+  configManager.write({ llmBaseUrl, llmApiKey: key, llmModel, llmProvider });
 
   console.log(`[Config] LLM updated: ${llmProvider} — ${llmModel}`);
   // Running games hold a client built at creation time, so a restart is needed.
@@ -87,7 +91,8 @@ async function listOpenAICompatibleModels(
 /** GET /api/config/models — populate the model dropdown for either provider. */
 export async function getModelsHandler(req: Request, res: Response): Promise<void> {
   const provider = resolveProvider(req.query.provider);
-  const apiKey = (req.query.key as string) || "";
+  // The dialog may still be showing the mask, so resolve it back to the real key.
+  const apiKey = resolveApiKey(req.query.key as string, configManager.read().llmApiKey);
 
   const result = provider === "anthropic"
     ? await listAnthropicModels(apiKey)
@@ -159,11 +164,12 @@ export async function postConfigTestHandler(req: Request, res: Response): Promis
   }
 
   const { llmBaseUrl, llmApiKey, llmModel, llmProvider } = parsed.data;
+  const key = resolveApiKey(llmApiKey, configManager.read().llmApiKey);
 
   res.json(
     llmProvider === "anthropic"
-      ? await testAnthropic(llmApiKey, llmModel)
-      : await testOpenAICompatible(llmBaseUrl, llmApiKey, llmModel)
+      ? await testAnthropic(key, llmModel)
+      : await testOpenAICompatible(llmBaseUrl, key, llmModel)
   );
 }
 

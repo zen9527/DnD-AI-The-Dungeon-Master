@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import type { Game } from "../types/index.js";
+import type { ChatMessage, Game } from "../types/index.js";
 
 const STORAGE_DIR = path.join(process.cwd(), "saved_games");
 
@@ -10,13 +10,36 @@ function ensureStorageDir(): void {
   }
 }
 
+/**
+ * Merge the chat already on disk with what is still in memory.
+ *
+ * The engine keeps only a recent window of messages, so writing that window
+ * straight out would delete the campaign's earlier chapters from the save file
+ * a little more each time it was saved. Anything previously written is kept,
+ * and only genuinely new messages are appended.
+ */
+function mergeChatHistory(existing: ChatMessage[], current: ChatMessage[]): ChatMessage[] {
+  if (existing.length === 0) return current;
+
+  const seen = new Set(existing.map(m => m.id));
+  const appended = current.filter(m => !seen.has(m.id));
+  return [...existing, ...appended];
+}
+
 export function saveGame(game: Game): string {
   ensureStorageDir();
-  
+
   const filePath = path.join(STORAGE_DIR, `${game.id}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(game, null, 2));
-  
-  console.log(`[Storage] Saved game ${game.id} to ${filePath}`);
+
+  // Preserve history the in-memory game has already aged out.
+  const previous = loadGame(game.id);
+  const toWrite: Game = previous
+    ? { ...game, chatHistory: mergeChatHistory(previous.chatHistory ?? [], game.chatHistory ?? []) }
+    : game;
+
+  fs.writeFileSync(filePath, JSON.stringify(toWrite, null, 2));
+
+  console.log(`[Storage] Saved game ${game.id} (${toWrite.chatHistory?.length ?? 0} messages)`);
   return game.id;
 }
 

@@ -45,7 +45,7 @@ interface OpeningSceneOptions {
 async function streamOpeningScene(
   manager: ManagerApi,
   engine: GameEngine,
-  characterName: string,
+  player: { id: string; characterName: string },
   options: OpeningSceneOptions = {}
 ): Promise<void> {
   const maxAttempts = options.maxAttempts ?? 1;
@@ -61,7 +61,7 @@ async function streamOpeningScene(
         // has finished writing to chatHistory.
         onEnd: () => {},
         onError: () => {},
-      });
+      }, player.id);
 
       const latestMessage = engine.game.chatHistory[engine.game.chatHistory.length - 1];
       if (latestMessage) {
@@ -96,7 +96,7 @@ async function streamOpeningScene(
       }
 
       console.error(`[OpeningScene] Failed after ${attempt} attempt(s):`, err.message);
-      const fallback = `The world forms around "${characterName}"... The adventure begins.`;
+      const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
       engine.addEvent("DM", fallback);
       manager.broadcastToGame(engine.id, "STREAM_ERROR", { message: err.message, fallbackNarrative: fallback });
       return;
@@ -108,12 +108,12 @@ async function streamOpeningScene(
 function scheduleOpeningScene(
   manager: ManagerApi,
   engine: GameEngine,
-  characterName: string,
+  player: { id: string; characterName: string },
   delayMs: number,
   options: OpeningSceneOptions
 ): void {
   setTimeout(() => {
-    streamOpeningScene(manager, engine, characterName, options).catch(err => {
+    streamOpeningScene(manager, engine, player, options).catch(err => {
       console.error(`[OpeningScene] Unhandled rejection:`, err instanceof Error ? err.message : err);
     });
   }, delayMs);
@@ -147,7 +147,7 @@ function handleCreateGame(ctx: HandlerContext): void {
     isStatus: true,
   });
 
-  scheduleOpeningScene(ctx.manager, engine, player.characterName, OPENING_SCENE_DELAY_MS, {
+  scheduleOpeningScene(ctx.manager, engine, player, OPENING_SCENE_DELAY_MS, {
     maxAttempts: OPENING_SCENE_MAX_ATTEMPTS,
     startTimer: true,
   });
@@ -205,7 +205,7 @@ function handleJoinGame(ctx: HandlerContext): void {
     isFinal: false,
     isStatus: true,
   });
-  scheduleOpeningScene(ctx.manager, engine, player.characterName, JOIN_SCENE_DELAY_MS, {});
+  scheduleOpeningScene(ctx.manager, engine, player, JOIN_SCENE_DELAY_MS, {});
 }
 
 /**

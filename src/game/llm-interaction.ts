@@ -24,8 +24,11 @@ type LLMMessage = { role: "system" | "user" | "assistant"; content: string };
 const RECENT_HISTORY_TURNS = 4;
 /** Hard cap on stored conversation history, excluding the system message. */
 const MAX_HISTORY_LENGTH = 20;
-/** Chat log is trimmed to this many messages to bound memory and save size. */
-const MAX_CHAT_HISTORY = 100;
+/**
+ * Recent chat kept in memory. Older messages are not lost — `storage.saveGame`
+ * merges this window with what is already on disk.
+ */
+const MAX_CHAT_HISTORY = 500;
 /** Refresh the rolling story summary every N player turns. */
 const SUMMARY_INTERVAL = 5;
 /** XP granted for defeating an NPC. Flat for now; should scale with CR. */
@@ -461,8 +464,11 @@ Format as bullet points. Keep it factual, not narrative.`;
   // ---- Opening scene ----
 
   /** Generate the scene-setting narrative shown when a game starts. */
-  async generateOpeningScene(callbacks: LLMCallbacks): Promise<StreamResult> {
-    const player = this.game.players[0];
+  async generateOpeningScene(callbacks: LLMCallbacks, forPlayerId?: string): Promise<StreamResult> {
+    // The scene is one shared text, so it is written for a specific reader:
+    // whoever triggered it, falling back to the game's creator.
+    const player = (forPlayerId ? this.game.players.find(p => p.id === forPlayerId) : undefined)
+      ?? this.game.players[0];
     if (!player) throw new Error("No players in game");
 
     const scenario = this.scenario();
