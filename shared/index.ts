@@ -51,9 +51,9 @@ export type {
 } from "./schemas/game.js";
 
 // Action & Chat schemas
-export { playerActionSchema } from "./schemas/action.js";
+export { playerActionSchema, presetActionIds, presetActionIdSchema } from "./schemas/action.js";
 export { chatMessageSchema } from "./schemas/chat.js";
-export type { PlayerActionInput } from "./schemas/action.js";
+export type { PlayerActionInput, PresetActionId } from "./schemas/action.js";
 export type { ChatMessageInput } from "./schemas/chat.js";
 export type { ChatMessageInput as MessageInput } from "./schemas/chat.js";
 

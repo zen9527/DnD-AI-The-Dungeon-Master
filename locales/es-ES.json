@@ -36,6 +36,7 @@
   "game_created.notification": "¡Juego creado! Compartir: {url}",
   "link_copied.notification": "¡Enlace copiado!",
   "settings.save_success": "✅ ¡Guardado! Reinicia el servidor para aplicar.",
+  "settings.restart_required": "Reinicia el servidor para que las partidas en curso lo usen.",
   "settings.save_error": "❌ Error al guardar",
   "settings.test_connected": "✅ ¡Conectado!",
   "settings.test_error": "❌ {message}",

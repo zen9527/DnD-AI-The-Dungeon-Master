@@ -36,6 +36,7 @@
   "game_created.notification": "游戏已创建！分享链接: {url}",
   "link_copied.notification": "链接已复制！",
   "settings.save_success": "✅ 保存成功！重启服务器以应用。",
+  "settings.restart_required": "需重启服务器，进行中的游戏才会使用新设置。",
   "settings.save_error": "❌ 保存失败",
   "settings.test_connected": "✅ 连接成功！",
   "settings.test_error": "❌ {message}",

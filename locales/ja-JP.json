@@ -36,6 +36,7 @@
   "game_created.notification": "ゲームが作成されました！共有: {url}",
   "link_copied.notification": "リンクをコピーしました！",
   "settings.save_success": "✅ 保存完了！適用するにはサーバーを再起動してください。",
+  "settings.restart_required": "進行中のゲームに反映するにはサーバーを再起動してください。",
   "settings.save_error": "❌ 保存に失敗しました",
   "settings.test_connected": "✅ 接続成功！",
   "settings.test_error": "❌ {message}",

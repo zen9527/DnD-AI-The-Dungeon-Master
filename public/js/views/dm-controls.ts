@@ -190,15 +190,23 @@ export class DMControlsView {
     if (!panel) return;
 
     panel.querySelectorAll<HTMLInputElement>(".hp-slider").forEach(slider => {
-      slider.addEventListener("input", () => {
+      const readout = () => {
         const newHp = parseInt(slider.value);
         const maxHp = parseInt(slider.max);
-
-        // Update the readout immediately; the server echo refreshes the rest.
         const display = slider.parentElement?.querySelector(".hp-display");
         if (display) display.textContent = `${newHp}/${maxHp} (${Math.round((newHp / maxHp) * 100)}%)`;
+      };
 
-        wsManager.send({ type: "NPC_UPDATE_HP", payload: { npcId: slider.dataset.npcId, newHp } });
+      // The readout follows the thumb, but the message waits for release:
+      // every NPC_UPDATE_HP broadcasts the whole game state to every client,
+      // so sending on "input" floods the table for the length of a drag.
+      slider.addEventListener("input", readout);
+      slider.addEventListener("change", () => {
+        readout();
+        wsManager.send({
+          type: "NPC_UPDATE_HP",
+          payload: { npcId: slider.dataset.npcId, newHp: parseInt(slider.value) },
+        });
       });
     });
 

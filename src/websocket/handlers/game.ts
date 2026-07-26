@@ -139,6 +139,7 @@ function handleCreateGame(ctx: HandlerContext): void {
   ctx.manager.send(ctx.ws, "STREAM_CHUNK", {
     content: getLocalizedMessage(player.locale, "status.dm_preparing"),
     isFinal: false,
+    isStatus: true,
   });
 
   scheduleOpeningScene(ctx.manager, engine, player.characterName, OPENING_SCENE_DELAY_MS, {
@@ -195,6 +196,7 @@ function handleJoinGame(ctx: HandlerContext): void {
   ctx.manager.send(ctx.ws, "STREAM_CHUNK", {
     content: getLocalizedMessage(player.locale, "status.dm_preparing"),
     isFinal: false,
+    isStatus: true,
   });
   scheduleOpeningScene(ctx.manager, engine, player.characterName, JOIN_SCENE_DELAY_MS, {});
 }
@@ -226,6 +228,7 @@ async function handlePlayerAction(ctx: HandlerContext): Promise<void> {
   ctx.manager.send(ctx.ws, "STREAM_CHUNK", {
     content: getLocalizedMessage(locale, "status.dm_considers"),
     isFinal: false,
+    isStatus: true,
   });
 
   let result;

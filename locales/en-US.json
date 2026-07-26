@@ -36,6 +36,7 @@
   "game_created.notification": "Game created! Share: {url}",
   "link_copied.notification": "Link copied!",
   "settings.save_success": "✅ Saved! Restart server to apply.",
+  "settings.restart_required": "Restart the server for running games to use it.",
   "settings.save_error": "❌ Save failed",
   "settings.test_connected": "✅ Connected!",
   "settings.test_error": "❌ {message}",

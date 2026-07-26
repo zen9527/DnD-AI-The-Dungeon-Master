@@ -2,15 +2,20 @@ import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { t } from "./i18n.js";
 import { escapeHtml } from "./utils.js";
+import type { PresetActionId } from "../../shared/index.js";
 
-// Static preset actions (always available) — both label and action text are localized
-const STATIC_PRESETS = [
-  { label: () => t("action.attack"), action: () => t("action.attack_text") },
-  { label: () => t("action.search"), action: () => t("action.search_text") },
-  { label: () => t("action.talk"), action: () => t("action.talk_text") },
-  { label: () => t("action.hide"), action: () => t("action.hide_text") },
-  { label: () => t("action.intelligence"), action: () => t("action.intelligence_text") },
-  { label: () => t("action.defend"), action: () => t("action.defend_text") },
+/**
+ * The preset actions. `id` is language-independent and travels with the action
+ * so the rules engine can pick the right skill check — the visible text is
+ * localized and cannot be keyword-matched.
+ */
+const STATIC_PRESETS: Array<{ id: PresetActionId; label: () => string; action: () => string }> = [
+  { id: "attack", label: () => t("action.attack"), action: () => t("action.attack_text") },
+  { id: "search", label: () => t("action.search"), action: () => t("action.search_text") },
+  { id: "talk", label: () => t("action.talk"), action: () => t("action.talk_text") },
+  { id: "hide", label: () => t("action.hide"), action: () => t("action.hide_text") },
+  { id: "arcana", label: () => t("action.intelligence"), action: () => t("action.intelligence_text") },
+  { id: "defend", label: () => t("action.defend"), action: () => t("action.defend_text") },
 ];
 
 export class ActionBar {
@@ -53,7 +58,7 @@ export class ActionBar {
     // Build static preset buttons HTML — label and action are both functions returning translated strings
     let presetsHtml = "";
     for (const preset of STATIC_PRESETS) {
-      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}">${preset.label()}</button>`;
+      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}" data-action-id="${preset.id}">${preset.label()}</button>`;
     }
 
     // Build potion buttons — only shown if player has potions available
@@ -134,7 +139,8 @@ export class ActionBar {
     this.element!.querySelectorAll(".preset-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const action = btn.getAttribute("data-action") || "";
-        this.sendAction(action);
+        const actionId = (btn.getAttribute("data-action-id") as PresetActionId | null) ?? undefined;
+        this.sendAction(action, actionId);
       });
     });
 
@@ -151,7 +157,7 @@ export class ActionBar {
     });
   }
 
-  private sendAction(action: string): void {
+  private sendAction(action: string, actionId?: PresetActionId): void {
     if (!action.trim()) return;
     
     const trimmedAction = action.trim();
@@ -195,7 +201,7 @@ export class ActionBar {
     }
     
     // Regular action - send as PLAYER_ACTION
-    wsManager.send({ type: "PLAYER_ACTION", payload: { action: trimmedAction } });
+    wsManager.send({ type: "PLAYER_ACTION", payload: { action: trimmedAction, actionId } });
     
     // Clear free text input after sending
     const input = document.getElementById("action-input") as HTMLInputElement;

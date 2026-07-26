@@ -27,6 +27,8 @@ const RELOAD_FOR_LOAD_KEY = "app_reload_for_load";
  */
 class App {
   private gameId: string | null = null;
+  /** True while the stream area shows a status placeholder rather than narrative. */
+  private streamShowsPlaceholder = false;
 
   private readonly chat = new ChatView();
   private readonly playersPanel = new PlayersPanelView();
@@ -140,9 +142,19 @@ class App {
     });
 
     wsManager.on("STREAM_CHUNK", payload => {
-      const p = payload as { content: string; isFinal: boolean };
-      // Each chunk carries the full narrative so far, so replace rather than append.
-      gameState.clearStreamBuffer();
+      const p = payload as { content: string; isFinal: boolean; isStatus?: boolean };
+
+      // Chunks are deltas — they must accumulate. The one exception is the
+      // "DM is thinking" placeholder, which stands alone and is replaced by
+      // the first real token.
+      if (p.isStatus) {
+        gameState.clearStreamBuffer();
+        this.streamShowsPlaceholder = true;
+      } else if (this.streamShowsPlaceholder) {
+        gameState.clearStreamBuffer();
+        this.streamShowsPlaceholder = false;
+      }
+
       gameState.updateStreamBuffer(p.content);
       this.chat.renderStream();
     });

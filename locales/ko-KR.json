@@ -36,6 +36,7 @@
   "game_created.notification": "게임이 생성되었습니다! 공유: {url}",
   "link_copied.notification": "링크가 복사되었습니다!",
   "settings.save_success": "✅ 저장 완료! 적용하려면 서버를 다시 시작하세요.",
+  "settings.restart_required": "진행 중인 게임에 적용하려면 서버를 다시 시작하세요.",
   "settings.save_error": "❌ 저장 실패",
   "settings.test_connected": "✅ 연결 성공!",
   "settings.test_error": "❌ {message}",

@@ -203,7 +203,7 @@ Format as bullet points. Keep it factual, not narrative.`;
       };
     }
 
-    const skillCheck = getActionSkillCheck(payload.action);
+    const skillCheck = getActionSkillCheck(payload.action, payload.actionId);
     if (!skillCheck || skillCheck.dc <= 0) return undefined;
 
     const d20Rolls = rollDice(20, 1);

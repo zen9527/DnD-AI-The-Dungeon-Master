@@ -262,6 +262,8 @@ export interface JoinGamePayload {
 
 export interface PlayerActionPayload {
   action: string;
+  /** Set when the action came from a preset button; language-independent. */
+  actionId?: 'attack' | 'search' | 'talk' | 'hide' | 'arcana' | 'defend';
   dice?: { type: number; count: number; modifier?: number };
   target?: string;
   helpers?: string[]; // NEW - Player IDs helping on this check

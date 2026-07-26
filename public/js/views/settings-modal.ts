@@ -25,7 +25,7 @@ async function loadConfig(): Promise<LLMConfig> {
   }
 }
 
-async function saveConfig(config: LLMConfig): Promise<boolean> {
+async function saveConfig(config: LLMConfig): Promise<{ saved: boolean; restartRequired: boolean }> {
   try {
     const response = await fetch("/api/config", {
       method: "POST",
@@ -33,9 +33,10 @@ async function saveConfig(config: LLMConfig): Promise<boolean> {
       body: JSON.stringify(config),
     });
     if (!response.ok) throw new Error("Save failed");
-    return (await response.json()).success === true;
+    const result = await response.json();
+    return { saved: result.success === true, restartRequired: result.restartRequired === true };
   } catch {
-    return false;
+    return { saved: false, restartRequired: false };
   }
 }
 
@@ -273,8 +274,15 @@ export class SettingsModal {
 
     modal.querySelector("#settings-form")?.addEventListener("submit", async event => {
       event.preventDefault();
-      const saved = await saveConfig(this.currentConfig());
-      this.showResult(saved, saved ? t("settings.save_success") : t("settings.save_error"));
+      const { saved, restartRequired } = await saveConfig(this.currentConfig());
+      if (!saved) {
+        this.showResult(false, t("settings.save_error"));
+        return;
+      }
+      // Games already in progress hold a client built at creation time.
+      this.showResult(true, restartRequired
+        ? `${t("settings.save_success")} ${t("settings.restart_required")}`
+        : t("settings.save_success"));
     });
   }
 }

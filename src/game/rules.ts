@@ -5,6 +5,7 @@ import {
   calculateTotal,
   rollDice,
 } from "./dice.js";
+import type { PresetActionId } from "../../shared/schemas/action.js";
 import { SPELL_ABILITY_MAP, HIT_DIE_BY_CLASS, XP_THRESHOLDS } from "../../shared/schemas/game.js";
 import type { Player, NPC } from "../types/index.js";
 
@@ -134,23 +135,37 @@ export interface ActionSkillCheck {
  * Keyword-to-skill table, checked in order so that more specific actions win.
  * Clients localize the result via the `skill.*` keys — this returns the English
  * skill name the rules use, never display text.
+ *
+ * `presetId` links a row to an action-bar button. That link is what makes the
+ * dice work in every language: the text a player sends is localized ("我攻击我的
+ * 目标"), so keyword matching alone only ever fires for English.
  */
-const ACTION_SKILL_CHECKS: Array<{ keywords: string[] } & ActionSkillCheck> = [
-  { keywords: ["defend", "dodge", "protect"],           skill: "Dodge",         ability: "dex", dc: 0 },
-  { keywords: ["hide", "stealth", "sneak"],             skill: "Stealth",       ability: "dex", dc: 15 },
-  { keywords: ["attack", "strike", "hit"],              skill: "Attack",        ability: "str", dc: 0 },
-  { keywords: ["search", "look", "perceive"],           skill: "Perception",    ability: "wis", dc: 10 },
-  { keywords: ["talk", "persuade", "convince"],         skill: "Persuasion",    ability: "cha", dc: 10 },
-  { keywords: ["intimidate", "threaten"],               skill: "Intimidation",  ability: "cha", dc: 12 },
-  { keywords: ["investigate", "examine", "inspect"],    skill: "Investigation", ability: "int", dc: 12 },
-  { keywords: ["intelligence", "arcana", "magic"],      skill: "Arcana",        ability: "int", dc: 10 },
-  { keywords: ["climb", "jump", "swim"],                skill: "Athletics",     ability: "str", dc: 12 },
+const ACTION_SKILL_CHECKS: Array<{ keywords: string[]; presetId?: PresetActionId } & ActionSkillCheck> = [
+  { keywords: ["defend", "dodge", "protect"],        presetId: "defend", skill: "Dodge",         ability: "dex", dc: 0 },
+  { keywords: ["hide", "stealth", "sneak"],          presetId: "hide",   skill: "Stealth",       ability: "dex", dc: 15 },
+  { keywords: ["attack", "strike", "hit"],           presetId: "attack", skill: "Attack",        ability: "str", dc: 0 },
+  { keywords: ["search", "look", "perceive"],        presetId: "search", skill: "Perception",    ability: "wis", dc: 10 },
+  { keywords: ["talk", "persuade", "convince"],      presetId: "talk",   skill: "Persuasion",    ability: "cha", dc: 10 },
+  { keywords: ["intimidate", "threaten"],                                skill: "Intimidation",  ability: "cha", dc: 12 },
+  { keywords: ["investigate", "examine", "inspect"],                     skill: "Investigation", ability: "int", dc: 12 },
+  { keywords: ["intelligence", "arcana", "magic"],   presetId: "arcana", skill: "Arcana",        ability: "int", dc: 10 },
+  { keywords: ["climb", "jump", "swim"],                                 skill: "Athletics",     ability: "str", dc: 12 },
 ];
 
-/** Infer which skill check a free-text action calls for, or null if none applies. */
-export function getActionSkillCheck(action: string): ActionSkillCheck | null {
-  const actionLower = action.toLowerCase();
+/**
+ * Decide which skill check an action calls for.
+ *
+ * A preset button supplies `presetId` and matches exactly. Free text falls back
+ * to English keyword matching, which is best-effort — a player typing in
+ * another language gets no automatic check, and the DM narrates the outcome.
+ */
+export function getActionSkillCheck(action: string, presetId?: PresetActionId): ActionSkillCheck | null {
+  if (presetId) {
+    const preset = ACTION_SKILL_CHECKS.find(entry => entry.presetId === presetId);
+    if (preset) return { skill: preset.skill, ability: preset.ability, dc: preset.dc };
+  }
 
+  const actionLower = action.toLowerCase();
   for (const { keywords, skill, ability, dc } of ACTION_SKILL_CHECKS) {
     if (keywords.some(keyword => actionLower.includes(keyword))) {
       return { skill, ability, dc };
