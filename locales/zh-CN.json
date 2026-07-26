@@ -629,5 +629,10 @@
   "dm_control.btn_delete": "删除",
   "dm_control.error_non_dm": "只有地下城主可以执行此操作",
   "dm_control.npc_created": "已创建 NPC: {name}",
-  "dm_control.player_leveled": "{playerName} 升级到 {level} 级"
+  "dm_control.player_leveled": "{playerName} 升级到 {level} 级",
+  "dice.tray_label": "掷骰",
+  "dice.modifier": "调整值",
+  "dice.rolled": "🎲 {name} 掷出 d{diceType}：{total}",
+  "rejoin.success": "欢迎回来，{name}",
+  "rejoin.expired": "该会话已过期，请重新创建角色。"
 }

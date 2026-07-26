@@ -557,5 +557,10 @@
   "dm_control.btn_delete": "Eliminar",
   "dm_control.error_non_dm": "Solo el DM puede hacer eso",
   "dm_control.npc_created": "PNJ creado: {name}",
-  "dm_control.player_leveled": "{playerName} alcanzó el nivel {level}"
+  "dm_control.player_leveled": "{playerName} alcanzó el nivel {level}",
+  "dice.tray_label": "Tirar",
+  "dice.modifier": "Mod",
+  "dice.rolled": "🎲 {name} tiró d{diceType}: {total}",
+  "rejoin.success": "Bienvenido de nuevo, {name}",
+  "rejoin.expired": "La sesión ha caducado: vuelve a crear tu personaje."
 }

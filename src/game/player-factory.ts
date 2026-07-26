@@ -48,5 +48,6 @@ export function createPlayer(config: CreatePlayerConfig): Player {
     deathSaves: { successes: 0, failures: 0 },
     xp: 0,
     locale: config.locale || "en-US",
+    connected: true,
   };
 }

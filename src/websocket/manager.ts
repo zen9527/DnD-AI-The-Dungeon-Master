@@ -51,8 +51,14 @@ export class WebSocketManager implements ManagerApi {
     if (client?.gameId && client?.playerId) {
       const engine = gameStore.getGame(client.gameId);
       if (engine) {
-        engine.removePlayer(client.playerId);
-        engine.addEvent("Player Left", `${client.id} has disconnected`);
+        // Keep the seat. A refresh is a disconnect, and deleting the player
+        // here is what used to destroy characters on reload — the seat is
+        // reclaimed by REJOIN_GAME, or reaped by the empty-game cleanup.
+        engine.setPlayerConnected(client.playerId, false);
+        this.broadcastToGame(client.gameId, "PLAYER_LEFT", {
+          playerId: client.playerId,
+          gameState: engine.game,
+        });
       }
     }
     this.clients.delete(ws);
@@ -146,14 +152,37 @@ export class WebSocketManager implements ManagerApi {
       }
 
       const currentPlayer = engine.getCurrentPlayer();
-      if (currentPlayer) {
+      if (!currentPlayer) return;
+
+      // A countdown that reaches zero and does nothing is just a nagging
+      // clock, so expiry hands the turn on. advanceTurn() restarts the
+      // timer, which clears `expired` and stops this from firing twice.
+      if (engine.timerExpired) {
+        console.log(`[Timer] ${currentPlayer.characterName} ran out of time — advancing the turn`);
         this.broadcastToGame(gameId, "TURN_TIMER", {
-          remaining: engine.timerRemaining,
+          remaining: 0,
           currentPlayerId: currentPlayer.id,
           characterName: currentPlayer.characterName,
-          expired: engine.timerExpired,
+          expired: true,
         });
+
+        engine.advanceTurn();
+        this.broadcastToGame(gameId, "COMBAT_STATE", {
+          combatMode: engine.combatMode,
+          initiativeOrder: engine.initiativeOrder,
+          currentRound: engine.currentRound,
+          currentTurnIndex: engine.currentTurnIndex,
+          currentPlayerName: engine.getCurrentPlayer()?.characterName,
+        });
+        return;
       }
+
+      this.broadcastToGame(gameId, "TURN_TIMER", {
+        remaining: engine.timerRemaining,
+        currentPlayerId: currentPlayer.id,
+        characterName: currentPlayer.characterName,
+        expired: false,
+      });
     }, TIMER_BROADCAST_INTERVAL_MS);
 
     this.timerBroadcastIntervals.set(gameId, interval);

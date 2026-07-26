@@ -1986,3 +1986,45 @@ hr {
 .game-card.saved-game .scenario-badge {
   background: rgba(212, 168, 67, 0.15);
 }
+
+/* ---- Dice tray ------------------------------------------------------------
+   Manual rolls. The server owns the RNG, so these buttons only ask. */
+.dice-tray {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  margin-top: 0.4rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.dice-tray-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  margin-right: 0.2rem;
+}
+
+.dice-btn {
+  min-width: 2.9rem;
+  padding: 0.3rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dice-modifier {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-left: auto;
+}
+
+.dice-modifier input {
+  width: 3.75rem;
+  padding: 0.25rem 0.35rem;
+  font-variant-numeric: tabular-nums;
+}

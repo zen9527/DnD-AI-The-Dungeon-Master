@@ -3,6 +3,7 @@ import { generateId } from "../utils/id.js";
 import { configManager } from "../utils/config.js";
 import * as storage from "../utils/storage.js";
 import type { LLMConfig } from "../llm/client.js";
+import { playerSessions } from "../websocket/sessions.js";
 import type { Game, Player, ChatMessage, NPC } from "../types/index.js";
 
 interface Snapshot {
@@ -43,7 +44,7 @@ export class GameStore {
 
   private saveSnapshots(): void {
     for (const [gameId, engine] of this.games.entries()) {
-      if (engine.getPlayerCount() === 0) continue;
+      if (engine.getConnectedPlayerCount() === 0) continue;
       const snapshot: Snapshot = {
         gameId,
         data: JSON.stringify(engine.game),
@@ -114,10 +115,11 @@ export class GameStore {
     let cleaned = 0;
 
     for (const [gameId, engine] of this.games.entries()) {
-      if (engine.getPlayerCount() === 0 && now - engine.getCreatedAt() > olderThanMs) {
+      if (engine.getConnectedPlayerCount() === 0 && now - engine.getCreatedAt() > olderThanMs) {
         engine.stopTimer();
         this.games.delete(gameId);
         this.snapshots.delete(gameId);
+        playerSessions.releaseGame(gameId);
         cleaned++;
       }
     }

@@ -12,14 +12,42 @@ import { DMControlsView } from "./views/dm-controls.js";
 import { InventoryPanelView } from "./views/inventory-panel.js";
 import { SettingsModal } from "./views/settings-modal.js";
 import { LobbyView } from "./views/lobby.js";
-import type { Player, ChatMessage, Game, InitiativeEntry, Item } from "../../shared/index.js";
+import type { Player, ChatMessage, DiceRoll, Game, InitiativeEntry, Item } from "../../shared/index.js";
 
 const ACTIVE_GAMES_REFRESH_MS = 30000;
 /** Give the server a moment to answer an auto-join before falling back to the form. */
 const AUTO_JOIN_TIMEOUT_MS = 3000;
 const TIMER_WARNING_SECONDS = 10;
-/** Marks a reload triggered by "Load", so the socket handler knows to auto-join. */
-const RELOAD_FOR_LOAD_KEY = "app_reload_for_load";
+/** Rejoin tokens, keyed by game id, so a refresh reclaims your seat. */
+const PLAYER_TOKENS_KEY = "dnd-player-tokens";
+
+function readPlayerToken(gameId: string): string | null {
+  try {
+    return (JSON.parse(localStorage.getItem(PLAYER_TOKENS_KEY) || "{}") as Record<string, string>)[gameId] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writePlayerToken(gameId: string, token: string): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(PLAYER_TOKENS_KEY) || "{}") as Record<string, string>;
+    all[gameId] = token;
+    localStorage.setItem(PLAYER_TOKENS_KEY, JSON.stringify(all));
+  } catch {
+    // Private browsing or a full quota — rejoin degrades to the join form.
+  }
+}
+
+function clearPlayerToken(gameId: string): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(PLAYER_TOKENS_KEY) || "{}") as Record<string, string>;
+    delete all[gameId];
+    localStorage.setItem(PLAYER_TOKENS_KEY, JSON.stringify(all));
+  } catch {
+    // Nothing to clean up.
+  }
+}
 
 /**
  * Top-level UI orchestration: owns the game id, wires WebSocket events to the
@@ -50,13 +78,9 @@ class App {
     this.setupWebSocketHandlers();
     this.attachGlobalEventDelegation();
 
-    // After a "Load" reload the socket handler auto-joins; don't race it here.
-    if (sessionStorage.getItem(RELOAD_FOR_LOAD_KEY) === "true") return;
-
-    if (this.gameId && !gameState.currentPlayer) {
-      this.showJoinForm();
-      return;
-    }
+    // With a game in the URL, the socket handler decides between rejoining an
+    // existing seat and showing the join form once the connection is open.
+    if (this.gameId) return;
 
     new CharacterCreator();
     void this.fetchActiveGames();
@@ -78,42 +102,17 @@ class App {
     this.lobby.showJoinForm(this.gameId, () => new SettingsModal().show());
   }
 
-  /**
-   * Rejoin after a "Load"-triggered reload. The original character data is gone,
-   * so a placeholder is used; if the game no longer exists, fall back to the form.
-   */
-  private autoJoinGame(): void {
-    if (!this.gameId) return;
-
-    wsManager.send({
-      type: "JOIN_GAME",
-      payload: {
-        gameId: this.gameId,
-        playerName: "Player",
-        characterName: "Adventurer",
-        race: "Human",
-        characterClass: "Fighter",
-        attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-        locale: getLocale(),
-      },
-    });
-
-    setTimeout(() => {
-      if (!gameState.currentPlayer && document.querySelector(".welcome-screen")) {
-        this.showJoinForm();
-      }
-    }, AUTO_JOIN_TIMEOUT_MS);
-  }
-
   // ---- WebSocket wiring ----
 
   private setupWebSocketHandlers(): void {
     wsManager.on("open", () => {
       if (!this.gameId || gameState.currentPlayer) return;
 
-      if (sessionStorage.getItem(RELOAD_FOR_LOAD_KEY) === "true") {
-        sessionStorage.removeItem(RELOAD_FOR_LOAD_KEY);
-        this.autoJoinGame();
+      // A stored token means we already have a character in this game — take
+      // the seat back instead of building a new one.
+      const token = readPlayerToken(this.gameId);
+      if (token) {
+        wsManager.send({ type: "REJOIN_GAME", payload: { gameId: this.gameId, playerToken: token } });
         return;
       }
 
@@ -125,8 +124,9 @@ class App {
     });
 
     wsManager.on("GAME_CREATED", payload => {
-      const p = payload as { gameId: string; game: Game };
+      const p = payload as { gameId: string; game: Game; playerToken?: string };
       this.gameId = p.gameId;
+      if (p.playerToken) writePlayerToken(p.gameId, p.playerToken);
       gameState.setGame(p.game);
       if (p.game.players?.[0]) gameState.setCurrentPlayer(p.game.players[0]);
       window.history.replaceState({}, "", `?game=${this.gameId}`);
@@ -135,10 +135,42 @@ class App {
     });
 
     wsManager.on("PLAYER_JOINED", payload => {
-      const p = payload as { gameState: Game; player: Player };
+      const p = payload as { gameId?: string; gameState: Game; player: Player; playerToken?: string };
+      if (p.playerToken && p.gameId) writePlayerToken(p.gameId, p.playerToken);
       gameState.setGame(p.gameState);
       if (p.player && !gameState.currentPlayer) gameState.setCurrentPlayer(p.player);
       this.showGameUI();
+    });
+
+    wsManager.on("GAME_REJOINED", payload => {
+      const p = payload as { gameId: string; gameState: Game; player: Player };
+      this.gameId = p.gameId;
+      gameState.setGame(p.gameState);
+      gameState.setCurrentPlayer(p.player);
+      this.showGameUI();
+      showNotification(t("rejoin.success", { name: p.player.characterName }), "success");
+    });
+
+    wsManager.on("REJOIN_FAILED", payload => {
+      // The token outlived its game (or the server restarted). Forget it and
+      // let the player make a character rather than stranding them.
+      const p = payload as { gameId: string };
+      clearPlayerToken(p.gameId);
+      showNotification(t("rejoin.expired"), "warning");
+      this.showJoinForm();
+    });
+
+    wsManager.on("PLAYER_LEFT", payload => {
+      const p = payload as { gameState?: Game };
+      if (p.gameState) gameState.setGame(p.gameState);
+      this.playersPanel.updateHP();
+    });
+
+    wsManager.on("GAME_LOADED", payload => {
+      const p = payload as { gameState: Game };
+      gameState.setGame(p.gameState);
+      this.showGameUI();
+      showNotification(t("load.success"), "success");
     });
 
     wsManager.on("STREAM_CHUNK", payload => {
@@ -291,6 +323,23 @@ class App {
       showNotification(t("inventory.item_used"), "info");
     });
 
+    wsManager.on("DICE_ROLL_RESULT", payload => {
+      const p = payload as { result: DiceRoll };
+      // Manual rolls aren't part of server-side chat history, so each client
+      // appends its own copy — it's a transient table event, not story state.
+      gameState.addChatMessage({
+        id: p.result.id,
+        playerId: p.result.playerId,
+        playerName: p.result.playerName,
+        characterName: p.result.characterName,
+        content: "",
+        type: "roll",
+        timestamp: p.result.timestamp,
+        diceResult: p.result,
+      });
+      this.chat.render();
+    });
+
     wsManager.on("GAME_SAVED", () => {
       showNotification(t("save.success"), "success");
     });
@@ -392,7 +441,9 @@ class App {
       const newLocale = toSupportedLocale((event.target as HTMLSelectElement).value);
       setLocale(newLocale);
       wsManager.send({ type: "SET_LOCALE", payload: { locale: newLocale } });
-      location.reload();
+      // Views render from state, so a rebuild is enough — a full page reload
+      // would drop the socket and the scroll position for nothing.
+      this.showGameUI();
     });
 
     document.getElementById("save-game-btn")?.addEventListener("click", () => {
@@ -401,26 +452,10 @@ class App {
       showNotification(t("save.saving"), "info");
     });
 
-    document.getElementById("load-game-btn")?.addEventListener("click", async () => {
+    document.getElementById("load-game-btn")?.addEventListener("click", () => {
       if (!this.gameId) return;
-
-      try {
-        const response = await fetch(`/api/games/${this.gameId}/load`);
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          showNotification(data.error || t("load.error"), "error");
-          return;
-        }
-
-        showNotification(t("load.success"), "success");
-        // The socket handler auto-joins once the page comes back up.
-        sessionStorage.setItem(RELOAD_FOR_LOAD_KEY, "true");
-        setTimeout(() => window.location.reload(), 1000);
-      } catch (error) {
-        showNotification(t("load.error"), "error");
-        console.error("Load failed:", error);
-      }
+      // The server restores the save and broadcasts it; GAME_LOADED re-renders.
+      wsManager.send({ type: "LOAD_GAME", payload: { gameId: this.gameId } });
     });
   }
 

@@ -4,6 +4,9 @@ import { t } from "./i18n.js";
 import { escapeHtml } from "./utils.js";
 import type { PresetActionId } from "../../shared/index.js";
 
+/** Dice the tray offers, in the order a player expects to see them. */
+const DICE_TYPES = [4, 6, 8, 10, 12, 20] as const;
+
 /**
  * The preset actions. `id` is language-independent and travels with the action
  * so the rules engine can pick the right skill check — the visible text is
@@ -97,6 +100,18 @@ export class ActionBar {
       `;
     }
 
+    // Dice are rolled server-side, so nobody can fudge a result.
+    const diceHtml = `
+      <div class="dice-tray">
+        <span class="dice-tray-label">${t("dice.tray_label")}</span>
+        ${DICE_TYPES.map(d => `<button class="dice-btn" data-dice="${d}">d${d}</button>`).join("")}
+        <label class="dice-modifier">
+          <span>${t("dice.modifier")}</span>
+          <input type="number" id="dice-modifier" value="0" min="-20" max="20" step="1">
+        </label>
+      </div>
+    `;
+
       // Assemble the action bar HTML
     this.element!.innerHTML = `
       <div class="preset-actions">${presetsHtml}</div>
@@ -104,6 +119,7 @@ export class ActionBar {
         ${potionsHtml}
         ${spellsHtml}
       </div>
+      ${diceHtml}
       <div class="free-text">
         <input type="text" id="action-input" placeholder="${t("action.placeholder")} (/emote text, /pm player message)">
         <button id="action-submit" class="primary">${t("action.submit")}</button>
@@ -134,6 +150,16 @@ export class ActionBar {
         }
       });
     }
+
+    // Dice buttons — the server rolls and broadcasts the result to everyone.
+    this.element!.querySelectorAll(".dice-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const diceType = parseInt(btn.getAttribute("data-dice") || "20");
+        const modifierInput = document.getElementById("dice-modifier") as HTMLInputElement | null;
+        const modifier = parseInt(modifierInput?.value || "0") || 0;
+        wsManager.send({ type: "DICE_ROLL", payload: { diceType, count: 1, modifier } });
+      });
+    });
 
     // Preset buttons — send their action text
     this.element!.querySelectorAll(".preset-btn").forEach(btn => {

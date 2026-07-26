@@ -23,6 +23,11 @@ export interface Player {
   deathSaves: { successes: number; failures: number }; // Death save tracking (3/3 = dead/stable)
   xp: number; // Experience points
   locale: string; // Preferred language for UI and DM narrative language (e.g., "en-US", "zh-CN")
+  /**
+   * Whether the player currently has a live socket. A disconnected player keeps
+   * their seat so a refresh can reclaim it; undefined means connected.
+   */
+  connected?: boolean;
   
   // Combat mechanics
   initiative?: number; // Initiative score for combat turn order
@@ -208,6 +213,8 @@ export type MessageType =
   | 'APPLY_BUFF'          // NEW: Apply buff to entity
   | 'REMOVE_BUFF'         // NEW: Remove buff from entity
   | 'SAVE_GAME'           // NEW: Client requests game save
+  | 'REJOIN_GAME'         // Reclaim a seat after a refresh, using a session token
+  | 'LOAD_GAME'           // DM restores the game from its last save
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -234,6 +241,9 @@ export type MessageType =
   | 'ITEM_USED'           // NEW: Item consumed
   | 'BUFF_UPDATE'         // NEW: Buff/Debuff change
   | 'GAME_SAVED'          // NEW: Server confirms save success
+  | 'GAME_REJOINED'       // Seat reclaimed; carries the full state back
+  | 'REJOIN_FAILED'       // Token unknown or expired — fall back to the join form
+  | 'GAME_LOADED'         // Game state was restored from disk
   | 'ERROR';
 
 export interface WebSocketMessage<T = unknown> {

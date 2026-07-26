@@ -82,6 +82,14 @@ export const saveGameSchema = z.object({
   gameId: z.string().min(1),
 });
 
+/** Reclaiming a seat after a refresh. The token is the only credential. */
+export const rejoinGameSchema = z.object({
+  gameId: z.string().min(1),
+  playerToken: z.string().min(1).max(200),
+});
+
+export type RejoinGameInput = z.infer<typeof rejoinGameSchema>;
+
 export type SaveGameInput = z.infer<typeof saveGameSchema>;
 
 // ============================================================================

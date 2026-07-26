@@ -562,5 +562,10 @@
   "dm_control.btn_delete": "削除",
   "dm_control.error_non_dm": "DM のみが実行できます",
   "dm_control.npc_created": "NPC を作成しました: {name}",
-  "dm_control.player_leveled": "{playerName} がレベル {level} になりました"
+  "dm_control.player_leveled": "{playerName} がレベル {level} になりました",
+  "dice.tray_label": "ダイス",
+  "dice.modifier": "修正",
+  "dice.rolled": "🎲 {name} が d{diceType} を振った: {total}",
+  "rejoin.success": "おかえりなさい、{name}",
+  "rejoin.expired": "セッションの有効期限が切れました。キャラクターを作り直してください。"
 }

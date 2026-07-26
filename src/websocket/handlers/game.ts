@@ -5,7 +5,10 @@ import { buildSystemPrompt } from "../../llm/prompts.js";
 import { type Scenario } from "../../../shared/schemas/scenario.js";
 import { getLocalizedMessage } from "../../utils/locale-loader.js";
 import { createGameSchema, joinGameSchema, playerActionSchema, saveGameSchema } from "../../../shared/index.js";
-import { parsePayload, requireGame, requirePlayer } from "../guards.js";
+import { parsePayload, requireDM, requireGame, requirePlayer } from "../guards.js";
+import { playerSessions } from "../sessions.js";
+import * as storage from "../../utils/storage.js";
+import { rejoinGameSchema } from "../../../shared/index.js";
 import type { HandlerContext, HandlerRegistry, ManagerApi } from "../types.js";
 
 /** The DM stalls for a few seconds before the opening scene so the lobby settles. */
@@ -135,7 +138,9 @@ function handleCreateGame(ctx: HandlerContext): void {
   const engine = gameStore.createGame(p.gameName, p.maxPlayers, p.scenario, player);
   ctx.manager.attachClient(ctx.ws, { id: ctx.client.id, gameId: engine.id, playerId: player.id });
 
-  ctx.manager.send(ctx.ws, "GAME_CREATED", { gameId: engine.id, game: engine.game });
+  // Sent only to this socket — never broadcast; see sessions.ts.
+  const playerToken = playerSessions.issue(engine.id, player.id);
+  ctx.manager.send(ctx.ws, "GAME_CREATED", { gameId: engine.id, game: engine.game, playerToken });
   ctx.manager.send(ctx.ws, "STREAM_CHUNK", {
     content: getLocalizedMessage(player.locale, "status.dm_preparing"),
     isFinal: false,
@@ -183,7 +188,9 @@ function handleJoinGame(ctx: HandlerContext): void {
     gameState: engine.game,
   });
 
-  ctx.manager.send(ctx.ws, "PLAYER_JOINED", { gameId: engine.id, player, gameState: engine.game });
+  const playerToken = playerSessions.issue(engine.id, player.id);
+  ctx.manager.send(ctx.ws, "PLAYER_JOINED", { gameId: engine.id, player, gameState: engine.game, playerToken });
+  // The broadcast copy deliberately omits the token.
   ctx.manager.broadcastToGame(engine.id, "PLAYER_JOINED", { player, gameState: engine.game }, ctx.ws);
 
   // A freshly loaded save has no DM and no history yet; otherwise the existing DM
@@ -199,6 +206,70 @@ function handleJoinGame(ctx: HandlerContext): void {
     isStatus: true,
   });
   scheduleOpeningScene(ctx.manager, engine, player.characterName, JOIN_SCENE_DELAY_MS, {});
+}
+
+/**
+ * REJOIN_GAME — reclaim a seat after a refresh.
+ *
+ * Without this, a refresh drops the player and the client has to invent a new
+ * character, so a page reload silently replaced you with a stranger.
+ */
+function handleRejoinGame(ctx: HandlerContext): void {
+  const parsed = parsePayload(ctx, rejoinGameSchema);
+  if (!parsed) return;
+
+  const seat = playerSessions.resolve(parsed.playerToken);
+  const engine = seat ? gameStore.getGame(seat.gameId) ?? gameStore.loadSingleGame(seat.gameId) : null;
+  const player = engine && seat ? engine.game.players.find(p => p.id === seat.playerId) : undefined;
+
+  if (!seat || !engine || !player) {
+    // Expired token or a game that no longer exists: tell the client to fall
+    // back to the join form rather than leaving it on a blank screen.
+    ctx.manager.send(ctx.ws, "REJOIN_FAILED", { gameId: parsed.gameId });
+    return;
+  }
+
+  engine.setPlayerConnected(player.id, true);
+  ctx.manager.attachClient(ctx.ws, { id: ctx.client.id, gameId: engine.id, playerId: player.id });
+
+  ctx.manager.send(ctx.ws, "GAME_REJOINED", {
+    gameId: engine.id,
+    player: engine.game.players.find(p => p.id === player.id),
+    gameState: engine.game,
+    playerToken: parsed.playerToken,
+  });
+  // Others just need the refreshed roster; no "joined the adventure" event.
+  ctx.manager.broadcastToGame(engine.id, "PLAYER_JOINED", { player, gameState: engine.game }, ctx.ws);
+
+  console.log(`[Rejoin] ${player.characterName} reclaimed their seat in ${engine.id}`);
+}
+
+/**
+ * LOAD_GAME — restore the game from its last save, in place.
+ *
+ * DM-only, because it rewinds the state for everyone at the table. Previously
+ * the client faked this by reloading the browser, which never actually
+ * restored anything.
+ */
+function handleLoadGame(ctx: HandlerContext): void {
+  const resolved = requireDM(ctx, "load a saved game");
+  if (!resolved) return;
+
+  const saved = storage.loadGame(resolved.engine.id);
+  if (!saved) {
+    ctx.manager.sendError(ctx.ws, "No save found for this game");
+    return;
+  }
+
+  resolved.engine.restoreFrom(saved);
+  ctx.manager.startTimerBroadcast(resolved.engine.id);
+
+  ctx.manager.broadcastToGame(resolved.engine.id, "GAME_LOADED", {
+    gameId: resolved.engine.id,
+    gameState: resolved.engine.game,
+  });
+
+  console.log(`[LoadGame] Restored ${resolved.engine.id} from disk`);
 }
 
 /** LIST_GAMES — lobby listing of in-memory and saved games. */
@@ -317,6 +388,8 @@ function handleSaveGame(ctx: HandlerContext): void {
 export const gameHandlers: HandlerRegistry = {
   CREATE_GAME: handleCreateGame,
   JOIN_GAME: handleJoinGame,
+  REJOIN_GAME: handleRejoinGame,
+  LOAD_GAME: handleLoadGame,
   LIST_GAMES: handleListGames,
   PLAYER_ACTION: handlePlayerAction,
   SET_LOCALE: handleSetLocale,

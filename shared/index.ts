@@ -32,6 +32,7 @@ export {
   eventSchema,
   diceRollSchema,
   saveGameSchema,
+  rejoinGameSchema,
   itemSchema,
   equipItemSchema,
   useItemSchema,
@@ -48,6 +49,7 @@ export type {
   EventInput,
   DiceRollInput,
   SaveGameInput,
+  RejoinGameInput,
 } from "./schemas/game.js";
 
 // Action & Chat schemas

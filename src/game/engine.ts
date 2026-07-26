@@ -205,7 +205,27 @@ export class GameEngine {
   // ---- Players ----
 
   getAllPlayers(): Player[] { return this.state.snapshot.players; }
+
+  /** Everyone holding a seat, including players who are briefly disconnected. */
   getPlayerCount(): number { return this.state.raw.players.length; }
+
+  /** Players with a live socket right now. Drives idle-game cleanup. */
+  getConnectedPlayerCount(): number {
+    return this.state.raw.players.filter(p => p.connected !== false).length;
+  }
+
+  /**
+   * Mark a seat connected or not. A disconnected player keeps their seat so a
+   * refresh can reclaim it rather than spawning a duplicate character.
+   */
+  setPlayerConnected(playerId: string, connected: boolean): boolean {
+    return this.state.mutate(game => {
+      const player = game.players.find(p => p.id === playerId);
+      if (!player) return false;
+      player.connected = connected;
+      return true;
+    });
+  }
   getMaxPlayers(): number { return this.state.raw.maxPlayers; }
   getCreatedAt(): number { return this.state.raw.createdAt; }
 
@@ -279,5 +299,27 @@ export class GameEngine {
 
   saveGame(): void {
     storage.saveGame(this.state.raw);
+  }
+
+  /**
+   * Replace the live state with a previously saved game, keeping this engine
+   * (and everyone's open sockets) in place.
+   *
+   * Players who are connected right now are carried over from the running game
+   * rather than taken from the file — otherwise restoring a save would knock
+   * everyone at the table out of their seats.
+   */
+  restoreFrom(saved: Game): void {
+    this.state.mutate(game => {
+      const connectedNow = game.players.filter(p => p.connected !== false);
+      const connectedIds = new Set(connectedNow.map(p => p.id));
+
+      Object.assign(game, saved, {
+        id: game.id,
+        players: [...connectedNow, ...saved.players.filter(p => !connectedIds.has(p.id))],
+      });
+    });
+
+    this.timer.start();
   }
 }

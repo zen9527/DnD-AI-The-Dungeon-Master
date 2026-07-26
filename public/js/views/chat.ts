@@ -22,7 +22,9 @@ const SKILL_LABEL_KEYS = {
 /** Render a dice roll for the chat log, localising the skill name and outcome. */
 export function formatDiceResult(dice: DiceRoll): string {
   if (!dice.skillCheck) {
-    return `🎲 d20: ${dice.total} (${dice.rolls[0] || dice.total} + ${dice.modifier})`;
+    const rolls = dice.rolls.join(" + ");
+    const modifier = dice.modifier ? ` ${dice.modifier > 0 ? "+" : "-"} ${Math.abs(dice.modifier)}` : "";
+    return `🎲 d${dice.diceType}: ${dice.total}  (${rolls}${modifier})`;
   }
 
   const labelKey = SKILL_LABEL_KEYS[dice.skillCheck.skill as keyof typeof SKILL_LABEL_KEYS];
