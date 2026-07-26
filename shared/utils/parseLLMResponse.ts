@@ -1,11 +1,15 @@
-import type { StreamResult, StructuredResult } from "../types/index.js";
+import type { StreamResult, StructuredResult } from "../../src/types/index.js";
 
 /**
- * Parse LLM response and extract structured result from JSON block.
- * Uses flexible ---JSON--- markers with whitespace handling.
+ * Split an LLM reply into its prose narrative and the structured result the DM
+ * prompt asks for. The JSON payload is delimited by `---JSON---` on both sides;
+ * a missing or malformed block degrades to a neutral fallback rather than
+ * failing, so a chatty model can never break the turn.
+ *
+ * Lives in `shared/` because both the server (streaming completion) and the
+ * browser (incremental stream buffer) parse the same format.
  */
 export function parseLLMResponse(content: string): StreamResult {
-  // Try to match JSON block with flexible whitespace handling
   const jsonMatch = content.match(/---JSON---\s*([\s\S]*?)\s*---JSON---/);
 
   let structured: StructuredResult;
@@ -16,17 +20,17 @@ export function parseLLMResponse(content: string): StreamResult {
       structured = createFallbackResult();
     }
   } else {
-    // No JSON block found - use entire content as narrative
     structured = createFallbackResult();
   }
 
-  // Extract only the narrative part (before JSON block)
+  // The narrative is everything before the JSON block.
   const narrativeMatch = content.match(/^([\s\S]*?)\s*---JSON---/);
   const narrative = narrativeMatch ? narrativeMatch[1].trim() : content.trim();
 
   return { fullNarrative: narrative || content, structured };
 }
 
+/** A "nothing happened" result, used when the model omits or mangles the JSON block. */
 function createFallbackResult(): StructuredResult {
   return {
     hit: false,

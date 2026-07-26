@@ -3,7 +3,7 @@ import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus 
 import { isHit, calculateInitiative, rollHitDice, DC_DIFFICULTY, getActionSkillCheck, CLASS_SKILL_PROFICIENCIES, calculateCombinedCheck, awardXP, buildInitiativeOrder, checkLevelUp } from "./rules.js";
 import { LLMClient, type LLMCallbacks } from "../llm/client.js";
 import { buildSystemPrompt, buildActionPrompt } from "../llm/prompts.js";
-import { parseLLMResponse } from "../llm/parser.js";
+import { parseLLMResponse } from "../../shared/utils/parseLLMResponse.js";
 import type { Game, Player, NPC, ChatMessage, PlayerActionPayload, StreamResult, InitiativeEntry, Item } from "../types/index.js";
 import { scenarioDescriptions, type Scenario } from "../../shared/schemas/scenario.js";
 import { HIT_DIE_BY_CLASS } from "../../shared/schemas/game.js";

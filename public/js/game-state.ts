@@ -1,5 +1,5 @@
 import type { Game, Player, ChatMessage, InitiativeEntry } from "../../shared/index.js";
-import { parseLLMResponse } from "@llm/parser.js";
+import { parseLLMResponse } from "../../shared/utils/parseLLMResponse.js";
 
 interface GameStateListener {
   (state: { 
