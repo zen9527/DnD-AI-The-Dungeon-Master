@@ -10,6 +10,11 @@ interface Snapshot {
   timestamp: number;
 }
 
+const SNAPSHOT_INTERVAL_MS = 300000;
+const AUTO_SAVE_INTERVAL_MS = 60000;
+/** How long an empty game stays in memory before it is reclaimed. */
+const EMPTY_GAME_TTL_MS = 3600000;
+
 export class GameStore {
   private games: Map<string, GameEngine>;
   private snapshots: Map<string, Snapshot>;
@@ -22,7 +27,7 @@ export class GameStore {
   }
 
   private startSnapshotTimer(): void {
-    this.cleanupInterval = setInterval(() => this.saveSnapshots(), 300000);
+    this.cleanupInterval = setInterval(() => this.saveSnapshots(), SNAPSHOT_INTERVAL_MS);
   }
 
   private saveSnapshots(): void {
@@ -74,13 +79,6 @@ export class GameStore {
     return this.games.get(gameId);
   }
 
-  joinGame(gameId: string, player: Player): void {
-    const engine = this.games.get(gameId);
-    if (!engine) throw new Error(`Game not found: ${gameId}`);
-    if (engine.getPlayerCount() >= engine.getMaxPlayers()) throw new Error("Game is full");
-    engine.addPlayer(player);
-  }
-
   listGames(): Array<{ id: string; name: string; scenario: string; players: number; maxPlayers: number }> {
     return Array.from(this.games.values()).map(e => ({
       id: e.id,
@@ -97,16 +95,25 @@ export class GameStore {
     return deleted;
   }
 
-  cleanupEmptyGames(olderThanMs: number = 3600000): number {
+  /**
+   * Drop games that everyone has left and that are older than the cutoff.
+   * They stay on disk — this only frees the in-memory engine and its snapshot,
+   * so an abandoned game can still be reloaded from the lobby.
+   */
+  cleanupEmptyGames(olderThanMs: number = EMPTY_GAME_TTL_MS): number {
     const now = Date.now();
     let cleaned = 0;
+
     for (const [gameId, engine] of this.games.entries()) {
-      if (engine.getPlayerCount() === 0 && (now - engine.getCreatedAt() > olderThanMs)) {
+      if (engine.getPlayerCount() === 0 && now - engine.getCreatedAt() > olderThanMs) {
+        engine.stopTimer();
         this.games.delete(gameId);
         this.snapshots.delete(gameId);
         cleaned++;
       }
     }
+
+    if (cleaned > 0) console.log(`[GameStore] Cleaned up ${cleaned} empty game(s)`);
     return cleaned;
   }
 
@@ -156,8 +163,12 @@ export class GameStore {
     return engine;
   }
 
+  /** Persist every live game on a timer, and reclaim abandoned ones. */
   startAutoSave(): NodeJS.Timeout {
-    return setInterval(() => this.saveAllGames(), 60000);
+    return setInterval(() => {
+      this.saveAllGames();
+      this.cleanupEmptyGames();
+    }, AUTO_SAVE_INTERVAL_MS);
   }
 }
 

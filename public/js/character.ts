@@ -2,6 +2,7 @@ import { wsManager } from "./websocket.js";
 import { getLocale, setLocale, t, tKey, toSupportedLocale, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { raceOptions, classOptions, scenarioOptions } from "../../shared/schemas/game.js";
 import { escapeHtml, showNotification, renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
+import { SettingsModal } from "./views/settings-modal.js";
 
 interface Attributes { str: number; dex: number; con: number; int: number; wis: number; cha: number };
 
@@ -147,7 +148,7 @@ export class CharacterCreator {
       if (gameId) window.location.href = `?game=${gameId}`;
     });
     document.querySelector(".settings-trigger")?.addEventListener("click", () => {
-      (window as unknown as { app: { showSettingsModal: () => void } }).app?.showSettingsModal();
+      new SettingsModal().show();
     });
 
     // Language selector change handler

@@ -197,17 +197,23 @@ export class CombatService {
    * narrates them, not on a clock.
    */
   advanceTurn(): void {
-    this.state.mutate(game => {
+    const roundEnded = this.state.mutate(game => {
       if (!game.combatMode || game.initiativeOrder.length === 0) {
-        if (game.players.length === 0) return;
+        if (game.players.length === 0) return false;
         this.rotationIndex = (this.rotationIndex + 1) % game.players.length;
-        if (this.rotationIndex === 0) game.currentRound++;
-        return;
+        if (this.rotationIndex !== 0) return false;
+        game.currentRound++;
+        return true;
       }
 
       game.currentTurnIndex = (game.currentTurnIndex + 1) % game.initiativeOrder.length;
-      if (game.currentTurnIndex === 0) game.currentRound++;
+      if (game.currentTurnIndex !== 0) return false;
+      game.currentRound++;
+      return true;
     });
+
+    // Buffs and temporary HP are measured in rounds, so they tick at the wrap.
+    if (roundEnded) this.reduceBuffDurations();
 
     this.timer.start();
   }
@@ -227,13 +233,6 @@ export class CombatService {
     const entry = game.initiativeOrder[game.currentTurnIndex];
     if (!entry?.playerId) return undefined;
     return game.players.find(p => p.id === entry.playerId);
-  }
-
-  /** The initiative entry holding the turn, player or NPC. */
-  getCurrentCombatEntity(): InitiativeEntry | undefined {
-    const game = this.state.raw;
-    if (!game.combatMode || game.initiativeOrder.length === 0) return undefined;
-    return game.initiativeOrder[game.currentTurnIndex];
   }
 
   // ---- NPC status ----
@@ -327,17 +326,5 @@ export class CombatService {
         }
       }
     });
-  }
-
-  getPlayerBuffs(playerId: string): Buff[] {
-    const player = this.state.raw.players.find(p => p.id === playerId);
-    if (!player) throw new Error("Player not found");
-    return player.buffs || [];
-  }
-
-  getNPCBuffs(npcId: string): Buff[] {
-    const npc = this.state.raw.npcs.find(n => n.id === npcId);
-    if (!npc) throw new Error("NPC not found");
-    return npc.buffs || [];
   }
 }

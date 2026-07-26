@@ -158,6 +158,11 @@ function handleJoinGame(ctx: HandlerContext): void {
     return;
   }
 
+  if (engine.getPlayerCount() >= engine.getMaxPlayers()) {
+    ctx.manager.sendError(ctx.ws, "Game is full");
+    return;
+  }
+
   const player = createPlayer({
     id: ctx.client.id,
     name: p.playerName,

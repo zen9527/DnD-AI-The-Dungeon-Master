@@ -112,7 +112,6 @@ export class GameEngine {
   }
   advanceTurn(): void { this.combat.advanceTurn(); }
   getCurrentPlayer(): Player | undefined { return this.combat.getCurrentPlayer(); }
-  getCurrentCombatEntity(): InitiativeEntry | undefined { return this.combat.getCurrentCombatEntity(); }
 
   // ---- DM narration ----
 
@@ -262,10 +261,6 @@ export class GameEngine {
   removeItemFromInventory(playerId: string, itemId: string): void { this.inventory.removeItem(playerId, itemId); }
   equipItem(playerId: string, itemId: string, slot: "weapon" | "armor"): void { this.inventory.equip(playerId, itemId, slot); }
   unequipItem(playerId: string, slot: "weapon" | "armor"): void { this.inventory.unequip(playerId, slot); }
-  equipWeapon(playerId: string, itemId: string): void { this.inventory.equip(playerId, itemId, "weapon"); }
-  equipArmor(playerId: string, itemId: string): void { this.inventory.equip(playerId, itemId, "armor"); }
-  unequipWeapon(playerId: string): void { this.inventory.unequip(playerId, "weapon"); }
-  unequipArmor(playerId: string): void { this.inventory.unequip(playerId, "armor"); }
   getPlayerInventory(playerId: string): Item[] { return this.inventory.getInventory(playerId); }
   getEquippedItems(playerId: string): { weapon?: Item; armor?: Item } { return this.inventory.getEquipped(playerId); }
   calculateTotalWeight(playerId: string): number { return this.inventory.getTotalWeight(playerId); }
@@ -285,9 +280,6 @@ export class GameEngine {
   }
   applyBuff(targetId: string, isPlayer: boolean, buff: Buff): void { this.combat.applyBuff(targetId, isPlayer, buff); }
   removeBuff(targetId: string, isPlayer: boolean, buffName: string): void { this.combat.removeBuff(targetId, isPlayer, buffName); }
-  reduceBuffDurations(): void { this.combat.reduceBuffDurations(); }
-  getPlayerBuffs(playerId: string): Buff[] { return this.combat.getPlayerBuffs(playerId); }
-  getNPCBuffs(npcId: string): Buff[] { return this.combat.getNPCBuffs(npcId); }
 
   // ---- Persistence ----
 
