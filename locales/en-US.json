@@ -470,6 +470,7 @@
   "npc_created.notification": "New NPC: {name} ({role})",
   "error.notification": "Error: {message}",
   "settings.api_key_placeholder": "Leave empty for local models",
+  "settings.api_key_required_placeholder": "Required for Claude",
   "status.dm_considers": "The DM considers your action...",
   "status.dm_preparing": "The Dungeon Master prepares the world...",
   "timer.remaining": "{seconds}s remaining",

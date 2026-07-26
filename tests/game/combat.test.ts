@@ -28,7 +28,7 @@ function testEngine(players: Player[]): GameEngine {
       players, npcs: [], chatHistory: [], events: [],
       combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0,
     },
-    "http://test", null, "test"
+    { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }
   );
 }
 

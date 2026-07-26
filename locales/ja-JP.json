@@ -411,6 +411,7 @@
   "npc_created.notification": "新しいNPC: {name} ({role})",
   "error.notification": "エラー: {message}",
   "settings.api_key_placeholder": "ローカルモデルの場合は空のままにしてください",
+  "settings.api_key_required_placeholder": "Claude では必須",
   "status.dm_considers": "ダンジョンマスターがあなたの行動を考えています...",
   "status.dm_preparing": "ダンジョンマスターが世界を準備しています...",
   "timer.remaining": "残り {seconds} 秒",

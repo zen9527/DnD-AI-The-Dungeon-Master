@@ -67,7 +67,7 @@ describe("GameEngine DM Control - Authorization", () => {
         npcs: [npc], 
         players: [dmPlayer, regularPlayer]
       },
-      "http://test", null, "test"
+      { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }
     );
 
     // Mock LLM client
@@ -363,7 +363,7 @@ describe("GameEngine DM Control - Authorization", () => {
           npcs: [], 
           players: [dmPlayer]
         },
-        "http://test", null, "test"
+        { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }
       );
       
       const npcs = emptyEngine.getAllNPCs();

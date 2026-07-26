@@ -1,5 +1,5 @@
 import { generateId } from "../utils/id.js";
-import { LLMClient, type LLMCallbacks } from "../llm/client.js";
+import { createLLMClient, type LLMCallbacks, type LLMConfig } from "../llm/client.js";
 import { buildSystemPrompt } from "../llm/prompts.js";
 import type {
   ChatMessage,
@@ -50,9 +50,7 @@ export class GameEngine {
 
   constructor(
     gameData: Omit<Game, "createdAt" | "conversationHistory"> & Partial<Pick<Game, "createdAt" | "conversationHistory">>,
-    llmBaseUrl: string,
-    llmApiKey: string | null,
-    llmModel: string
+    llmConfig: LLMConfig
   ) {
     this.state = new GameState({
       ...gameData,
@@ -71,11 +69,7 @@ export class GameEngine {
     this.combat = new CombatService(this.state, this.timer);
     this.inventory = new InventoryService(this.state);
     this.leveling = new LevelingService(this.state);
-    this.narration = new LLMInteractionService(
-      this.state,
-      new LLMClient(llmBaseUrl, llmApiKey, llmModel),
-      this.combat
-    );
+    this.narration = new LLMInteractionService(this.state, createLLMClient(llmConfig), this.combat);
 
     // The DM narrates in the creator's language until someone changes it.
     const creatorLocale = this.state.raw.players?.[0]?.locale || "en-US";

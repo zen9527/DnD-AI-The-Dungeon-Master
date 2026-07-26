@@ -5,7 +5,6 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 
 import { configManager } from "./utils/config.js";
-import { normalizeLlmBaseUrl } from "./utils/normalizeUrl.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +13,7 @@ const config = configManager.read();
 
 console.log(`[Server] .env file: ${configManager.getEnvPath()}`);
 console.log(`[Server] .env exists: ${fs.existsSync(configManager.getEnvPath())}`);
+console.log(`[Server] LLM provider: ${config.llmProvider}`);
 console.log(`[Server] LLM_API_URL: ${config.llmBaseUrl}`);
 console.log(`[Server] LLM_API_KEY: ${config.llmApiKey ? "(set)" : "(not set)"}`);
 console.log(`[Server] LLM_MODEL: ${config.llmModel}`);
@@ -39,16 +39,12 @@ app.use("/api", express.json());
 
 import { WebSocketManager } from "./websocket/manager.js";
 import { gameStore } from "./game/store.js";
-import { configSchema } from "../shared/schemas/config.js";
 import gamesSavePostHandler from "./routes/games.save.post.js";
 import gamesLoadGetHandler from "./routes/games.load.get.js";
 import gamesDeleteHandler from "./routes/games.delete.js";
+import { getConfigHandler, postConfigHandler, getModelsHandler, postConfigTestHandler } from "./routes/config.js";
 import { listGames as listSavedGames } from "./utils/storage.js";
 
-// Use config from ConfigManager (already loaded above)
-const llmBaseUrl = config.llmBaseUrl;
-const llmApiKey = config.llmApiKey;
-const llmModel = config.llmModel;
 
 const wsManager = new WebSocketManager(server);
 
@@ -64,105 +60,10 @@ const HOST = config.host;
 
 // ---- Config API Routes ----
 
-app.get("/api/config", (_req, res) => {
-  const config = configManager.read();
-  res.json({
-    llmBaseUrl: config.llmBaseUrl,
-    llmApiKey: config.llmApiKey || "",
-    llmModel: config.llmModel,
-  });
-});
-
-app.post("/api/config", (req, res) => {
-  const parsed = configSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues.map(i => i.message).join("; ") });
-    return;
-  }
-
-  const { llmBaseUrl: newBaseUrl, llmApiKey: newApiKey, llmModel: newModel } = parsed.data;
-
-  configManager.write({ llmBaseUrl: newBaseUrl, llmApiKey: newApiKey, llmModel: newModel });
-
-  console.log(`[Config] LLM updated: ${newBaseUrl} (${newModel})`);
-  res.json({ success: true, restartRequired: true });
-});
-
-app.get("/api/config/models", async (req, res) => {
-  let baseUrl = req.query.url as string;
-  const apiKey = req.query.key as string;
-
-  if (!baseUrl) {
-    res.json({ models: [] });
-    return;
-  }
-
-  // Normalize base URL (same logic as LLMClient)
-  const normalizedUrl = normalizeLlmBaseUrl(baseUrl);
-
-  try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-
-    const response = await fetch(`${normalizedUrl}/models`, {
-      headers,
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!response.ok) {
-      res.json({ models: [], error: `HTTP ${response.status}` });
-      return;
-    }
-
-    const data = await response.json() as { data?: { id: string }[] };
-    const models = data.data?.map(m => m.id) || [];
-    res.json({ models, error: null });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.json({ models: [], error: `Failed to fetch models: ${message}` });
-  }
-});
-
-app.post("/api/config/test", async (req, res) => {
-  const parsed = configSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.issues.map(i => i.message).join("; ") });
-    return;
-  }
-
-  const { llmBaseUrl: testBaseUrl, llmApiKey: testApiKey, llmModel: testModel } = parsed.data;
-
-  // Normalize base URL (same logic as LLMClient)
-  const normalizedTestUrl = normalizeLlmBaseUrl(testBaseUrl);
-
-  try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (testApiKey) headers["Authorization"] = `Bearer ${testApiKey}`;
-
-    const response = await fetch(`${normalizedTestUrl}/chat/completions`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: testModel || "test",
-        messages: [{ role: "user", content: "test" }],
-        max_tokens: 5,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (response.ok) {
-      res.json({ connected: true, message: "LLM endpoint reachable" });
-    } else {
-      const text = await response.text();
-      res.json({ connected: false, message: `HTTP ${response.status}: ${text.substring(0, 200)}` });
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    res.json({ connected: false, message: `Connection failed: ${message}` });
-  }
-});
-
-// ---- Active Games API Route ----
+app.get("/api/config", getConfigHandler);
+app.post("/api/config", postConfigHandler);
+app.get("/api/config/models", getModelsHandler);
+app.post("/api/config/test", postConfigTestHandler);
 
 app.get("/api/games", (_req, res) => {
   res.json(gameStore.listGames());
@@ -190,7 +91,7 @@ app.delete("/api/saved-games/:id", gamesDeleteHandler);
 server.listen(parseInt(PORT), () => {
   console.log(`============================================`);
   console.log(`DnD AI: The Dungeon Master running at http://${HOST}:${PORT}`);
-  console.log(`LLM: ${llmBaseUrl} (${llmModel})`);
+  console.log(`LLM: ${config.llmProvider} — ${config.llmModel}`);
   console.log(`Press Ctrl+C to stop`);
   console.log(`============================================`);
 });

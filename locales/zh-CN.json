@@ -478,6 +478,7 @@
   "npc_created.notification": "新NPC: {name} ({role})",
   "error.notification": "错误: {message}",
   "settings.api_key_placeholder": "留空表示使用本地模型",
+  "settings.api_key_required_placeholder": "使用 Claude 时必填",
   "status.dm_considers": "地下城主正在思考你的行动...",
   "status.dm_preparing": "地下城主正在准备世界...",
   "timer.remaining": "剩余 {seconds} 秒",

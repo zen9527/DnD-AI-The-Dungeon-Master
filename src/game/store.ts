@@ -2,12 +2,23 @@ import { GameEngine } from "./engine.js";
 import { generateId } from "../utils/id.js";
 import { configManager } from "../utils/config.js";
 import * as storage from "../utils/storage.js";
+import type { LLMConfig } from "../llm/client.js";
 import type { Game, Player, ChatMessage, NPC } from "../types/index.js";
 
 interface Snapshot {
   gameId: string;
   data: string;
   timestamp: number;
+}
+
+/** Project the .env config onto the LLM client's config shape. */
+function toLLMConfig(config: ReturnType<typeof configManager.read>): LLMConfig {
+  return {
+    provider: config.llmProvider,
+    baseUrl: config.llmBaseUrl,
+    apiKey: config.llmApiKey,
+    model: config.llmModel,
+  };
 }
 
 const SNAPSHOT_INTERVAL_MS = 300000;
@@ -66,9 +77,7 @@ export class GameStore {
         currentRound: 1,
         currentTurnIndex: 0
       },
-      config.llmBaseUrl,
-      config.llmApiKey,
-      config.llmModel
+      toLLMConfig(config)
     );
     this.games.set(gameId, engine);
     console.log(`[GameStore] Created game "${gameName}" (ID: ${gameId}, scenario: ${scenario})`);
@@ -136,9 +145,7 @@ export class GameStore {
         const config = configManager.read();
         const engine = new GameEngine(
           gameData,
-          config.llmBaseUrl,
-          config.llmApiKey,
-          config.llmModel
+          toLLMConfig(config)
         );
         this.games.set(gameMeta.id, engine);
       }
@@ -154,9 +161,7 @@ export class GameStore {
     const config = configManager.read();
     const engine = new GameEngine(
       gameData,
-      config.llmBaseUrl,
-      config.llmApiKey,
-      config.llmModel
+      toLLMConfig(config)
     );
     this.games.set(gameId, engine);
     console.log(`[GameStore] Loaded single game ${gameId} from disk`);

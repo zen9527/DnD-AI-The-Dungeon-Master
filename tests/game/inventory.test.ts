@@ -59,7 +59,7 @@ describe("Inventory System - RED Phase", () => {
         npcs: [], 
         players: [player]
       },
-      "http://test", null, "test"
+      { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }
     );
     
     // Mock the LLM client

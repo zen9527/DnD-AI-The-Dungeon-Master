@@ -1,4 +1,5 @@
 import fs from "fs";
+import { llmProviderSchema, type LLMProviderId } from "../../shared/schemas/config.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -49,6 +50,7 @@ export class ConfigManager {
     llmBaseUrl: string;
     llmApiKey: string | null;
     llmModel: string;
+    llmProvider: LLMProviderId;
     port: string;
     host: string;
   } {
@@ -64,10 +66,14 @@ export class ConfigManager {
       if (key && rest.length > 0) envVars[key.trim()] = rest.join("=").trim();
     }
 
+    const provider = llmProviderSchema.safeParse(envVars.LLM_PROVIDER);
+
     return {
       llmBaseUrl: envVars.LLM_API_URL || "http://localhost:1234/v1",
       llmApiKey: envVars.LLM_API_KEY || null,
       llmModel: envVars.LLM_MODEL || "local-model",
+      // Unset or unrecognized falls back to the OpenAI-compatible protocol.
+      llmProvider: provider.success ? provider.data : "openai-compatible",
       port: envVars.PORT || "3000",
       host: envVars.HOST || "0.0.0.0",
     };
@@ -77,27 +83,13 @@ export class ConfigManager {
    * Write updated LLM configuration to .env file.
    * Used by the config API POST endpoint.
    */
-  write(config: { llmBaseUrl: string; llmApiKey: string | null; llmModel: string }): void {
+  write(config: { llmBaseUrl: string; llmApiKey: string | null; llmModel: string; llmProvider?: LLMProviderId }): void {
     let content = fs.readFileSync(this.envPath, "utf-8");
 
-    // Update or add each variable
-    if (content.includes("LLM_API_URL=")) {
-      content = content.replace(/^LLM_API_URL=.*/mi, `LLM_API_URL=${config.llmBaseUrl}`);
-    } else {
-      content += `\nLLM_API_URL=${config.llmBaseUrl}`;
-    }
-
-    if (content.includes("LLM_API_KEY=")) {
-      content = content.replace(/^LLM_API_KEY=.*/mi, `LLM_API_KEY=${config.llmApiKey ?? ""}`);
-    } else {
-      content += `\nLLM_API_KEY=${config.llmApiKey ?? ""}`;
-    }
-
-    if (content.includes("LLM_MODEL=")) {
-      content = content.replace(/^LLM_MODEL=.*/mi, `LLM_MODEL=${config.llmModel}`);
-    } else {
-      content += `\nLLM_MODEL=${config.llmModel}`;
-    }
+    content = upsertEnvVar(content, "LLM_PROVIDER", config.llmProvider ?? "openai-compatible");
+    content = upsertEnvVar(content, "LLM_API_URL", config.llmBaseUrl);
+    content = upsertEnvVar(content, "LLM_API_KEY", config.llmApiKey ?? "");
+    content = upsertEnvVar(content, "LLM_MODEL", config.llmModel);
 
     fs.writeFileSync(this.envPath, content, "utf-8");
   }
@@ -108,6 +100,26 @@ export class ConfigManager {
   getEnvPath(): string {
     return this.envPath;
   }
+}
+
+/**
+ * Set `KEY=value` in a .env body, replacing an existing *active* assignment or
+ * appending one.
+ *
+ * The commented-out examples in `.env.example` are why this can't be a simple
+ * substring check: `LLM_MODEL=` appears in `# LLM_MODEL=gpt-4`, so a
+ * "contains, therefore replace" approach finds nothing to replace on the
+ * anchored pattern and silently drops the value.
+ */
+function upsertEnvVar(content: string, key: string, value: string): string {
+  const assignment = new RegExp(`^${key}=.*$`, "m");
+
+  if (assignment.test(content)) {
+    return content.replace(assignment, `${key}=${value}`);
+  }
+
+  const separator = content.endsWith("\n") || content.length === 0 ? "" : "\n";
+  return `${content}${separator}${key}=${value}\n`;
 }
 
 // Export singleton instance for use across the project

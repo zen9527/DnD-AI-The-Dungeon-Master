@@ -61,8 +61,8 @@ describe("GameStore - Save/Load Methods", () => {
       };
 
       // Create mock engines
-      const engine1 = new GameEngine(mockGame1, "http://test", "key", "model");
-      const engine2 = new GameEngine(mockGame2, "http://test", "key", "model");
+      const engine1 = new GameEngine(mockGame1, { provider: "openai-compatible", baseUrl: "http://test", apiKey: "key", model: "model" });
+      const engine2 = new GameEngine(mockGame2, { provider: "openai-compatible", baseUrl: "http://test", apiKey: "key", model: "model" });
       
       (gameStore as any).games.set("game-1", engine1);
       (gameStore as any).games.set("game-2", engine2);
@@ -205,7 +205,7 @@ describe("GameStore - Save/Load Methods", () => {
         events: [],
         createdAt: Date.now(),
       };
-      const engine = new GameEngine(mockGame, "http://test", "key", "model");
+      const engine = new GameEngine(mockGame, { provider: "openai-compatible", baseUrl: "http://test", apiKey: "key", model: "model" });
       (gameStore as any).games.set("game-1", engine);
 
       const result = gameStore.startAutoSave();

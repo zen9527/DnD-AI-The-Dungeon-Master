@@ -1,13 +1,19 @@
 import { t } from "../i18n.js";
-import { endpointPresets } from "../../../shared/schemas/config.js";
+import { endpointPresets, type LLMProviderId } from "../../../shared/schemas/config.js";
 
 interface LLMConfig {
   llmBaseUrl: string;
   llmApiKey: string;
   llmModel: string;
+  llmProvider: LLMProviderId;
 }
 
-const DEFAULT_CONFIG: LLMConfig = { llmBaseUrl: "http://localhost:1234/v1", llmApiKey: "", llmModel: "" };
+const DEFAULT_CONFIG: LLMConfig = {
+  llmBaseUrl: "http://localhost:1234/v1",
+  llmApiKey: "",
+  llmModel: "",
+  llmProvider: "openai-compatible",
+};
 
 async function loadConfig(): Promise<LLMConfig> {
   try {
@@ -47,9 +53,13 @@ async function testConfig(config: LLMConfig): Promise<{ connected: boolean; mess
   }
 }
 
-async function fetchModels(url: string, apiKey: string): Promise<{ models: string[]; error: string | null }> {
+async function fetchModels(
+  provider: LLMProviderId,
+  url: string,
+  apiKey: string
+): Promise<{ models: string[]; error: string | null }> {
   try {
-    const params = new URLSearchParams({ url, key: apiKey });
+    const params = new URLSearchParams({ provider, url, key: apiKey });
     const response = await fetch(`/api/config/models?${params}`);
     if (!response.ok) throw new Error("Failed to fetch models");
     return response.json();
@@ -68,6 +78,8 @@ export class SettingsModal {
   private keyInput!: HTMLInputElement;
   private modelSelect!: HTMLSelectElement;
   private statusEl!: HTMLElement | null;
+  /** Drives which fields are shown and which protocol the probes use. */
+  private provider: LLMProviderId = "openai-compatible";
 
   show(): void {
     this.modal = document.createElement("div");
@@ -104,9 +116,9 @@ export class SettingsModal {
             ${t("settings.endpoint_preset")}
             <select id="preset-select">${presets}</select>
           </label>
-          <label>
+          <label id="config-url-row">
             ${t("settings.api_url")}
-            <input type="text" id="config-url" placeholder="http://localhost:1234/v1" required>
+            <input type="text" id="config-url" placeholder="http://localhost:1234/v1">
           </label>
           <label>
             ${t("settings.api_key")}
@@ -131,13 +143,17 @@ export class SettingsModal {
   /** Populate the form from the saved config and pre-fetch that endpoint's models. */
   private async loadCurrentConfig(): Promise<void> {
     const config = await loadConfig();
+    this.provider = config.llmProvider ?? "openai-compatible";
     this.urlInput.value = config.llmBaseUrl;
     this.keyInput.value = config.llmApiKey;
+    this.applyProvider();
 
     // Match the saved URL to a preset, falling back to "Custom".
     const presetSelect = this.modal?.querySelector("#preset-select") as HTMLSelectElement | null;
     if (presetSelect) {
-      const matched = endpointPresets.findIndex(p => p.url === config.llmBaseUrl);
+      const matched = endpointPresets.findIndex(
+        p => p.provider === this.provider && (this.provider === "anthropic" || p.url === config.llmBaseUrl)
+      );
       const fallback = endpointPresets.findIndex(p => p.name === "Custom");
       const index = matched >= 0 ? matched : fallback;
       if (index >= 0) presetSelect.value = String(index);
@@ -155,7 +171,25 @@ export class SettingsModal {
       llmBaseUrl: this.urlInput.value.trim(),
       llmApiKey: this.keyInput.value.trim(),
       llmModel: this.modelSelect.value,
+      llmProvider: this.provider,
     };
+  }
+
+  /**
+   * Show only the fields the selected provider needs. Claude authenticates with
+   * a key against Anthropic's own endpoint, so the URL field is irrelevant
+   * there and only gets in the way.
+   */
+  private applyProvider(): void {
+    const isAnthropic = this.provider === "anthropic";
+
+    const urlRow = this.modal?.querySelector<HTMLElement>("#config-url-row");
+    if (urlRow) urlRow.style.display = isAnthropic ? "none" : "";
+
+    this.keyInput.required = isAnthropic;
+    this.keyInput.placeholder = isAnthropic
+      ? t("settings.api_key_required_placeholder")
+      : t("settings.api_key_placeholder");
   }
 
   private showResult(ok: boolean, message: string): void {
@@ -172,7 +206,8 @@ export class SettingsModal {
   /** Query the endpoint for its model list and rebuild the dropdown. */
   private async refreshModels(url: string, apiKey: string): Promise<void> {
     const trimmedUrl = url.trim();
-    if (!trimmedUrl) {
+    // Claude talks to Anthropic's own endpoint, so a blank URL is expected there.
+    if (!trimmedUrl && this.provider !== "anthropic") {
       this.setStatus(t("settings.fetch_no_url"));
       return;
     }
@@ -180,7 +215,7 @@ export class SettingsModal {
     this.setStatus(t("settings.fetch_models.loading"));
     this.modelSelect.innerHTML = `<option value="">${t("settings.loading_models")}</option>`;
 
-    const result = await fetchModels(trimmedUrl, apiKey.trim());
+    const result = await fetchModels(this.provider, trimmedUrl, apiKey.trim());
 
     if (result.error) {
       this.setStatus(t("settings.fetch_failed", { error: result.error }));
@@ -212,12 +247,16 @@ export class SettingsModal {
       const preset = endpointPresets[parseInt((event.target as HTMLSelectElement).value)];
       if (!preset) return;
 
+      this.provider = preset.provider;
       this.urlInput.value = preset.url;
       this.keyInput.value = preset.apiKey;
+      this.applyProvider();
       this.modelSelect.innerHTML = `<option value="">${t("settings.model_placeholder")}</option>`;
       this.setStatus(t("settings.enter_url_key"));
 
-      if (preset.url) await this.refreshModels(preset.url, preset.apiKey);
+      if (preset.url || this.provider === "anthropic") {
+        await this.refreshModels(preset.url, this.keyInput.value);
+      }
     });
 
     modal.querySelector("#fetch-models-btn")?.addEventListener("click", () => {

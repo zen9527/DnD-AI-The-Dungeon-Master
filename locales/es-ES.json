@@ -406,6 +406,7 @@
   "npc_created.notification": "Nuevo NPC: {name} ({role})",
   "error.notification": "Error: {message}",
   "settings.api_key_placeholder": "Dejar vacío para modelos locales",
+  "settings.api_key_required_placeholder": "Obligatorio para Claude",
   "status.dm_considers": "El DM considera tu acción...",
   "status.dm_preparing": "El Maestro del Mazmorra prepara el mundo...",
   "timer.remaining": "Quedan {seconds}s",

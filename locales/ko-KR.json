@@ -407,6 +407,7 @@
   "npc_created.notification": "새 NPC: {name} ({role})",
   "error.notification": "오류: {message}",
   "settings.api_key_placeholder": "로컬 모델은 비워두세요",
+  "settings.api_key_required_placeholder": "Claude 사용 시 필수",
   "status.dm_considers": "던전 마스터가 당신의 행동을 생각 중...",
   "status.dm_preparing": "던전 마스터가 세계를 준비 중...",
   "timer.remaining": "{seconds}초 남음",
