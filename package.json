@@ -6,7 +6,9 @@
   "scripts": {
     "build:backend": "tsc",
     "build:frontend": "vite build",
-    "build": "npm run build:backend && npm run build:frontend",
+    "build": "npm run typecheck:frontend && npm run build:backend && npm run build:frontend",
+    "typecheck": "tsc --noEmit && npm run typecheck:frontend",
+    "typecheck:frontend": "tsc -p tsconfig.frontend.json",
     "dev:backend": "tsc --watch",
     "start": "npm run build && node dist/src/server.js",
     "dev": "npm run build && concurrently \"npm run dev:backend\" \"vite\" \"node dist/src/server.js\"",

@@ -41,16 +41,37 @@ function applyHtmlLang(): void {
   document.documentElement.lang = langMap[currentLocale] || "en";
 }
 
-/** Translate a key with optional parameter interpolation */
+/**
+ * Translate a key with optional `{param}` interpolation.
+ *
+ * The key type is the en-US key set, so a typo or a key that only exists in one
+ * locale is a compile error. Missing translations fall back to English, then to
+ * the key itself.
+ */
 export function t(key: TranslationKeys, params?: Record<string, string | number>): string {
-  const localeData = LOCALES[currentLocale];
-  let str = (localeData as Record<string, string>)[key] ?? en[key as keyof typeof en] ?? key;
+  const localeData = LOCALES[currentLocale] as unknown as Record<string, string | undefined>;
+  const fallback = en as unknown as Record<string, string | undefined>;
+
+  let str = localeData[key] ?? fallback[key] ?? key;
   if (params) {
     for (const [paramKey, value] of Object.entries(params)) {
       str = str.replace(`{${paramKey}}`, String(value));
     }
   }
   return str;
+}
+
+/**
+ * Translate a key assembled at runtime (e.g. `race.${id}`), which the compiler
+ * cannot check. Prefer `t()` wherever the key is a literal.
+ */
+export function tKey(key: string, params?: Record<string, string | number>): string {
+  return t(key as TranslationKeys, params);
+}
+
+/** Narrow an arbitrary string to a supported locale, defaulting to en-US. */
+export function toSupportedLocale(value: string): SupportedLocale {
+  return value in LOCALES ? (value as SupportedLocale) : "en-US";
 }
 
 /** Get the display name for a locale */
@@ -119,14 +140,16 @@ export function getLocalizedNames(race: string): { firstNames: string[]; lastPar
   };
 }
 
-/** Get localized race name */
+/** Get localized race name, falling back to the English name. */
 export function getLocalizedRaceName(race: string): string {
   const key = `race.${race.toLowerCase()}`;
-  return t(key) || race; // Fallback to English if translation missing
+  const translated = tKey(key);
+  return translated === key ? race : translated;
 }
 
-/** Get localized class name */
+/** Get localized class name, falling back to the English name. */
 export function getLocalizedClassName(characterClass: string): string {
   const key = `class.${characterClass.toLowerCase()}`;
-  return t(key) || characterClass; // Fallback to English if translation missing
+  const translated = tKey(key);
+  return translated === key ? characterClass : translated;
 }

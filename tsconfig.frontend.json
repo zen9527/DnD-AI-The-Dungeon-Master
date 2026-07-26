@@ -1,0 +1,14 @@
+{
+  // Type-checks public/js, which the main tsconfig excludes because Vite (not
+  // tsc) builds it. Without this, frontend type errors ship silently.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["public/**/*.ts", "shared/**/*", "src/types/**/*", "locales/*.json"],
+  "exclude": ["node_modules", "dist"]
+}

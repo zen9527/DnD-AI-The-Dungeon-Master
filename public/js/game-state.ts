@@ -1,4 +1,4 @@
-import type { Game, Player, ChatMessage, InitiativeEntry } from "../../shared/index.js";
+import type { Game, Player, NPC, ChatMessage, InitiativeEntry } from "../../shared/index.js";
 import { parseLLMResponse } from "../../shared/utils/parseLLMResponse.js";
 
 interface GameStateListener {
@@ -35,6 +35,11 @@ export class GameState {
   get currentRound(): number { return this._currentRound; }
   get currentTurnIndex(): number { return this._currentTurnIndex; }
   get currentPlayerName(): string | undefined { return this._currentPlayerName; }
+
+  /** NPCs currently in the game; empty before the first state arrives. */
+  get npcs(): NPC[] { return this._game?.npcs ?? []; }
+  /** Players currently in the game; empty before the first state arrives. */
+  get players(): Player[] { return this._game?.players ?? []; }
 
   setGame(gameData: Game): void {
     this._game = gameData;

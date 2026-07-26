@@ -24,7 +24,6 @@ export class ActionBar {
     
     this.render(); // Initial render
     this.subscribeToStateChanges(); // React to inventory/spell changes
-    this.setupFreeTextListeners();
   }
 
   private subscribeToStateChanges(): void {
@@ -41,9 +40,11 @@ export class ActionBar {
     
     if (!player) return;
 
-    // Gather available potions from inventory (potion-type items only)
-    const potions: Array<{ name: string }> = 
-      (player.inventory || []).filter(i => i.type === 'potion').map(i => ({ name: i.name }));
+    // Drinkable items: consumables that actually restore HP.
+    const potions: Array<{ name: string }> =
+      (player.inventory || [])
+        .filter(i => i.type === "consumable" && i.stats?.healingAmount)
+        .map(i => ({ name: i.name }));
 
     // Gather spells from player's known spell list
     const spells = game?.players

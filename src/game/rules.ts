@@ -123,40 +123,38 @@ export function isHit(roll: number, player: Player, target: NPC, weaponAttackBon
 // ACTION TO SKILL CHECK MAPPING — Auto-detect action keywords for dice rolling
 // ============================================================================
 
-export function getActionSkillCheck(action: string): {
+export interface ActionSkillCheck {
   skill: string;
   ability: keyof Player['attributes'];
+  /** Difficulty class; 0 means the action is resolved by the DM, not a flat DC. */
   dc: number;
-  description: string;
-} | null {
+}
+
+/**
+ * Keyword-to-skill table, checked in order so that more specific actions win.
+ * Clients localize the result via the `skill.*` keys — this returns the English
+ * skill name the rules use, never display text.
+ */
+const ACTION_SKILL_CHECKS: Array<{ keywords: string[] } & ActionSkillCheck> = [
+  { keywords: ["defend", "dodge", "protect"],           skill: "Dodge",         ability: "dex", dc: 0 },
+  { keywords: ["hide", "stealth", "sneak"],             skill: "Stealth",       ability: "dex", dc: 15 },
+  { keywords: ["attack", "strike", "hit"],              skill: "Attack",        ability: "str", dc: 0 },
+  { keywords: ["search", "look", "perceive"],           skill: "Perception",    ability: "wis", dc: 10 },
+  { keywords: ["talk", "persuade", "convince"],         skill: "Persuasion",    ability: "cha", dc: 10 },
+  { keywords: ["intimidate", "threaten"],               skill: "Intimidation",  ability: "cha", dc: 12 },
+  { keywords: ["investigate", "examine", "inspect"],    skill: "Investigation", ability: "int", dc: 12 },
+  { keywords: ["intelligence", "arcana", "magic"],      skill: "Arcana",        ability: "int", dc: 10 },
+  { keywords: ["climb", "jump", "swim"],                skill: "Athletics",     ability: "str", dc: 12 },
+];
+
+/** Infer which skill check a free-text action calls for, or null if none applies. */
+export function getActionSkillCheck(action: string): ActionSkillCheck | null {
   const actionLower = action.toLowerCase();
 
-  if (actionLower.includes("defend") || actionLower.includes("dodge") || actionLower.includes("protect")) {
-    return { skill: "Dodge", ability: "dex", dc: 0, description: "敏捷 (闪避)" };
-  }
-  if (actionLower.includes("hide") || actionLower.includes("stealth") || actionLower.includes("sneak")) {
-    return { skill: "Stealth", ability: "dex", dc: 15, description: "敏捷 (潜行)" };
-  }
-  if (actionLower.includes("attack") || actionLower.includes("strike") || actionLower.includes("hit")) {
-    return { skill: "Attack", ability: "str", dc: 0, description: "攻击" };
-  }
-  if (actionLower.includes("search") || actionLower.includes("look") || actionLower.includes("perceive")) {
-    return { skill: "Perception", ability: "wis", dc: 10, description: "感知 (察觉)" };
-  }
-  if (actionLower.includes("talk") || actionLower.includes("persuade") || actionLower.includes("convince")) {
-    return { skill: "Persuasion", ability: "cha", dc: 10, description: "魅力 (说服)" };
-  }
-  if (actionLower.includes("intimidate") || actionLower.includes("threaten")) {
-    return { skill: "Intimidation", ability: "cha", dc: 12, description: "魅力 (威吓)" };
-  }
-  if (actionLower.includes("investigate") || actionLower.includes("examine") || actionLower.includes("inspect")) {
-    return { skill: "Investigation", ability: "int", dc: 12, description: "智力 (调查)" };
-  }
-  if (actionLower.includes("intelligence") || actionLower.includes("arcana") || actionLower.includes("magic")) {
-    return { skill: "Arcana", ability: "int", dc: 10, description: "智力 (奥秘)" };
-  }
-  if (actionLower.includes("climb") || actionLower.includes("jump") || actionLower.includes("swim")) {
-    return { skill: "Athletics", ability: "str", dc: 12, description: "力量 (运动)" };
+  for (const { keywords, skill, ability, dc } of ACTION_SKILL_CHECKS) {
+    if (keywords.some(keyword => actionLower.includes(keyword))) {
+      return { skill, ability, dc };
+    }
   }
 
   return null;

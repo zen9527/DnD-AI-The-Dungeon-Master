@@ -22,7 +22,21 @@ function handleNPCCreate(ctx: HandlerContext): void {
   const parsed = parsePayload(ctx, npcSchema);
   if (!parsed) return;
 
-  engine.addNPC(parsed.name, parsed.description || "", parsed.role);
+  // The DM's form supplies a stat block; the LLM's inline NPC creation does not.
+  if (parsed.hp !== undefined || parsed.maxHp !== undefined || parsed.ac !== undefined) {
+    engine.createNPC({
+      name: parsed.name,
+      description: parsed.description,
+      role: parsed.role,
+      hp: parsed.hp ?? parsed.maxHp ?? 10,
+      maxHp: parsed.maxHp ?? parsed.hp ?? 10,
+      ac: parsed.ac ?? 11,
+      attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+    });
+  } else {
+    engine.addNPC(parsed.name, parsed.description || "", parsed.role);
+  }
+
   ctx.manager.broadcastToGame(engine.id, "NPC_CREATED", {
     npc: engine.game.npcs[engine.game.npcs.length - 1],
   });

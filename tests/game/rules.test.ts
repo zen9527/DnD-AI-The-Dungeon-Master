@@ -39,8 +39,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Stealth",
       ability: "dex",
-      dc: 15,
-      description: "敏捷 (潜行)"
+      dc: 15
     });
   });
 
@@ -49,8 +48,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Stealth",
       ability: "dex",
-      dc: 15,
-      description: "敏捷 (潜行)"
+      dc: 15
     });
   });
 
@@ -59,8 +57,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Stealth",
       ability: "dex",
-      dc: 15,
-      description: "敏捷 (潜行)"
+      dc: 15
     });
   });
 
@@ -69,8 +66,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Attack",
       ability: "str",
-      dc: 0,
-      description: "攻击"
+      dc: 0
     });
   });
 
@@ -79,8 +75,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Attack",
       ability: "str",
-      dc: 0,
-      description: "攻击"
+      dc: 0
     });
   });
 
@@ -89,8 +84,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Perception",
       ability: "wis",
-      dc: 10,
-      description: "感知 (察觉)"
+      dc: 10
     });
   });
 
@@ -99,8 +93,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Perception",
       ability: "wis",
-      dc: 10,
-      description: "感知 (察觉)"
+      dc: 10
     });
   });
 
@@ -109,8 +102,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Persuasion",
       ability: "cha",
-      dc: 10,
-      description: "魅力 (说服)"
+      dc: 10
     });
   });
 
@@ -119,8 +111,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Persuasion",
       ability: "cha",
-      dc: 10,
-      description: "魅力 (说服)"
+      dc: 10
     });
   });
 
@@ -129,8 +120,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Intimidation",
       ability: "cha",
-      dc: 12,
-      description: "魅力 (威吓)"
+      dc: 12
     });
   });
 
@@ -139,8 +129,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Investigation",
       ability: "int",
-      dc: 12,
-      description: "智力 (调查)"
+      dc: 12
     });
   });
 
@@ -149,8 +138,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Investigation",
       ability: "int",
-      dc: 12,
-      description: "智力 (调查)"
+      dc: 12
     });
   });
 
@@ -159,8 +147,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Dodge",
       ability: "dex",
-      dc: 0,
-      description: "敏捷 (闪避)"
+      dc: 0
     });
   });
 
@@ -169,8 +156,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Dodge",
       ability: "dex",
-      dc: 0,
-      description: "敏捷 (闪避)"
+      dc: 0
     });
   });
 
@@ -179,8 +165,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Arcana",
       ability: "int",
-      dc: 10,
-      description: "智力 (奥秘)"
+      dc: 10
     });
   });
 
@@ -189,8 +174,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Arcana",
       ability: "int",
-      dc: 10,
-      description: "智力 (奥秘)"
+      dc: 10
     });
   });
 
@@ -199,8 +183,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Athletics",
       ability: "str",
-      dc: 12,
-      description: "力量 (运动)"
+      dc: 12
     });
   });
 
@@ -209,8 +192,7 @@ describe("getActionSkillCheck", () => {
     expect(result).toEqual({
       skill: "Athletics",
       ability: "str",
-      dc: 12,
-      description: "力量 (运动)"
+      dc: 12
     });
   });
 

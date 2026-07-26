@@ -1,5 +1,5 @@
 import { wsManager } from "./websocket.js";
-import { getLocale, setLocale, t, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
+import { getLocale, setLocale, t, tKey, toSupportedLocale, SUPPORTED_LOCALES, getLocalizedScenarios, getLocalizedNames, getLocalizedRaceName, getLocalizedClassName } from "./i18n.js";
 import { raceOptions, classOptions, scenarioOptions } from "../../shared/schemas/game.js";
 import { escapeHtml, showNotification, renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
 
@@ -153,7 +153,7 @@ export class CharacterCreator {
     // Language selector change handler
     document.getElementById("locale-select")?.addEventListener("change", () => {
       const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(newLocale);
+      setLocale(toSupportedLocale(newLocale));
       location.reload();
     });
 
@@ -215,7 +215,7 @@ export class CharacterCreator {
 
     document.getElementById("locale-select")?.addEventListener("change", () => {
       const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(newLocale);
+      setLocale(toSupportedLocale(newLocale));
       location.reload();
     });
 
@@ -405,7 +405,7 @@ export class CharacterCreator {
 
     document.getElementById("locale-select")?.addEventListener("change", () => {
       const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(newLocale);
+      setLocale(toSupportedLocale(newLocale));
       location.reload();
     });
 
@@ -489,7 +489,7 @@ export class CharacterCreator {
 
     document.getElementById("locale-select")?.addEventListener("change", () => {
       const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(newLocale);
+      setLocale(toSupportedLocale(newLocale));
       location.reload();
     });
 
@@ -541,16 +541,16 @@ export class CharacterCreator {
     
     // Map display name to locale key (e.g., "Half-Elf" -> "half-elf")
     const keySuffix = race.toLowerCase().replace(/ /g, "-").replace(/\./g, "");
-    const desc = t(`race.${keySuffix}.description`, { defaultValue: "" });
+    const desc = tKey(`race.${keySuffix}.description`, { defaultValue: "" });
     
     if (desc && desc !== `race.${keySuffix}.description`) {
-      descBox.innerHTML = `<strong>${t(`race.${keySuffix}`)}</strong><br>${desc}`;
+      descBox.innerHTML = `<strong>${tKey(`race.${keySuffix}`)}</strong><br>${desc}`;
     } else {
       // Try alternative key format
       const altKey = race.toLowerCase();
-      const altDesc = t(`race.${altKey}.description`, { defaultValue: "" });
+      const altDesc = tKey(`race.${altKey}.description`, { defaultValue: "" });
       if (altDesc && altDesc !== `race.${altKey}.description`) {
-        descBox.innerHTML = `<strong>${t(`race.${altKey}`)}</strong><br>${altDesc}`;
+        descBox.innerHTML = `<strong>${tKey(`race.${altKey}`)}</strong><br>${altDesc}`;
       } else {
         descBox.innerHTML = "";
       }
@@ -563,16 +563,16 @@ export class CharacterCreator {
     
     // Map display name to locale key (e.g., "Half-Orc" -> "half-orc")
     const keySuffix = characterClass.toLowerCase().replace(/ /g, "-").replace(/\./g, "");
-    const desc = t(`class.${keySuffix}.description`, { defaultValue: "" });
+    const desc = tKey(`class.${keySuffix}.description`, { defaultValue: "" });
     
     if (desc && desc !== `class.${keySuffix}.description`) {
-      descBox.innerHTML = `<strong>${t(`class.${keySuffix}`)}</strong><br>${desc}`;
+      descBox.innerHTML = `<strong>${tKey(`class.${keySuffix}`)}</strong><br>${desc}`;
     } else {
       // Try alternative key format
       const altKey = characterClass.toLowerCase();
-      const altDesc = t(`class.${altKey}.description`, { defaultValue: "" });
+      const altDesc = tKey(`class.${altKey}.description`, { defaultValue: "" });
       if (altDesc && altDesc !== `class.${altKey}.description`) {
-        descBox.innerHTML = `<strong>${t(`class.${altKey}`)}</strong><br>${altDesc}`;
+        descBox.innerHTML = `<strong>${tKey(`class.${altKey}`)}</strong><br>${altDesc}`;
       } else {
         descBox.innerHTML = "";
       }

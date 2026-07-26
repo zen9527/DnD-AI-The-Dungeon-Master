@@ -57,6 +57,10 @@ export const npcSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   role: z.enum(['friendly', 'neutral', 'hostile']),
+  // Optional stat block; the engine falls back to defaults when omitted.
+  hp: z.number().int().min(0).max(1000).optional(),
+  maxHp: z.number().int().min(0).max(1000).optional(),
+  ac: z.number().int().min(0).max(30).optional(),
 });
 
 export const eventSchema = z.object({
