@@ -1,141 +1,175 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { GameEngine } from "../../src/game/engine.js";
+import { TurnTimer } from "../../src/game/combat.js";
 import { calculateCombinedCheck } from "../../src/game/rules.js";
+import type { Player } from "../../src/types/index.js";
+
+function testPlayer(overrides: Partial<Player> = {}): Player {
+  return {
+    id: "player1",
+    name: "Test Player",
+    characterName: "Hero",
+    isDM: true,
+    race: "Human",
+    characterClass: "Fighter",
+    level: 1,
+    attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+    hp: 10, maxHp: 10, ac: 11,
+    proficiencyBonus: 2,
+    spellSlots: {}, spells: [], inventory: [], usedItems: [],
+    conditions: [], buffs: [], hitDice: { total: 1, used: 0 },
+    deathSaves: { successes: 0, failures: 0 }, xp: 0, locale: "en-US",
+    ...overrides,
+  };
+}
+
+function testEngine(players: Player[] = [testPlayer()]): GameEngine {
+  return new GameEngine(
+    { id: "test-game", name: "Test", scenario: "dungeon", maxPlayers: 4, npcs: [], players, chatHistory: [], events: [], combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0 },
+    "http://test", null, "test"
+  );
+}
+
+describe("TurnTimer", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("starts at 60 seconds", () => {
+    const timer = new TurnTimer();
+    timer.start();
+    expect(timer.remaining).toBe(60);
+    expect(timer.expired).toBe(false);
+    timer.stop();
+  });
+
+  it("counts down one second at a time", () => {
+    const timer = new TurnTimer();
+    timer.start();
+
+    vi.advanceTimersByTime(3000);
+
+    expect(timer.remaining).toBe(57);
+    timer.stop();
+  });
+
+  it("stops at 0 and reports expiry exactly once", () => {
+    const onExpire = vi.fn();
+    const timer = new TurnTimer(onExpire);
+    timer.start();
+
+    vi.advanceTimersByTime(65000);
+
+    expect(timer.remaining).toBe(0);
+    expect(timer.expired).toBe(true);
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    timer.stop();
+  });
+
+  it("does not count down after stop()", () => {
+    const timer = new TurnTimer();
+    timer.start();
+    timer.stop();
+
+    vi.advanceTimersByTime(5000);
+
+    expect(timer.remaining).toBe(60);
+  });
+
+  it("restarts from the top on a fresh start()", () => {
+    const timer = new TurnTimer();
+    timer.start();
+    vi.advanceTimersByTime(10000);
+    expect(timer.remaining).toBe(50);
+
+    timer.start();
+
+    expect(timer.remaining).toBe(60);
+    expect(timer.expired).toBe(false);
+    timer.stop();
+  });
+});
 
 describe("GameEngine turn timer", () => {
   let engine: GameEngine;
 
   beforeEach(() => {
-    // Mock LLM client to avoid actual API calls
-    const mockLLMClient = { streamChat: vi.fn() };
-    
-    // Create engine with minimal game data
-    engine = new GameEngine(
-      { 
-        id: "test-game", 
-        name: "Test", 
-        scenario: "dungeon", 
-        maxPlayers: 4, 
-        npcs: [], 
-        players: [{
-          id: "player1",
-          name: "Test Player",
-          characterName: "Hero",
-          isDM: true,
-          race: "Human",
-          characterClass: "Fighter",
-          level: 1,
-          attributes: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
-          hp: 10, maxHp: 10, ac: 11,
-          proficiencyBonus: 2,
-          spellSlots: {}, spells: [], inventory: [],
-          conditions: [], hitDice: { total: 1, used: 0 },
-          deathSaves: { successes: 0, failures: 0 }, xp: 0, locale: "en-US"
-        }]
-      },
-      "http://test", null, "test"
-    );
-    
-    // Mock the LLM client
-    (engine as any).llmClient = mockLLMClient;
+    vi.useFakeTimers();
+    engine = testEngine();
   });
 
   afterEach(() => {
-    // Clean up timer intervals
-    if ((engine as any)._timerInterval) {
-      clearInterval((engine as any)._timerInterval);
-    }
-  });
-
-  it("should reset timer to 60 seconds when starting", () => {
-    engine.startTimer();
-    expect(engine.timerRemaining).toBe(60);
-  });
-
-  it("should countdown timer correctly", async () => {
-    engine.startTimer();
-    expect(engine.timerRemaining).toBe(60);
-    
-    // Wait 1 second
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    expect(engine.timerRemaining).toBeLessThan(60);
-  });
-
-  it("should stop timer when stopTimer is called", () => {
-    engine.startTimer();
-    const initial = engine.timerRemaining;
-    
     engine.stopTimer();
-    
-    // Timer should not countdown after stop
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        expect(engine.timerRemaining).toBe(initial); // Should not have decreased
-        resolve(undefined);
-      }, 1500);
-    });
+    vi.useRealTimers();
   });
 
-  it("should reset timer when advanceTurn is called", () => {
+  it("exposes the countdown through timerRemaining", () => {
     engine.startTimer();
-    
-    // Advance turn should reset timer to 60
+    expect(engine.timerRemaining).toBe(60);
+
+    vi.advanceTimersByTime(2000);
+
+    expect(engine.timerRemaining).toBe(58);
+  });
+
+  it("resets the countdown when the turn advances", () => {
+    engine.startTimer();
+    vi.advanceTimersByTime(20000);
+    expect(engine.timerRemaining).toBe(40);
+
     engine.advanceTurn();
+
     expect(engine.timerRemaining).toBe(60);
   });
 
-  it("should countdown timer correctly", async () => {
+  it("freezes the countdown after stopTimer", () => {
     engine.startTimer();
-    const initial = engine.timerRemaining;
-    expect(initial).toBe(60);
-    
-    // Wait 1 second
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    expect(engine.timerRemaining).toBeLessThan(initial);
-  });
-
-  it("should stop at 0 when timer expires", async () => {
-    // Stop the real interval from startTimer() and use a fast mock
-    if ((engine as any)._timerInterval) {
-      clearInterval((engine as any)._timerInterval);
-    }
-    
-    (engine as any)._timerRemaining = 60;
-    (engine as any)._timerExpired = false;
-    (engine as any)._timerInterval = setInterval(() => {
-      if ((engine as any)._timerRemaining > 0) {
-        (engine as any)._timerRemaining--;
-      }
-      if ((engine as any)._timerRemaining <= 0) {
-        (engine as any)._timerRemaining = 0;
-        (engine as any)._timerExpired = true;
-      }
-    }, 100);
-    
-    // Wait until timer reaches 0 (60 * 100ms = 6 seconds + buffer)
-    await new Promise(resolve => setTimeout(resolve, 7000));
-    
-    expect(engine.timerRemaining).toBe(0);
-    expect((engine as any)._timerExpired).toBe(true);
-  });
-
-  it("should stop timer when stopTimer is called", () => {
-    engine.startTimer();
-    expect((engine as any)._timerInterval).not.toBeNull();
-    
     engine.stopTimer();
-    expect((engine as any)._timerInterval).toBeNull();
+
+    vi.advanceTimersByTime(5000);
+
+    expect(engine.timerRemaining).toBe(60);
+  });
+});
+
+describe("GameEngine state snapshot", () => {
+  it("reflects mutations immediately after a previous read", () => {
+    const engine = testEngine();
+
+    // Prime the snapshot cache, then mutate — the next read must not be stale.
+    expect(engine.game.npcs).toHaveLength(0);
+    engine.addNPC("Goblin", "A snarling goblin", "hostile");
+
+    expect(engine.game.npcs).toHaveLength(1);
+    expect(engine.game.npcs[0].name).toBe("Goblin");
   });
 
-  it("should reset timer when advanceTurn is called", () => {
-    engine.startTimer();
-    const initial = engine.timerRemaining;
-    
-    // Advance turn should reset timer to 60
-    engine.advanceTurn();
-    expect(engine.timerRemaining).toBe(60);
+  it("sees new chat messages right after adding them", () => {
+    const engine = testEngine();
+
+    expect(engine.game.chatHistory).toHaveLength(0);
+    engine.addEvent("Player Joined", "Hero has joined the adventure");
+
+    const latest = engine.game.chatHistory[engine.game.chatHistory.length - 1];
+    expect(latest.content).toContain("Hero has joined the adventure");
+  });
+
+  it("hands out copies that cannot corrupt the live state", () => {
+    const engine = testEngine();
+    engine.addNPC("Goblin", "A snarling goblin", "hostile");
+
+    engine.game.npcs[0].hp = 999;
+    // Force a fresh snapshot; the live NPC should be untouched by the write above.
+    engine.addEvent("Tick", "unrelated mutation");
+
+    expect(engine.game.npcs[0].hp).toBe(10);
+  });
+
+  it("applies a locale change to the live game", () => {
+    const engine = testEngine();
+
+    expect(engine.setPlayerLocale("player1", "zh-CN")).toBe(true);
+
+    expect(engine.game.players[0].locale).toBe("zh-CN");
   });
 });
 

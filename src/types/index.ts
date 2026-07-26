@@ -117,6 +117,7 @@ export interface DiceRoll {
     skill: string;
     dc: number;
     success: boolean;
+    helpers?: number; // Party members assisting the check (+2 each)
   };
 }
 

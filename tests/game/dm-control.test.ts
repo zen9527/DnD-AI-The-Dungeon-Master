@@ -94,17 +94,7 @@ describe("GameEngine DM Control - Authorization", () => {
 
     it("should update initiative order HP when combat is active", () => {
       engine.startCombat(false); // Start combat without rolling initiative
-      
-      // Add NPC to initiative order manually for testing
-      (engine as any)._game.initiativeOrder.push({
-        npcId: "goblin-1",
-        score: 5,
-        name: "Goblin Warrior",
-        hp: 7,
-        maxHp: 7,
-        ac: 15,
-        isPlayer: false,
-      });
+      engine.rollIndividualInitiative("goblin-1", false);
 
       engine.updateNPCHP("goblin-1", 2);
       
@@ -252,17 +242,8 @@ describe("GameEngine DM Control - Authorization", () => {
 
     it("should remove NPC from initiative order when deleted", () => {
       engine.startCombat(false);
-      
-      // Add NPC to initiative order
-      (engine as any)._game.initiativeOrder.push({
-        npcId: "goblin-1",
-        score: 5,
-        name: "Goblin Warrior",
-        hp: 7,
-        maxHp: 7,
-        ac: 15,
-        isPlayer: false,
-      });
+      engine.rollIndividualInitiative("goblin-1", false);
+      expect(engine.game.initiativeOrder.find(e => e.npcId === "goblin-1")).toBeDefined();
 
       engine.deleteNPC("goblin-1");
       
