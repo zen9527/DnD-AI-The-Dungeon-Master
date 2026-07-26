@@ -1008,10 +1008,35 @@ Keep it to 2-4 paragraphs. End with the JSON block.`;
 
   addPlayer(player: Player): void {
     this._game.players.push(player);
+    this.invalidateSnapshot();
   }
 
   removePlayer(playerId: string): void {
     this._game.players = this._game.players.filter(p => p.id !== playerId);
+    this.invalidateSnapshot();
+  }
+
+  /** Change a player's preferred language. Returns false if the player is gone. */
+  setPlayerLocale(playerId: string, locale: string): boolean {
+    const player = this._game.players.find(p => p.id === playerId);
+    if (!player) return false;
+    player.locale = locale;
+    this.invalidateSnapshot();
+    return true;
+  }
+
+  /**
+   * Replace the system prompt at the head of the conversation history.
+   * Used when a player switches locale so the DM narrates in the new language.
+   */
+  setSystemPrompt(content: string): void {
+    const entry = { role: "system" as const, content };
+    if (this._game.conversationHistory.length > 0) {
+      this._game.conversationHistory[0] = entry;
+    } else {
+      this._game.conversationHistory.push(entry);
+    }
+    this.invalidateSnapshot();
   }
 
   // ---- Inventory & Equipment Management ----
