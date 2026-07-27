@@ -13,34 +13,39 @@ const CONDITIONS = [
 
 /**
  * The DM's control surface: NPC health and conditions, NPC creation, XP awards
- * and level-ups. Rendered only for the DM, and mounted/unmounted by a floating
- * toggle button so it doesn't crowd the table.
+ * and level-ups. Rendered only for the DM, opened from a button that sits with
+ * the game's other tools in the header.
  */
 export class DMControlsView {
-  private toggleButton: HTMLElement | null = null;
+  private toggleButton: HTMLButtonElement | null = null;
 
   private get panel(): HTMLElement | null {
     return document.getElementById("dm-control-panel");
   }
 
   /**
-   * Install the floating toggle. Called on every game-UI rebuild; the button
-   * lives on document.body so it survives those rebuilds.
+   * Install the toggle in the header's tool cluster. Called on every game-UI
+   * rebuild, which replaces the header, so the button is re-homed each time.
+   *
+   * It used to float over the bottom-right corner, where on a phone it landed
+   * squarely on top of the "Act" button.
    */
   setupToggle(): void {
     if (!this.toggleButton) {
       const button = document.createElement("button");
       button.id = "dm-control-toggle";
-      button.className = "dm-control-panel-toggle";
-      button.textContent = "🎛️";
+      button.className = "dm-control-panel-toggle secondary icon-only";
       button.title = t("dm_control.title");
+      button.innerHTML = `<span class="btn-icon" aria-hidden="true">🎛️</span>`;
       button.addEventListener("click", () => this.toggle());
-      document.body.appendChild(button);
       this.toggleButton = button;
     }
 
+    const host = document.querySelector(".game-actions") ?? document.body;
+    if (this.toggleButton.parentElement !== host) host.appendChild(this.toggleButton);
+
     const isDM = gameState.currentPlayer?.isDM ?? false;
-    this.toggleButton.style.display = isDM ? "flex" : "none";
+    this.toggleButton.style.display = isDM ? "inline-flex" : "none";
     if (!isDM) this.panel?.classList.add("hidden");
   }
 

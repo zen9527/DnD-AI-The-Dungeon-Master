@@ -626,5 +626,7 @@
   "dice.modifier": "Mod",
   "dice.rolled": "🎲 {name} rolled d{diceType}: {total}",
   "rejoin.success": "Welcome back, {name}",
-  "rejoin.expired": "That session has expired — create your character again."
+  "rejoin.expired": "That session has expired — create your character again.",
+  "turn.label": "Turn",
+  "inventory.short": "Pack"
 }

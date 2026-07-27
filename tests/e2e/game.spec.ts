@@ -1,14 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Six flows through the real browser against the real server.
+ * Eight flows through the real browser against the real server.
  *
  * Everything below has been broken at some point without a single unit test
  * failing: the action bar rendered but sent nothing, the DM panel stayed empty
  * because the snapshot was stale, streaming showed one token at a time, a
  * refresh replaced your character with a stranger, and a rate limiter silently
- * refused the create button. Those are all one click deep — which is exactly
- * the depth no other test in this repo reaches.
+ * refused the create button, the lobby listed nothing, and the DM's own button
+ * covered the "Act" button on a phone. Those are all one click deep — which is
+ * exactly the depth no other test in this repo reaches.
  *
  * The DM is a stub (tests/e2e/stub-llm.mjs), so the narrative is fixed.
  */
@@ -116,7 +117,54 @@ test("flow 5 — switching language re-renders in place without dropping the soc
   await expect(page.locator("#chat-messages")).toContainText("我举起火把");
 });
 
-test("flow 6 — save writes to disk and load restores it", async ({ page }) => {
+test("flow 6 — the lobby lists the games that exist", async ({ page }) => {
+  const gameName = `Smoke: Lobby ${Date.now()}`;
+  await createGame(page, gameName);
+
+  // Arrive fresh, the way a second player would.
+  await page.goto("/");
+
+  // This listing was blank for every visitor: the creator reached for
+  // `window.app`, got the `<div id="app">` element that already owns that
+  // global, and the TypeError aborted the rest of the lobby's setup.
+  const card = page.locator("#active-games-container .game-card", { hasText: gameName });
+  await expect(card).toBeVisible();
+  await expect(card.locator(".status-badge")).toContainText("1/4");
+});
+
+test("flow 7 — the phone layout fits, with the party, story and composer all reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await createGame(page, "Smoke: Phone");
+  await waitForOpeningScene(page);
+
+  // Nothing may push the page sideways — the old fixed 280px rail did.
+  const overflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+  }));
+  expect(overflow.scrollWidth).toBe(overflow.clientWidth);
+
+  await expect(page.locator(".players-panel .character-name").filter({ hasText: "Ranulf" })).toBeVisible();
+  await expect(page.locator("#action-input")).toBeInViewport();
+  await expect(page.locator("#chat-messages")).toContainText(STUB_NARRATIVE);
+
+  // The pack opens as a sheet rather than a column that has nowhere to go.
+  await page.locator("#inventory-btn").click();
+  await expect(page.locator("#inventory-panel")).toBeVisible();
+  await expect(page.locator("#inventory-panel")).toBeInViewport();
+
+  // The sheet covers the composer, so it has to close again — the same
+  // button opens and closes it.
+  await page.locator("#inventory-btn").click();
+  await expect(page.locator("#inventory-panel")).toBeHidden();
+
+  // And a turn still goes through at this size.
+  await page.locator("#action-input").fill("I listen at the portcullis");
+  await page.locator("#action-submit").click();
+  await expect(page.locator("#chat-messages")).toContainText("I listen at the portcullis");
+});
+
+test("flow 8 — save writes to disk and load restores it", async ({ page }) => {
   await createGame(page, "Smoke: Save");
   await waitForOpeningScene(page);
 

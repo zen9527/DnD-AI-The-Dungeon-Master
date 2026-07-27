@@ -567,5 +567,7 @@
   "dice.modifier": "修正",
   "dice.rolled": "🎲 {name} が d{diceType} を振った: {total}",
   "rejoin.success": "おかえりなさい、{name}",
-  "rejoin.expired": "セッションの有効期限が切れました。キャラクターを作り直してください。"
+  "rejoin.expired": "セッションの有効期限が切れました。キャラクターを作り直してください。",
+  "turn.label": "手番",
+  "inventory.short": "荷物"
 }

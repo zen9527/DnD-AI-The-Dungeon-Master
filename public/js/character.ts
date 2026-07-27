@@ -8,6 +8,8 @@ import { SavedGamesView } from "./views/saved-games.js";
 
 export class CharacterCreator {
   private element: HTMLElement | null = null;
+  /** Refresh the "active adventures" list. Owned by App, which does the fetching. */
+  private readonly refreshActiveGames: () => void;
   private selectedScenario: string = "dungeon";
   // Store handler references for cleanup (fixes event listener leak)
   private raceChangeHandler: (() => void) | null = null;
@@ -40,7 +42,8 @@ export class CharacterCreator {
     });
   }
 
-  constructor() {
+  constructor(refreshActiveGames: () => void = () => {}) {
+    this.refreshActiveGames = refreshActiveGames;
     this.element = document.getElementById("app");
     if (!this.element) return;
     this.showForm();
@@ -87,9 +90,7 @@ export class CharacterCreator {
     `;
 
     document.getElementById("create-game-btn")?.addEventListener("click", () => this.showScenarioSelection());
-    document.getElementById("refresh-games-btn")?.addEventListener("click", () => {
-      (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
-    });
+    document.getElementById("refresh-games-btn")?.addEventListener("click", () => this.refreshActiveGames());
     document.getElementById("join-game-btn")?.addEventListener("click", () => {
       const gameId = (document.getElementById("game-id-input") as HTMLInputElement).value.trim();
       if (gameId) window.location.href = `?game=${gameId}`;
@@ -97,9 +98,6 @@ export class CharacterCreator {
 
     // Language selector change handler
     this.bindChrome(() => this.showForm());
-
-    // Fetch active games on load
-    (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
 
     // Fetch saved games on load
     void this.savedGames.refresh();

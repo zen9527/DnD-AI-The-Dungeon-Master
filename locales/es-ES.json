@@ -562,5 +562,7 @@
   "dice.modifier": "Mod",
   "dice.rolled": "🎲 {name} tiró d{diceType}: {total}",
   "rejoin.success": "Bienvenido de nuevo, {name}",
-  "rejoin.expired": "La sesión ha caducado: vuelve a crear tu personaje."
+  "rejoin.expired": "La sesión ha caducado: vuelve a crear tu personaje.",
+  "turn.label": "Turno",
+  "inventory.short": "Bolsa"
 }

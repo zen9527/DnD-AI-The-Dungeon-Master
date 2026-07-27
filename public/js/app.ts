@@ -82,7 +82,7 @@ class App {
     // existing seat and showing the join form once the connection is open.
     if (this.gameId) return;
 
-    new CharacterCreator();
+    new CharacterCreator(() => void this.fetchActiveGames());
     void this.fetchActiveGames();
     setInterval(() => void this.fetchActiveGames(), ACTIVE_GAMES_REFRESH_MS);
   }
@@ -393,18 +393,32 @@ class App {
       <div class="game-interface">
         ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
         <header class="game-header">
-          <h2>${escapeHtml(game.name)}</h2>
+          <div class="header-identity">
+            <h2>${escapeHtml(game.name)}</h2>
+            <span class="game-id">${escapeHtml(scenarioLabel)} • ${escapeHtml(game.id)}</span>
+          </div>
           <div class="turn-info">
+            <span class="turn-label">${t("turn.label")}</span>
             <span class="current-turn">${escapeHtml(this.getCurrentPlayerName())}</span>
             <span class="timer" id="turn-timer">60s</span>
           </div>
-          <span class="game-id">ID: ${escapeHtml(game.id)} • ${escapeHtml(scenarioLabel)}</span>
           <div class="game-actions">
-            <button id="save-game-btn" class="secondary">💾 ${t("save.btn")}</button>
-            <button id="load-game-btn" class="secondary">📂 ${t("load.btn")}</button>
+            <button id="inventory-btn" class="secondary" title="${t("inventory.title")}">
+              <span class="btn-icon" aria-hidden="true">🎒</span><span class="btn-label">${t("inventory.short")}</span>
+            </button>
+            <button id="save-game-btn" class="secondary" title="${t("save.btn")}">
+              <span class="btn-icon" aria-hidden="true">💾</span><span class="btn-label">${t("save.btn")}</span>
+            </button>
+            <button id="load-game-btn" class="secondary" title="${t("load.btn")}">
+              <span class="btn-icon" aria-hidden="true">📂</span><span class="btn-label">${t("load.btn")}</span>
+            </button>
+            <button id="settings-btn" class="secondary icon-only" title="${t("settings.title")}">
+              <span class="btn-icon" aria-hidden="true">⚙️</span>
+            </button>
+            <button id="copy-link-btn" class="secondary icon-only" title="${t("copy_link.tooltip")}">
+              <span class="btn-icon" aria-hidden="true">🔗</span>
+            </button>
           </div>
-          <button id="settings-btn" title="${t("settings.title")}">⚙️ ${t("settings.save_btn")}</button>
-          <button id="copy-link-btn" title="${t("copy_link.tooltip")}">📋</button>
         </header>
         <div class="main-content">
           <aside class="players-panel">${this.playersPanel.render(scenarioLabel)}</aside>
@@ -457,6 +471,18 @@ class App {
       // The server restores the save and broadcasts it; GAME_LOADED re-renders.
       wsManager.send({ type: "LOAD_GAME", payload: { gameId: this.gameId } });
     });
+
+    // The inventory panel used to render into an aside that nothing ever
+    // unhid, so a player's pack was unreachable. This is the way in.
+    document.getElementById("inventory-btn")?.addEventListener("click", () => {
+      const panel = document.getElementById("inventory-panel");
+      if (!panel) return;
+
+      const opening = panel.classList.contains("hidden");
+      if (opening) this.inventoryPanel.render();
+      panel.classList.toggle("hidden", !opening);
+      document.getElementById("inventory-btn")?.classList.toggle("active", opening);
+    });
   }
 
   /**
@@ -465,7 +491,10 @@ class App {
    */
   private attachGlobalEventDelegation(): void {
     document.body.addEventListener("click", event => {
-      const target = event.target as HTMLElement;
+      const clicked = event.target as HTMLElement;
+      // The header buttons wrap their icon and label in spans, so the click
+      // target is usually the span rather than the button itself.
+      const target = (clicked.closest("button") as HTMLElement | null) ?? clicked;
 
       if (target.id === "settings-btn") {
         new SettingsModal().show();
@@ -498,6 +527,10 @@ class App {
   }
 }
 
+// Deliberately not `window.app`: `<div id="app">` already claims that global,
+// so anything reading `window.app` before this line runs gets the element and
+// dies calling a method on it — which is how the lobby's game list once
+// silently stopped rendering.
 document.addEventListener("DOMContentLoaded", () => {
-  (window as unknown as { app: App }).app = new App();
+  (window as unknown as { dndApp: App }).dndApp = new App();
 });

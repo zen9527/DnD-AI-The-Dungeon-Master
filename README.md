@@ -176,10 +176,11 @@ tests/e2e/              # Playwright browser tests + the stub DM they run agains
 
 **Browser tests.** `npm run test:e2e` builds the app, starts it on port 3210
 against a canned DM (`tests/e2e/stub-llm.mjs`, port 3199), and drives Chromium
-through six flows: create a game, take a turn, roll dice, refresh and reclaim
-your seat, switch language, save and load. It needs no API key and never
-touches `saved_games/` — `tests/e2e/.env.e2e` and a scratch save directory
-isolate the run. First time only: `npx playwright install chromium`.
+through eight flows: create a game, take a turn, roll dice, refresh and reclaim
+your seat, switch language, list the lobby, drive the phone layout, and save
+and load. It needs no API key and never touches `saved_games/` —
+`tests/e2e/.env.e2e` and a scratch save directory isolate the run. First time
+only: `npx playwright install chromium`.
 
 ---
 

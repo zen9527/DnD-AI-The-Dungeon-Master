@@ -634,5 +634,7 @@
   "dice.modifier": "调整值",
   "dice.rolled": "🎲 {name} 掷出 d{diceType}：{total}",
   "rejoin.success": "欢迎回来，{name}",
-  "rejoin.expired": "该会话已过期，请重新创建角色。"
+  "rejoin.expired": "该会话已过期，请重新创建角色。",
+  "turn.label": "当前回合",
+  "inventory.short": "物品"
 }
