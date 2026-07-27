@@ -25,7 +25,6 @@ describe("saveGame", () => {
       players: [],
       npcs: [],
       chatHistory: [],
-      events: [],
       conversationHistory: [],
       createdAt: Date.now(),
     };
@@ -55,7 +54,6 @@ describe("loadGame", () => {
       players: [], 
       npcs: [], 
       chatHistory: [], 
-      events: [],
       conversationHistory: [],
       createdAt: Date.now(), 
     };
@@ -92,7 +90,6 @@ describe("listGames", () => {
         players: [], 
         npcs: [], 
         chatHistory: [], 
-        events: [],
         conversationHistory: [],
         createdAt: Date.now(), 
       });

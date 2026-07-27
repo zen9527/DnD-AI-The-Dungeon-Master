@@ -21,7 +21,7 @@ function message(id: string, content: string): ChatMessage {
 function gameWith(chatHistory: ChatMessage[]): Game {
   return {
     id: "campaign_1", name: "Long Campaign", maxPlayers: 4, scenario: "dungeon",
-    players: [], npcs: [], chatHistory, events: [], conversationHistory: [],
+    players: [], npcs: [], chatHistory, conversationHistory: [],
     createdAt: Date.now(), combatMode: false, initiativeOrder: [],
     currentRound: 1, currentTurnIndex: 0,
   };

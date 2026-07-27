@@ -12,7 +12,6 @@ export type {
   StructuredResult,
   StreamResult,
   Game,
-  Event,
   MessageType,
   WebSocketMessage,
   Attributes,

@@ -44,7 +44,6 @@ describe("GameStore - Save/Load Methods", () => {
         players: [{ id: "p1", name: "Player 1" } as Player],
         npcs: [],
         chatHistory: [],
-        events: [],
         createdAt: Date.now(),
       };
       
@@ -56,7 +55,6 @@ describe("GameStore - Save/Load Methods", () => {
         players: [{ id: "p2", name: "Player 2" } as Player],
         npcs: [],
         chatHistory: [],
-        events: [],
         createdAt: Date.now(),
       };
 
@@ -104,7 +102,6 @@ describe("GameStore - Save/Load Methods", () => {
         players: [{ id: "p1", name: "Player 1" } as Player],
         npcs: [],
         chatHistory: [],
-        events: [],
         createdAt: Date.now(),
       };
 
@@ -116,7 +113,6 @@ describe("GameStore - Save/Load Methods", () => {
         players: [{ id: "p2", name: "Player 2" } as Player],
         npcs: [],
         chatHistory: [],
-        events: [],
         createdAt: Date.now(),
       };
 
@@ -157,7 +153,6 @@ describe("GameStore - Save/Load Methods", () => {
         players: [{ id: "p1", name: "Player 1" } as Player],
         npcs: [],
         chatHistory: [],
-        events: [],
         createdAt: Date.now(),
       };
 
@@ -202,7 +197,6 @@ describe("GameStore - Save/Load Methods", () => {
         players: [{ id: "p1", name: "Player 1" } as Player],
         npcs: [],
         chatHistory: [],
-        events: [],
         createdAt: Date.now(),
       };
       const engine = new GameEngine(mockGame, { provider: "openai-compatible", baseUrl: "http://test", apiKey: "key", model: "model" });

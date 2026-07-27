@@ -54,7 +54,7 @@ describe("JOIN_GAME capacity", () => {
           createPlayer({ id: "p1", name: "A", characterName: "A", race: "Human", characterClass: "Fighter", attributes: ATTRIBUTES, isDM: true }),
           createPlayer({ id: "p2", name: "B", characterName: "B", race: "Elf", characterClass: "Rogue", attributes: ATTRIBUTES }),
         ],
-        npcs: [], chatHistory: [], events: [],
+        npcs: [], chatHistory: [],
         combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0,
       },
       { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }

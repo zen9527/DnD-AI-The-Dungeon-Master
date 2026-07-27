@@ -25,7 +25,7 @@ function testEngine(players: Player[]): GameEngine {
   return new GameEngine(
     {
       id: "g1", name: "Test", scenario: "dungeon", maxPlayers: 4,
-      players, npcs: [], chatHistory: [], events: [],
+      players, npcs: [], chatHistory: [],
       combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0,
     },
     { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }

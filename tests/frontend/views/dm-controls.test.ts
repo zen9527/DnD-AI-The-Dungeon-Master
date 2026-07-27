@@ -50,7 +50,7 @@ function player(overrides: Partial<Player> = {}): Player {
 function game(overrides: Partial<Game> = {}): Game {
   return {
     id: "g1", name: "Test", maxPlayers: 4, scenario: "dungeon",
-    players: [player()], npcs: [npc()], chatHistory: [], events: [],
+    players: [player()], npcs: [npc()], chatHistory: [],
     conversationHistory: [], createdAt: Date.now(),
     combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0,
     ...overrides,

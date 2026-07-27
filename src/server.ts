@@ -40,7 +40,6 @@ app.use("/api", express.json());
 import { WebSocketManager } from "./websocket/manager.js";
 import { gameStore } from "./game/store.js";
 import gamesSavePostHandler from "./routes/games.save.post.js";
-import gamesLoadGetHandler from "./routes/games.load.get.js";
 import gamesDeleteHandler from "./routes/games.delete.js";
 import { getConfigHandler, postConfigHandler, getModelsHandler, postConfigTestHandler } from "./routes/config.js";
 import { listGames as listSavedGames } from "./utils/storage.js";
@@ -72,7 +71,6 @@ app.get("/api/games", (_req, res) => {
 // ---- Save/Load Game API Routes ----
 
 app.post("/api/games/:id/save", gamesSavePostHandler);
-app.get("/api/games/:id/load", gamesLoadGetHandler);
 
 // ---- Saved Games API Route ----
 

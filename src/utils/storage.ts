@@ -43,6 +43,15 @@ export function saveGame(game: Game): string {
   return game.id;
 }
 
+/**
+ * Saves written before `Game.events` was removed still carry the key. It was
+ * never read, so it is dropped rather than migrated.
+ */
+function stripRetiredFields(game: Game & { events?: unknown }): Game {
+  delete game.events;
+  return game;
+}
+
 export function loadGame(gameId: string): Game | null {
   ensureStorageDir();
   
@@ -55,7 +64,7 @@ export function loadGame(gameId: string): Game | null {
   
   try {
     const content = fs.readFileSync(filePath, "utf-8");
-    const game = JSON.parse(content) as Game;
+    const game = stripRetiredFields(JSON.parse(content));
     console.log(`[Storage] Loaded game ${gameId}`);
     return game;
   } catch (error) {

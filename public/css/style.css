@@ -165,57 +165,6 @@ body::after {
     0 0 12px rgba(212, 168, 67, 0.2) !important;
 }
 
-/* ===== Parchment Card Base ===== */
-.parchment-card {
-  background: 
-    linear-gradient(135deg, rgba(240,221,176,0.12) 0%, rgba(208,184,128,0.08) 100%);
-  border: 3px solid var(--border-color);
-  border-radius: 6px;
-  padding: 20px;
-  margin-bottom: 16px;
-  position: relative;
-  box-shadow:
-    inset 0 0 40px rgba(212, 168, 67, 0.08),
-    0 6px 16px rgba(0, 0, 0, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-}
-
-.parchment-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: 
-    url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper)' opacity='0.06'/%3E%3C/svg%3E");
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-.parchment-card:hover {
-  border-color: var(--accent-gold);
-  box-shadow:
-    inset 0 0 40px rgba(212, 168, 67, 0.12),
-    0 8px 20px rgba(0, 0, 0, 0.5),
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 0 25px rgba(212, 168, 67, 0.15);
-}
-
-/* ===== Ink Splatter Effect ===== */
-.ink-splatter {
-  position: relative;
-}
-
-.ink-splatter::after {
-  content: '✦';
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  color: var(--accent-gold);
-  font-size: 1.3rem;
-  opacity: 0.7;
-  text-shadow: 0 0 8px rgba(212, 168, 67, 0.4);
-}
-
 .game-card.full {
   opacity: 0.6;
   cursor: default;
@@ -1259,15 +1208,6 @@ hr {
 /* ============================================================================
    DM Panel
    ============================================================================ */
-.dm-panel {
-  width: 320px;
-  padding: 18px;
-  background: linear-gradient(180deg, var(--bg-panel) 0%, #1a1408 100%);
-  border-left: 3px solid var(--border-color);
-  overflow-y: auto;
-  box-shadow: inset 4px 0 12px rgba(0,0,0,0.2);
-}
-
 /* ============================================================================
    Settings Modal
    ============================================================================ */
@@ -1421,14 +1361,6 @@ hr {
 .hp-bar-container {
   width: 100%;
   margin-bottom: 12px;
-}
-
-.hp-bar-label {
-  font-family: 'Cinzel', serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 8px;
 }
 
 .hp-bar-track {

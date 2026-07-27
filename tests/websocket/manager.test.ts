@@ -69,7 +69,6 @@ describe("WebSocketManager emote handling", () => {
       players: [mockPlayer],
       npcs: [],
       chatHistory: [],
-      events: [],
       conversationHistory: [],
       createdAt: Date.now(),
     };
@@ -193,7 +192,6 @@ describe("WebSocketManager emote handling", () => {
       players: [sender, target],
       npcs: [],
       chatHistory: [],
-      events: [],
       conversationHistory: [],
       createdAt: Date.now(),
     };

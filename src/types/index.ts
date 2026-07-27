@@ -169,7 +169,6 @@ export interface Game {
   players: Player[];
   npcs: NPC[];
   chatHistory: ChatMessage[];
-  events: Event[];
   conversationHistory: { role: 'system' | 'user' | 'assistant'; content: string }[];
   createdAt: number;
   
@@ -300,14 +299,6 @@ export interface DiceRollPayload {
 
 export interface ErrorMessage {
   errorMessage: string;
-}
-
-export interface Event {
-  id: string;
-  title: string;
-  description: string;
-  createdBy: string;
-  createdAt: number;
 }
 
 export type DiceRollResult = DiceRoll;

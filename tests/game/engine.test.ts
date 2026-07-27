@@ -25,7 +25,7 @@ function testPlayer(overrides: Partial<Player> = {}): Player {
 
 function testEngine(players: Player[] = [testPlayer()]): GameEngine {
   return new GameEngine(
-    { id: "test-game", name: "Test", scenario: "dungeon", maxPlayers: 4, npcs: [], players, chatHistory: [], events: [], combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0 },
+    { id: "test-game", name: "Test", scenario: "dungeon", maxPlayers: 4, npcs: [], players, chatHistory: [], combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0 },
     { provider: "openai-compatible", baseUrl: "http://test", apiKey: null, model: "test" }
   );
 }

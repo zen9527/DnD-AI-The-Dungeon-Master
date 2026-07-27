@@ -72,7 +72,6 @@ export class GameStore {
         players: [firstPlayer], 
         npcs: [], 
         chatHistory: [], 
-        events: [],
         combatMode: false,
         initiativeOrder: [],
         currentRound: 1,

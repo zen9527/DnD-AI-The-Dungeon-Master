@@ -48,7 +48,7 @@ describe("rejoining after a refresh", () => {
           id: "p1", name: "Ana", characterName: "Ranulf", race: "Human",
           characterClass: "Fighter", attributes: ATTRIBUTES, isDM: true,
         })],
-        npcs: [], chatHistory: [], events: [],
+        npcs: [], chatHistory: [],
         combatMode: false, initiativeOrder: [], currentRound: 1, currentTurnIndex: 0,
       },
       LLM
