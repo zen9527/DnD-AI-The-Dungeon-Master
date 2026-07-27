@@ -16,6 +16,30 @@ export class CharacterCreator {
   /** Loading a save needs a character to load as, so the list hands back here. */
   private readonly savedGames = new SavedGamesView(gameId => this.showLoadCharacterForm(gameId));
 
+  /**
+   * Markup for the chrome every screen carries. Kept in one place because it
+   * used to be pasted into four screens and drift between them.
+   */
+  private chrome(): string {
+    return renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName);
+  }
+
+  /**
+   * Wire that chrome up. `rerender` redraws the current screen after a language
+   * change — these screens build themselves from scratch, so a full page reload
+   * would throw away the connection for nothing.
+   */
+  private bindChrome(rerender: () => void): void {
+    document.getElementById("locale-select")?.addEventListener("change", event => {
+      setLocale(toSupportedLocale((event.target as HTMLSelectElement).value));
+      rerender();
+    });
+
+    document.querySelector(".settings-trigger")?.addEventListener("click", () => {
+      new SettingsModal().show();
+    });
+  }
+
   constructor() {
     this.element = document.getElementById("app");
     if (!this.element) return;
@@ -25,7 +49,7 @@ export class CharacterCreator {
   private showForm(): void {
     this.element!.innerHTML = `
       <div class="hero-section">
-        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
+        ${this.chrome()}
         <h1 class="hero-title">🎲 DnD AI: The Dungeon Master</h1>
         <p class="hero-subtitle">${t("hero.subtitle")}</p>
       </div>
@@ -70,16 +94,9 @@ export class CharacterCreator {
       const gameId = (document.getElementById("game-id-input") as HTMLInputElement).value.trim();
       if (gameId) window.location.href = `?game=${gameId}`;
     });
-    document.querySelector(".settings-trigger")?.addEventListener("click", () => {
-      new SettingsModal().show();
-    });
 
     // Language selector change handler
-    document.getElementById("locale-select")?.addEventListener("change", () => {
-      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(toSupportedLocale(newLocale));
-      location.reload();
-    });
+    this.bindChrome(() => this.showForm());
 
     // Fetch active games on load
     (window as unknown as { app: { fetchActiveGames: () => Promise<void> } }).app?.fetchActiveGames();
@@ -94,7 +111,7 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
+        ${this.chrome()}
         <h2>${t("load_game_page.title")}</h2>
         <p class="subtitle">${t("load_game_page.subtitle", { gameId })}</p>
         <form id="load-game-form">
@@ -137,11 +154,7 @@ export class CharacterCreator {
       </div>
     `;
 
-    document.getElementById("locale-select")?.addEventListener("change", () => {
-      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(toSupportedLocale(newLocale));
-      location.reload();
-    });
+    this.bindChrome(() => this.showLoadCharacterForm(gameId));
 
     document.getElementById("back-btn")?.addEventListener("click", () => this.showForm());
 
@@ -153,11 +166,11 @@ export class CharacterCreator {
     // Create named handlers for cleanup (fixes event listener leak)
     this.raceChangeHandler = () => {
       this.autoFillAttributesAndName();
-      this.showRaceDescription(raceSelect.value);
+      this.showChoiceDescription("race", raceSelect.value);
     };
     this.classChangeHandler = () => {
       this.autoFillAttributesAndName();
-      this.showClassDescription(classSelect.value);
+      this.showChoiceDescription("class", classSelect.value);
     };
 
     // Remove old handlers first to prevent accumulation
@@ -176,8 +189,8 @@ export class CharacterCreator {
     });
 
     // Show initial descriptions for default selections
-    if (raceSelect.value) this.showRaceDescription(raceSelect.value);
-    if (classSelect.value) this.showClassDescription(classSelect.value);
+    if (raceSelect.value) this.showChoiceDescription("race", raceSelect.value);
+    if (classSelect.value) this.showChoiceDescription("class", classSelect.value);
 
     document.getElementById("load-game-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -221,7 +234,7 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
+        ${this.chrome()}
         <h2>${t("choose_adventure.title")}</h2>
         <p class="subtitle">${t("choose_adventure.subtitle")}</p>
         <div class="scenario-grid">${cards}</div>
@@ -231,11 +244,7 @@ export class CharacterCreator {
       </div>
     `;
 
-    document.getElementById("locale-select")?.addEventListener("change", () => {
-      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(toSupportedLocale(newLocale));
-      location.reload();
-    });
+    this.bindChrome(() => this.showScenarioSelection());
 
     document.getElementById("cancel-btn")?.addEventListener("click", () => this.showForm());
 
@@ -256,7 +265,7 @@ export class CharacterCreator {
 
     this.element!.innerHTML = `
       <div class="welcome-screen">
-        ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
+        ${this.chrome()}
         <h2>${t("create_game_page.title")}</h2>
         <p class="subtitle">${t("scenario.prefix")}${getLocalizedScenarios()[this.selectedScenario]?.icon ?? "🏰"} ${getLocalizedScenarios()[this.selectedScenario]?.label ?? this.selectedScenario}</p>
         <form id="create-game-form">
@@ -315,11 +324,7 @@ export class CharacterCreator {
       </div>
     `;
 
-    document.getElementById("locale-select")?.addEventListener("change", () => {
-      const newLocale = (document.getElementById("locale-select") as HTMLSelectElement).value;
-      setLocale(toSupportedLocale(newLocale));
-      location.reload();
-    });
+    this.bindChrome(() => this.showCreateForm());
 
     document.getElementById("back-btn")?.addEventListener("click", () => this.showScenarioSelection());
 
@@ -331,11 +336,11 @@ export class CharacterCreator {
     // Create named handlers for cleanup (fixes event listener leak)
     this.raceChangeHandler = () => {
       this.autoFillAttributesAndName();
-      this.showRaceDescription(raceSelect.value);
+      this.showChoiceDescription("race", raceSelect.value);
     };
     this.classChangeHandler = () => {
       this.autoFillAttributesAndName();
-      this.showClassDescription(classSelect.value);
+      this.showChoiceDescription("class", classSelect.value);
     };
 
     // Remove old handlers first to prevent accumulation
@@ -354,8 +359,8 @@ export class CharacterCreator {
     });
 
     // Show initial descriptions for default selections
-    if (raceSelect.value) this.showRaceDescription(raceSelect.value);
-    if (classSelect.value) this.showClassDescription(classSelect.value);
+    if (raceSelect.value) this.showChoiceDescription("race", raceSelect.value);
+    if (classSelect.value) this.showChoiceDescription("class", classSelect.value);
 
     document.getElementById("create-game-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -363,48 +368,30 @@ export class CharacterCreator {
     });
   }
 
-  private showRaceDescription(race: string): void {
-    const descBox = document.getElementById("race-description");
-    if (!descBox) return;
-    
-    // Map display name to locale key (e.g., "Half-Elf" -> "half-elf")
-    const keySuffix = race.toLowerCase().replace(/ /g, "-").replace(/\./g, "");
-    const desc = tKey(`race.${keySuffix}.description`, { defaultValue: "" });
-    
-    if (desc && desc !== `race.${keySuffix}.description`) {
-      descBox.innerHTML = `<strong>${tKey(`race.${keySuffix}`)}</strong><br>${desc}`;
-    } else {
-      // Try alternative key format
-      const altKey = race.toLowerCase();
-      const altDesc = tKey(`race.${altKey}.description`, { defaultValue: "" });
-      if (altDesc && altDesc !== `race.${altKey}.description`) {
-        descBox.innerHTML = `<strong>${tKey(`race.${altKey}`)}</strong><br>${altDesc}`;
-      } else {
-        descBox.innerHTML = "";
-      }
-    }
-  }
+  /**
+   * Show the flavour text for a race or class choice.
+   *
+   * Locale keys mostly use a hyphenated suffix ("half-elf"), but a few older
+   * entries use the bare lowercase name, so both spellings are tried before
+   * the box is cleared.
+   */
+  private showChoiceDescription(kind: "race" | "class", value: string): void {
+    const box = document.getElementById(`${kind}-description`);
+    if (!box) return;
 
-  private showClassDescription(characterClass: string): void {
-    const descBox = document.getElementById("class-description");
-    if (!descBox) return;
-    
-    // Map display name to locale key (e.g., "Half-Orc" -> "half-orc")
-    const keySuffix = characterClass.toLowerCase().replace(/ /g, "-").replace(/\./g, "");
-    const desc = tKey(`class.${keySuffix}.description`, { defaultValue: "" });
-    
-    if (desc && desc !== `class.${keySuffix}.description`) {
-      descBox.innerHTML = `<strong>${tKey(`class.${keySuffix}`)}</strong><br>${desc}`;
-    } else {
-      // Try alternative key format
-      const altKey = characterClass.toLowerCase();
-      const altDesc = tKey(`class.${altKey}.description`, { defaultValue: "" });
-      if (altDesc && altDesc !== `class.${altKey}.description`) {
-        descBox.innerHTML = `<strong>${tKey(`class.${altKey}`)}</strong><br>${altDesc}`;
-      } else {
-        descBox.innerHTML = "";
+    const suffixes = [value.toLowerCase().replace(/ /g, "-").replace(/\./g, ""), value.toLowerCase()];
+
+    for (const suffix of suffixes) {
+      const descriptionKey = `${kind}.${suffix}.description`;
+      const description = tKey(descriptionKey);
+      // tKey echoes the key back when it has no translation.
+      if (description && description !== descriptionKey) {
+        box.innerHTML = `<strong>${tKey(`${kind}.${suffix}`)}</strong><br>${description}`;
+        return;
       }
     }
+
+    box.innerHTML = "";
   }
 
   private createGame(): void {
