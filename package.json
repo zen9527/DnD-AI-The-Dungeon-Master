@@ -14,7 +14,8 @@
     "dev": "npm run build && concurrently \"npm run dev:backend\" \"vite\" \"node dist/src/server.js\"",
     "stop": "powershell -Command \"netstat -ano | findstr :3000 | findstr LISTENING | for %%a in (%%a) { taskkill /F /PID %%a }\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
@@ -23,6 +24,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.0",
     "@types/ws": "^8.5.10",

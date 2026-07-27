@@ -1,0 +1,137 @@
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Six flows through the real browser against the real server.
+ *
+ * Everything below has been broken at some point without a single unit test
+ * failing: the action bar rendered but sent nothing, the DM panel stayed empty
+ * because the snapshot was stale, streaming showed one token at a time, a
+ * refresh replaced your character with a stranger, and a rate limiter silently
+ * refused the create button. Those are all one click deep — which is exactly
+ * the depth no other test in this repo reaches.
+ *
+ * The DM is a stub (tests/e2e/stub-llm.mjs), so the narrative is fixed.
+ */
+
+/** A phrase only the stub DM ever writes. */
+const STUB_NARRATIVE = "torchlight gutters";
+
+/** Walk the create-game flow and land in the game UI. Returns the game id. */
+async function createGame(page: Page, gameName: string): Promise<string> {
+  await page.goto("/");
+
+  await page.locator("#create-game-btn").click();
+  await page.locator('.scenario-card[data-scenario="dungeon"]').click();
+
+  await expect(page.locator("#create-game-form")).toBeVisible();
+  await page.locator("#game-name").fill(gameName);
+  await page.locator("#player-name").fill("E2E Player");
+  await page.locator("#character-name").fill("Ranulf");
+  await page.locator('#create-game-form button[type="submit"]').click();
+
+  // The game shell replaces the form, and the URL gains the shareable id.
+  await expect(page.locator(".game-interface")).toBeVisible();
+  await expect(page).toHaveURL(/\?game=\w+/);
+
+  return new URL(page.url()).searchParams.get("game")!;
+}
+
+/** The DM's opening scene arrives ~5s after creation; wait it out. */
+async function waitForOpeningScene(page: Page): Promise<void> {
+  await expect(page.locator("#chat-messages")).toContainText(STUB_NARRATIVE, { timeout: 40_000 });
+}
+
+test("flow 1 — creating a game reaches the table with the DM's opening scene", async ({ page }) => {
+  await createGame(page, "Smoke: Create");
+
+  // The three panels that make the screen a game rather than a blank shell.
+  await expect(page.locator(".players-panel .character-name").filter({ hasText: "Ranulf" })).toBeVisible();
+  await expect(page.locator(".action-bar #action-input")).toBeVisible();
+  await waitForOpeningScene(page);
+});
+
+test("flow 2 — taking a turn echoes the action and streams a reply", async ({ page }) => {
+  await createGame(page, "Smoke: Turn");
+  await waitForOpeningScene(page);
+
+  await page.locator("#action-input").fill("I push against the portcullis");
+  await page.locator("#action-submit").click();
+
+  // The player's own line lands first, then the DM answers it.
+  await expect(page.locator("#chat-messages")).toContainText("I push against the portcullis");
+  await expect(page.locator("#chat-messages .message.narrative")).toHaveCount(2, { timeout: 40_000 });
+
+  // The input clears so the next turn can be typed straight away.
+  await expect(page.locator("#action-input")).toHaveValue("");
+});
+
+test("flow 3 — rolling a d20 puts a server-rolled result in the log", async ({ page }) => {
+  await createGame(page, "Smoke: Dice");
+  await waitForOpeningScene(page);
+
+  await page.locator("#dice-modifier").fill("3");
+  await page.locator('.dice-btn[data-dice="20"]').click();
+
+  const roll = page.locator("#chat-messages .message.roll").last();
+  await expect(roll).toContainText("d20:");
+
+  // The result has to be a real number in range — 1..20 plus the +3 modifier.
+  const text = await roll.locator(".message-content").innerText();
+  const total = Number(text.match(/d20:\s*(-?\d+)/)![1]);
+  expect(total).toBeGreaterThanOrEqual(4);
+  expect(total).toBeLessThanOrEqual(23);
+});
+
+test("flow 4 — a refresh reclaims your seat instead of making a new character", async ({ page }) => {
+  await createGame(page, "Smoke: Rejoin");
+  await waitForOpeningScene(page);
+
+  await page.reload();
+
+  await expect(page.locator(".game-interface")).toBeVisible();
+  await expect(page.locator(".notification")).toContainText("Welcome back");
+  // The same character, and only one of them.
+  await expect(page.locator(".players-panel .player-status")).toHaveCount(1);
+  await expect(page.locator(".players-panel .character-name").filter({ hasText: "Ranulf" })).toBeVisible();
+  // History survived the reload rather than restarting the campaign.
+  await expect(page.locator("#chat-messages")).toContainText(STUB_NARRATIVE);
+});
+
+test("flow 5 — switching language re-renders in place without dropping the socket", async ({ page }) => {
+  await createGame(page, "Smoke: Locale");
+  await waitForOpeningScene(page);
+
+  // A marker that only survives if the page is never reloaded.
+  await page.evaluate(() => { (window as unknown as { e2eMarker: boolean }).e2eMarker = true; });
+
+  await page.locator("#locale-select").selectOption("zh-CN");
+
+  await expect(page.locator("#save-game-btn")).toContainText("保存");
+  await expect(page.locator("#load-game-btn")).toContainText("读取");
+  expect(await page.evaluate(() => (window as unknown as { e2eMarker?: boolean }).e2eMarker)).toBe(true);
+
+  // Still connected: the action bar answers after the rebuild.
+  await page.locator("#action-input").fill("我举起火把");
+  await page.locator("#action-submit").click();
+  await expect(page.locator("#chat-messages")).toContainText("我举起火把");
+});
+
+test("flow 6 — save writes to disk and load restores it", async ({ page }) => {
+  await createGame(page, "Smoke: Save");
+  await waitForOpeningScene(page);
+
+  await page.locator("#action-input").fill("I map the chamber");
+  await page.locator("#action-submit").click();
+  await expect(page.locator("#chat-messages")).toContainText("I map the chamber");
+
+  await page.locator("#save-game-btn").click();
+  await expect(page.locator(".notification")).toContainText("Game saved");
+
+  await page.locator("#load-game-btn").click();
+  await expect(page.locator(".notification")).toContainText("Game loaded");
+
+  // Loading restores the table rather than blanking it — the bug this replaced
+  // was a client-side location.reload() that never loaded anything.
+  await expect(page.locator("#chat-messages")).toContainText("I map the chamber");
+  await expect(page.locator(".players-panel .character-name").filter({ hasText: "Ranulf" })).toBeVisible();
+});

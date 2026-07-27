@@ -123,4 +123,9 @@ function upsertEnvVar(content: string, key: string, value: string): string {
 }
 
 // Export singleton instance for use across the project
-export const configManager = new ConfigManager();
+/**
+ * `DND_ENV_FILE` points the server at an alternative .env — used by the
+ * end-to-end suite to run against a stub LLM on its own port without touching
+ * the developer's configuration.
+ */
+export const configManager = new ConfigManager(process.env.DND_ENV_FILE);

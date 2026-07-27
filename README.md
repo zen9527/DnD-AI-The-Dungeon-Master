@@ -171,7 +171,15 @@ shared/                 # Shared Zod schemas (backend + frontend)
 locales/                # Translation files (5 languages)
 public/                 # Frontend (TypeScript + CSS + HTML)
 tests/                  # Vitest unit tests
+tests/e2e/              # Playwright browser tests + the stub DM they run against
 ```
+
+**Browser tests.** `npm run test:e2e` builds the app, starts it on port 3210
+against a canned DM (`tests/e2e/stub-llm.mjs`, port 3199), and drives Chromium
+through six flows: create a game, take a turn, roll dice, refresh and reclaim
+your seat, switch language, save and load. It needs no API key and never
+touches `saved_games/` — `tests/e2e/.env.e2e` and a scratch save directory
+isolate the run. First time only: `npx playwright install chromium`.
 
 ---
 
@@ -241,7 +249,8 @@ DELETE /api/saved-games/:id
 npm run build        # Full build (backend + frontend)
 npm run dev          # Concurrent watch mode
 npm test             # Run Vitest tests
-npx tsc --noEmit     # Type check without compilation
+npm run test:e2e     # Browser smoke tests (Chromium, stub DM — see below)
+npm run typecheck    # Type check backend and frontend
 ```
 
 ---

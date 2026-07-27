@@ -28,3 +28,8 @@ YOLO-MODE.md
 
 # Saved game data (local test data)
 saved_games/
+
+# End-to-end run artifacts (scratch saves, traces, reports)
+tests/e2e/.saves/
+test-results/
+playwright-report/

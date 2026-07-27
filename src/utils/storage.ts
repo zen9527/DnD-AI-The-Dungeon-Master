@@ -2,7 +2,11 @@ import * as fs from "fs";
 import * as path from "path";
 import type { ChatMessage, Game } from "../types/index.js";
 
-const STORAGE_DIR = path.join(process.cwd(), "saved_games");
+/**
+ * Where saves live. Overridable so an end-to-end run gets a scratch directory
+ * instead of writing into somebody's real campaigns.
+ */
+const STORAGE_DIR = process.env.DND_SAVED_GAMES_DIR || path.join(process.cwd(), "saved_games");
 
 function ensureStorageDir(): void {
   if (!fs.existsSync(STORAGE_DIR)) {
