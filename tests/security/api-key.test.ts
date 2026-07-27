@@ -81,6 +81,31 @@ describe("LLMRateLimiter", () => {
     expect(limiter.tryConsume("c1", "PLAYER_ACTION")).toBe(false);
   });
 
+  it("keeps game setup and the turn loop on separate budgets", () => {
+    const limiter = new LLMRateLimiter(2, 60_000);
+
+    // Exhausting the turn budget must not lock the player out of starting a game.
+    expect(limiter.tryConsume("c1", "PLAYER_ACTION")).toBe(true);
+    expect(limiter.tryConsume("c1", "PLAYER_ACTION")).toBe(true);
+    expect(limiter.tryConsume("c1", "PLAYER_ACTION")).toBe(false);
+
+    expect(limiter.tryConsume("c1", "CREATE_GAME")).toBe(true);
+    expect(limiter.tryConsume("c1", "JOIN_GAME")).toBe(true);
+    expect(limiter.tryConsume("c1", "CREATE_GAME")).toBe(false);
+  });
+
+  it("leaves real play far below the limit", () => {
+    // The default budget must never bite a person: the socket lives for the
+    // whole session, so an over-tight limit reads as "the app stopped working".
+    const limiter = new LLMRateLimiter();
+    for (let i = 0; i < 25; i++) {
+      expect(limiter.tryConsume("c1", "PLAYER_ACTION"), `turn ${i + 1}`).toBe(true);
+    }
+    for (let i = 0; i < 15; i++) {
+      expect(limiter.tryConsume("c1", "CREATE_GAME"), `game ${i + 1}`).toBe(true);
+    }
+  });
+
   it("budgets each connection separately", () => {
     const limiter = new LLMRateLimiter(1, 60_000);
 
@@ -106,7 +131,7 @@ describe("LLMRateLimiter", () => {
     const start = 10_000;
 
     limiter.tryConsume("c1", "PLAYER_ACTION", start);
-    const retryAfter = limiter.retryAfterSeconds("c1", start + 10_000);
+    const retryAfter = limiter.retryAfterSeconds("c1", "PLAYER_ACTION", start + 10_000);
 
     expect(retryAfter).toBeGreaterThan(0);
     expect(retryAfter).toBeLessThanOrEqual(60);

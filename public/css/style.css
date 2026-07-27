@@ -2028,3 +2028,20 @@ hr {
   padding: 0.25rem 0.35rem;
   font-variant-numeric: tabular-nums;
 }
+
+/* A dismissable close control so a long-lived error can be cleared by hand. */
+.notification { display: flex; align-items: center; gap: 12px; }
+
+.notification-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.notification-dismiss:hover,
+.notification-dismiss:focus-visible { opacity: 1; }

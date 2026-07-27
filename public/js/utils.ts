@@ -11,15 +11,32 @@ export function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
+const NOTIFICATION_MS: Record<NotificationType, number> = {
+  success: 4000,
+  info: 4000,
+  warning: 7000,
+  // Errors usually mean the thing you just tried did not happen. Four seconds
+  // in a corner is easy to miss, and then the app just looks broken.
+  error: 10000,
+};
+
 export function showNotification(text: string, type: NotificationType = "info"): void {
-  const existing = document.querySelector(".notification");
-  if (existing) existing.remove();
+  document.querySelector(".notification")?.remove();
 
   const notif = document.createElement("div");
   notif.className = `notification notification-${type}`;
   notif.textContent = text;
+  notif.setAttribute("role", type === "error" ? "alert" : "status");
+
+  const dismiss = document.createElement("button");
+  dismiss.className = "notification-dismiss";
+  dismiss.setAttribute("aria-label", "Dismiss");
+  dismiss.textContent = "✕";
+  dismiss.addEventListener("click", () => notif.remove());
+  notif.appendChild(dismiss);
+
   document.body.appendChild(notif);
-  setTimeout(() => notif.remove(), 4000);
+  setTimeout(() => notif.remove(), NOTIFICATION_MS[type]);
 }
 
 export function getLocaleDisplayName(locale: string): string {

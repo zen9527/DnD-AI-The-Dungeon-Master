@@ -94,7 +94,7 @@ export class WebSocketManager implements ManagerApi {
 
     // Anyone with the game link can send these, and each one costs LLM tokens.
     if (!this.llmRateLimiter.tryConsume(client.id, message.type)) {
-      const retryAfter = this.llmRateLimiter.retryAfterSeconds(client.id);
+      const retryAfter = this.llmRateLimiter.retryAfterSeconds(client.id, message.type);
       console.warn(`[WS] Rate limited ${message.type} from ${client.id}`);
       this.sendError(ws, `Too many requests — wait ${retryAfter}s before trying again.`);
       return;
