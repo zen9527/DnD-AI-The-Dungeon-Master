@@ -1,3 +1,4 @@
+import { log } from "./logger.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -17,7 +18,7 @@ export function loadLocale(locale: string, visited: Set<string> = new Set()): Re
 
   // Recursion guard — prevents infinite loop if fallback chain is broken
   if (visited.has(locale)) {
-    console.warn(`[Locale] Circular fallback detected for "${locale}", returning empty object`);
+    log.warn(`[Locale] Circular fallback detected for "${locale}", returning empty object`);
     return {};
   }
   visited.add(locale);
@@ -28,9 +29,9 @@ export function loadLocale(locale: string, visited: Set<string> = new Set()): Re
     localeCache[locale] = JSON.parse(raw) as Record<string, string>;
     return localeCache[locale];
   } catch {
-    console.warn(`[Locale] File not found: ${filePath}, falling back to en-US`);
+    log.warn(`[Locale] File not found: ${filePath}, falling back to en-US`);
     if (locale === "en-US") {
-      console.error("[Locale] en-US.json not found! Returning empty locale data.");
+      log.error("[Locale] en-US.json not found! Returning empty locale data.");
       return {};
     }
     return loadLocale("en-US", visited);

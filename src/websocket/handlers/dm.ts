@@ -1,3 +1,4 @@
+import { log } from "../../utils/logger.js";
 import {
   npcSchema,
   eventSchema,
@@ -71,7 +72,7 @@ function handleNPCUpdateHP(ctx: HandlerContext): void {
     newHp: parsed.newHp,
     gameState: resolved.engine.game,
   });
-  console.log(`[DM Control] Updated NPC ${parsed.npcId} HP to ${parsed.newHp}`);
+  log.info(`[DM Control] Updated NPC ${parsed.npcId} HP to ${parsed.newHp}`);
 }
 
 /** NPC_APPLY_CONDITION — DM applies a status condition (poisoned, prone, ...). */
@@ -89,7 +90,7 @@ function handleNPCApplyCondition(ctx: HandlerContext): void {
     condition: parsed.condition,
     gameState: resolved.engine.game,
   });
-  console.log(`[DM Control] Applied condition ${parsed.condition} to NPC ${parsed.npcId}`);
+  log.info(`[DM Control] Applied condition ${parsed.condition} to NPC ${parsed.npcId}`);
 }
 
 /** NPC_REMOVE_CONDITION — DM clears a status condition. */
@@ -107,7 +108,7 @@ function handleNPCRemoveCondition(ctx: HandlerContext): void {
     condition: parsed.condition,
     gameState: resolved.engine.game,
   });
-  console.log(`[DM Control] Removed condition ${parsed.condition} from NPC ${parsed.npcId}`);
+  log.info(`[DM Control] Removed condition ${parsed.condition} from NPC ${parsed.npcId}`);
 }
 
 /** NPC_DELETE — DM removes an NPC from the game. */
@@ -124,7 +125,7 @@ function handleNPCDelete(ctx: HandlerContext): void {
     npcId: parsed.npcId,
     gameState: resolved.engine.game,
   });
-  console.log(`[DM Control] Deleted NPC ${parsed.npcId}`);
+  log.info(`[DM Control] Deleted NPC ${parsed.npcId}`);
 }
 
 /** PLAYER_AWARD_XP — DM grants experience points. */
@@ -142,7 +143,7 @@ function handlePlayerAwardXP(ctx: HandlerContext): void {
     amount: parsed.amount,
     gameState: resolved.engine.game,
   });
-  console.log(`[DM Control] Awarded ${parsed.amount} XP to player ${parsed.playerId}`);
+  log.info(`[DM Control] Awarded ${parsed.amount} XP to player ${parsed.playerId}`);
 }
 
 /** PLAYER_LEVEL_UP — DM advances a player one level. */
@@ -159,7 +160,7 @@ function handlePlayerLevelUp(ctx: HandlerContext): void {
     playerId: parsed.playerId,
     gameState: resolved.engine.game,
   });
-  console.log(`[DM Control] Leveled up player ${parsed.playerId}`);
+  log.info(`[DM Control] Leveled up player ${parsed.playerId}`);
 }
 
 /** APPLY_TEMPORARY_HP — DM grants temporary hit points for a number of rounds. */
@@ -179,7 +180,7 @@ function handleApplyTemporaryHP(ctx: HandlerContext): void {
     amount,
     duration,
   });
-  console.log(`[Buff] Applied ${amount} temporary HP to ${targetId} for ${duration} rounds`);
+  log.info(`[Buff] Applied ${amount} temporary HP to ${targetId} for ${duration} rounds`);
 }
 
 /** APPLY_BUFF — DM attaches a named buff/debuff with a round duration. */
@@ -198,7 +199,7 @@ function handleApplyBuff(ctx: HandlerContext): void {
     isPlayer,
     buff,
   });
-  console.log(`[Buff] Applied ${buff.name} to ${targetId} for ${buff.duration} rounds`);
+  log.info(`[Buff] Applied ${buff.name} to ${targetId} for ${buff.duration} rounds`);
 }
 
 /** REMOVE_BUFF — DM strips a named buff/debuff. */
@@ -217,7 +218,7 @@ function handleRemoveBuff(ctx: HandlerContext): void {
     isPlayer,
     buffName,
   });
-  console.log(`[Buff] Removed ${buffName} from ${targetId}`);
+  log.info(`[Buff] Removed ${buffName} from ${targetId}`);
 }
 
 export const dmHandlers: HandlerRegistry = {

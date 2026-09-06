@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import { generateId } from "../utils/id.js";
 import { rollDice, calculateTotal, calculateModifier, calculateProficiencyBonus } from "./dice.js";
 import {
@@ -165,17 +166,17 @@ Format as bullet points. Keep it factual, not narrative.`;
         {
           onChunk: () => {}, // Summaries are internal — never streamed to clients.
           onEnd: () => {},
-          onError: err => console.warn(`[Engine] Story summary update failed: ${err.message}`),
+          onError: err => log.warn(`[Engine] Story summary update failed: ${err.message}`),
         },
         SUMMARY_STREAM_TIMEOUT_MS
       );
 
       if (result.trim()) {
         this.storySummary = result.trim();
-        console.log(`[Engine] Story summary updated (${result.length} chars)`);
+        log.info(`[Engine] Story summary updated (${result.length} chars)`);
       }
     } catch {
-      console.warn(`[Engine] Story summary update skipped`);
+      log.warn(`[Engine] Story summary update skipped`);
     }
   }
 
@@ -223,7 +224,7 @@ Format as bullet points. Keep it factual, not narrative.`;
     const total = combined?.total ?? d20Total + mainModifier;
     const success = total >= skillCheck.dc;
 
-    console.log(
+    log.info(
       helpers > 0
         ? `[CombinedCheck] ${skillCheck.skill}: ${total} vs DC ${skillCheck.dc} with ${helpers} helpers (+${helperBonus})`
         : `[AutoRoll] ${skillCheck.skill} check: ${total} vs DC ${skillCheck.dc} = ${success ? "SUCCESS" : "FAILURE"}`
@@ -360,7 +361,7 @@ Format as bullet points. Keep it factual, not narrative.`;
     const key = `level-${spell.level}`;
     const available = player.spellSlots?.[key] || 0;
     if (available <= 0) {
-      console.log(`[Engine] No slots for spell: ${spell.name}`);
+      log.info(`[Engine] No slots for spell: ${spell.name}`);
       return;
     }
 
@@ -371,7 +372,7 @@ Format as bullet points. Keep it factual, not narrative.`;
       live.spellSlots[key] = available - 1;
     });
 
-    console.log(`[Engine] Deducted spell slot: ${spell.name} (${key}, remaining: ${available - 1})`);
+    log.info(`[Engine] Deducted spell slot: ${spell.name} (${key}, remaining: ${available - 1})`);
   }
 
   /** Apply the HP changes, casualties and new NPCs the model reported. */

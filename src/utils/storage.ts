@@ -1,3 +1,4 @@
+import { log } from "./logger.js";
 import * as fs from "fs";
 import * as path from "path";
 import type { ChatMessage, Game } from "../types/index.js";
@@ -43,7 +44,7 @@ export function saveGame(game: Game): string {
 
   fs.writeFileSync(filePath, JSON.stringify(toWrite, null, 2));
 
-  console.log(`[Storage] Saved game ${game.id} (${toWrite.chatHistory?.length ?? 0} messages)`);
+  log.info(`[Storage] Saved game ${game.id} (${toWrite.chatHistory?.length ?? 0} messages)`);
   return game.id;
 }
 
@@ -62,17 +63,17 @@ export function loadGame(gameId: string): Game | null {
   const filePath = path.join(STORAGE_DIR, `${gameId}.json`);
   
   if (!fs.existsSync(filePath)) {
-    console.warn(`[Storage] Game ${gameId} not found`);
+    log.warn(`[Storage] Game ${gameId} not found`);
     return null;
   }
   
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const game = stripRetiredFields(JSON.parse(content));
-    console.log(`[Storage] Loaded game ${gameId}`);
+    log.info(`[Storage] Loaded game ${gameId}`);
     return game;
   } catch (error) {
-    console.error(`[Storage] Failed to load game ${gameId}:`, error);
+    log.error(`[Storage] Failed to load game ${gameId}:`, error);
     return null;
   }
 }
@@ -106,6 +107,6 @@ export function deleteGame(gameId: string): boolean {
   }
   
   fs.unlinkSync(filePath);
-  console.log(`[Storage] Deleted game ${gameId}`);
+  log.info(`[Storage] Deleted game ${gameId}`);
   return true;
 }

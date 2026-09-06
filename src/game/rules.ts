@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import {
   calculateProficiencyBonus,
   calculateModifier,
@@ -315,7 +316,7 @@ export function awardXP(players: Player[], xpAmount: number): void {
           player.spellSlots[key] = val;
         }
       }
-      console.log(`[LevelUp] ${player.characterName} reached level ${levelUp.newLevel}!`);
+      log.info(`[LevelUp] ${player.characterName} reached level ${levelUp.newLevel}!`);
     }
   }
 }

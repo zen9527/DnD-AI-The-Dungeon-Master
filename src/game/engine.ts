@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import { generateId } from "../utils/id.js";
 import { createLLMClient, type LLMCallbacks, type LLMConfig } from "../llm/client.js";
 import { buildSystemPrompt } from "../llm/prompts.js";
@@ -66,7 +67,7 @@ export class GameEngine {
     });
 
     this.timer = new TurnTimer(() => {
-      console.log(`[Timer] Turn timer expired for ${this.getCurrentPlayer()?.characterName}`);
+      log.info(`[Timer] Turn timer expired for ${this.getCurrentPlayer()?.characterName}`);
     });
 
     this.combat = new CombatService(this.state, this.timer);

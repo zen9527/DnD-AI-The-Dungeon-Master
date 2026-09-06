@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Request, Response } from "express";
 import { configManager } from "../utils/config.js";
@@ -37,7 +38,7 @@ export function postConfigHandler(req: Request, res: Response): void {
   const key = resolveApiKey(llmApiKey, configManager.read().llmApiKey);
   configManager.write({ llmBaseUrl, llmApiKey: key, llmModel, llmProvider });
 
-  console.log(`[Config] LLM updated: ${llmProvider} — ${llmModel}`);
+  log.info(`[Config] LLM updated: ${llmProvider} — ${llmModel}`);
   // Running games hold a client built at creation time, so a restart is needed.
   res.json({ success: true, restartRequired: true });
 }

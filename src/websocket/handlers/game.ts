@@ -1,3 +1,4 @@
+import { log } from "../../utils/logger.js";
 import { gameStore } from "../../game/store.js";
 import type { GameEngine } from "../../game/engine.js";
 import { createPlayer } from "../../game/player-factory.js";
@@ -52,7 +53,7 @@ async function streamOpeningScene(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`[OpeningScene] Attempt ${attempt} (game: ${engine.id})`);
+      log.info(`[OpeningScene] Attempt ${attempt} (game: ${engine.id})`);
       const result = await engine.generateOpeningScene({
         onChunk: (chunk: string) => {
           manager.broadcastToGame(engine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
@@ -90,12 +91,12 @@ async function streamOpeningScene(
       const err = error instanceof Error ? error : new Error(String(error));
 
       if (attempt < maxAttempts && isRetryableLLMError(err)) {
-        console.log(`[OpeningScene] Attempt ${attempt} failed (${err.message}), retrying in ${OPENING_SCENE_RETRY_DELAY_MS / 1000}s...`);
+        log.info(`[OpeningScene] Attempt ${attempt} failed (${err.message}), retrying in ${OPENING_SCENE_RETRY_DELAY_MS / 1000}s...`);
         await delay(OPENING_SCENE_RETRY_DELAY_MS);
         continue;
       }
 
-      console.error(`[OpeningScene] Failed after ${attempt} attempt(s):`, err.message);
+      log.error(`[OpeningScene] Failed after ${attempt} attempt(s):`, err.message);
       const fallback = `The world forms around "${player.characterName}"... The adventure begins.`;
       engine.addEvent("DM", fallback);
       manager.broadcastToGame(engine.id, "STREAM_ERROR", { message: err.message, fallbackNarrative: fallback });
@@ -114,7 +115,7 @@ function scheduleOpeningScene(
 ): void {
   setTimeout(() => {
     streamOpeningScene(manager, engine, player, options).catch(err => {
-      console.error(`[OpeningScene] Unhandled rejection:`, err instanceof Error ? err.message : err);
+      log.error(`[OpeningScene] Unhandled rejection:`, err instanceof Error ? err.message : err);
     });
   }, delayMs);
 }
@@ -241,7 +242,7 @@ function handleRejoinGame(ctx: HandlerContext): void {
   // Others just need the refreshed roster; no "joined the adventure" event.
   ctx.manager.broadcastToGame(engine.id, "PLAYER_JOINED", { player, gameState: engine.game }, ctx.ws);
 
-  console.log(`[Rejoin] ${player.characterName} reclaimed their seat in ${engine.id}`);
+  log.info(`[Rejoin] ${player.characterName} reclaimed their seat in ${engine.id}`);
 }
 
 /**
@@ -269,7 +270,7 @@ function handleLoadGame(ctx: HandlerContext): void {
     gameState: resolved.engine.game,
   });
 
-  console.log(`[LoadGame] Restored ${resolved.engine.id} from disk`);
+  log.info(`[LoadGame] Restored ${resolved.engine.id} from disk`);
 }
 
 /** LIST_GAMES — lobby listing of in-memory and saved games. */
@@ -314,7 +315,7 @@ async function handlePlayerAction(ctx: HandlerContext): Promise<void> {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[DM Response] Failed for player ${playerId}:`, message);
+    log.error(`[DM Response] Failed for player ${playerId}:`, message);
     const fallback = `You attempt: "${actionPayload.action}". The result is uncertain...`;
     engine.addEvent("DM", fallback);
     ctx.manager.broadcastToGame(engine.id, "STREAM_ERROR", { message, fallbackNarrative: fallback });
@@ -377,11 +378,11 @@ function handleSaveGame(ctx: HandlerContext): void {
   try {
     engine.saveGame();
     ctx.manager.broadcastToGame(parsed.gameId, "GAME_SAVED", { gameId: parsed.gameId, timestamp: Date.now() });
-    console.log(`[SaveGame] Game ${parsed.gameId} saved successfully`);
+    log.info(`[SaveGame] Game ${parsed.gameId} saved successfully`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     ctx.manager.sendError(ctx.ws, `Failed to save game: ${message}`);
-    console.error(`[SaveGame] Failed to save game ${parsed.gameId}:`, error);
+    log.error(`[SaveGame] Failed to save game ${parsed.gameId}:`, error);
   }
 }
 

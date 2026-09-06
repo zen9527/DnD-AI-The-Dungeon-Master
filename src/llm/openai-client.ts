@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import { normalizeLlmBaseUrl } from "../utils/normalizeUrl.js";
 import { DEFAULT_IDLE_TIMEOUT_MS, type LLMCallbacks, type LLMClient, type LLMMessage } from "./types.js";
 
@@ -39,7 +40,7 @@ export class OpenAICompatibleClient implements LLMClient {
 
     const url = `${this.baseUrl}/chat/completions`;
 
-    console.log(`[LLM] POST ${url} (model: ${this.model}, auth: ${this.apiKey ? "yes" : "no"})`);
+    log.info(`[LLM] POST ${url} (model: ${this.model}, auth: ${this.apiKey ? "yes" : "no"})`);
 
     try {
       const response = await fetch(url, {

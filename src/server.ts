@@ -1,3 +1,4 @@
+import { log } from "./utils/logger.js";
 import express from "express";
 import { createServer } from "http";
 import path from "path";
@@ -11,12 +12,12 @@ const __dirname = path.dirname(__filename);
 
 const config = configManager.read();
 
-console.log(`[Server] .env file: ${configManager.getEnvPath()}`);
-console.log(`[Server] .env exists: ${fs.existsSync(configManager.getEnvPath())}`);
-console.log(`[Server] LLM provider: ${config.llmProvider}`);
-console.log(`[Server] LLM_API_URL: ${config.llmBaseUrl}`);
-console.log(`[Server] LLM_API_KEY: ${config.llmApiKey ? "(set)" : "(not set)"}`);
-console.log(`[Server] LLM_MODEL: ${config.llmModel}`);
+log.info(`[Server] .env file: ${configManager.getEnvPath()}`);
+log.info(`[Server] .env exists: ${fs.existsSync(configManager.getEnvPath())}`);
+log.info(`[Server] LLM provider: ${config.llmProvider}`);
+log.info(`[Server] LLM_API_URL: ${config.llmBaseUrl}`);
+log.info(`[Server] LLM_API_KEY: ${config.llmApiKey ? "(set)" : "(not set)"}`);
+log.info(`[Server] LLM_MODEL: ${config.llmModel}`);
 
 // Set process.env for other modules (backward compatibility)
 Object.assign(process.env, {
@@ -49,7 +50,7 @@ const wsManager = new WebSocketManager(server);
 
 // Load saved games from disk into memory at startup
 gameStore.loadSavedGames();
-console.log(`[GameStore] Loaded ${gameStore.getGameCount()} game(s) from storage`);
+log.info(`[GameStore] Loaded ${gameStore.getGameCount()} game(s) from storage`);
 
 // Start auto-save every 60 seconds
 gameStore.startAutoSave();
@@ -79,7 +80,7 @@ app.get("/api/saved-games", (_req, res) => {
     const saved = listSavedGames();
     res.json(saved);
   } catch (error) {
-    console.error("[API] Failed to list saved games:", error);
+    log.error("[API] Failed to list saved games:", error);
     res.status(500).json({ error: "Failed to list saved games" });
   }
 });
@@ -87,25 +88,25 @@ app.get("/api/saved-games", (_req, res) => {
 app.delete("/api/saved-games/:id", gamesDeleteHandler);
 
 server.listen(parseInt(PORT), () => {
-  console.log(`============================================`);
-  console.log(`DnD AI: The Dungeon Master running at http://${HOST}:${PORT}`);
-  console.log(`LLM: ${config.llmProvider} — ${config.llmModel}`);
-  console.log(`Press Ctrl+C to stop`);
-  console.log(`============================================`);
+  log.info(`============================================`);
+  log.info(`DnD AI: The Dungeon Master running at http://${HOST}:${PORT}`);
+  log.info(`LLM: ${config.llmProvider} — ${config.llmModel}`);
+  log.info(`Press Ctrl+C to stop`);
+  log.info(`============================================`);
 });
 
 // Catch unhandled promise rejections for debugging
 process.on("unhandledRejection", (reason, promise) => {
-  console.error(`[Global] Unhandled Rejection at:`, promise);
-  console.error(`[Global] Reason:`, reason instanceof Error ? reason.message : reason);
-  console.error(`[Global] Stack:`, reason instanceof Error ? reason.stack : "N/A");
+  log.error(`[Global] Unhandled Rejection at:`, promise);
+  log.error(`[Global] Reason:`, reason instanceof Error ? reason.message : reason);
+  log.error(`[Global] Stack:`, reason instanceof Error ? reason.stack : "N/A");
 });
 
 process.on("SIGINT", () => {
-  console.log("\nShutting down server...");
+  log.info("\nShutting down server...");
   wsManager.shutdown();
   server.close(() => {
-    console.log("Server closed");
+    log.info("Server closed");
     process.exit(0);
   });
 });

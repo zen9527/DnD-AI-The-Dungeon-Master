@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { DEFAULT_IDLE_TIMEOUT_MS, type LLMCallbacks, type LLMClient, type LLMMessage } from "./types.js";
 
@@ -67,7 +68,7 @@ export class AnthropicClient implements LLMClient {
       throw error;
     }
 
-    console.log(`[LLM] Anthropic messages.stream (model: ${this.model}, effort: ${EFFORT})`);
+    log.info(`[LLM] Anthropic messages.stream (model: ${this.model}, effort: ${EFFORT})`);
 
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let timedOut = false;

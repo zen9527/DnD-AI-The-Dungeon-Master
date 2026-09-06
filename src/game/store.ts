@@ -1,3 +1,4 @@
+import { log } from "../utils/logger.js";
 import { GameEngine } from "./engine.js";
 import { generateId } from "../utils/id.js";
 import { configManager } from "../utils/config.js";
@@ -80,7 +81,7 @@ export class GameStore {
       toLLMConfig(config)
     );
     this.games.set(gameId, engine);
-    console.log(`[GameStore] Created game "${gameName}" (ID: ${gameId}, scenario: ${scenario})`);
+    log.info(`[GameStore] Created game "${gameName}" (ID: ${gameId}, scenario: ${scenario})`);
     return engine;
   }
 
@@ -100,7 +101,7 @@ export class GameStore {
 
   deleteGame(gameId: string): boolean {
     const deleted = this.games.delete(gameId);
-    if (deleted) console.log(`[GameStore] Deleted game: ${gameId}`);
+    if (deleted) log.info(`[GameStore] Deleted game: ${gameId}`);
     return deleted;
   }
 
@@ -123,7 +124,7 @@ export class GameStore {
       }
     }
 
-    if (cleaned > 0) console.log(`[GameStore] Cleaned up ${cleaned} empty game(s)`);
+    if (cleaned > 0) log.info(`[GameStore] Cleaned up ${cleaned} empty game(s)`);
     return cleaned;
   }
 
@@ -167,7 +168,7 @@ export class GameStore {
       toLLMConfig(config)
     );
     this.games.set(gameId, engine);
-    console.log(`[GameStore] Loaded single game ${gameId} from disk`);
+    log.info(`[GameStore] Loaded single game ${gameId} from disk`);
     return engine;
   }
 

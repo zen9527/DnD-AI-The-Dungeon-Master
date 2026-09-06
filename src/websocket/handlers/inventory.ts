@@ -1,3 +1,4 @@
+import { log } from "../../utils/logger.js";
 import { equipItemSchema, useItemSchema, itemSchema } from "../../../shared/index.js";
 import { parsePayload, requireDM, requirePlayer } from "../guards.js";
 import type { HandlerContext, HandlerRegistry } from "../types.js";
@@ -27,7 +28,7 @@ function handleInventoryAddItem(ctx: HandlerContext): void {
     item: { id: item.id, name: item.name, type: item.type },
   });
 
-  console.log(`[Inventory] Added item ${item.name} to player ${playerId}`);
+  log.info(`[Inventory] Added item ${item.name} to player ${playerId}`);
 }
 
 /** Shared body for EQUIP_WEAPON / EQUIP_ARMOR — only the slot differs. */
@@ -47,7 +48,7 @@ function equipToSlot(ctx: HandlerContext, slot: "weapon" | "armor"): void {
     itemId: parsed.itemId,
   });
 
-  console.log(`[Equipment] Player ${playerId} equipped ${slot} ${parsed.itemId}`);
+  log.info(`[Equipment] Player ${playerId} equipped ${slot} ${parsed.itemId}`);
 }
 
 /** Shared body for UNEQUIP_WEAPON / UNEQUIP_ARMOR. */
@@ -64,7 +65,7 @@ function unequipSlot(ctx: HandlerContext, slot: "weapon" | "armor"): void {
     itemId: null,
   });
 
-  console.log(`[Equipment] Player ${playerId} unequipped ${slot}`);
+  log.info(`[Equipment] Player ${playerId} unequipped ${slot}`);
 }
 
 /** USE_ITEM — consume a potion or other consumable, optionally on a target. */
@@ -84,7 +85,7 @@ function handleUseItem(ctx: HandlerContext): void {
     targetId: parsed.targetId,
   });
 
-  console.log(`[Inventory] Player ${playerId} used item ${parsed.itemId}`);
+  log.info(`[Inventory] Player ${playerId} used item ${parsed.itemId}`);
 }
 
 export const inventoryHandlers: HandlerRegistry = {

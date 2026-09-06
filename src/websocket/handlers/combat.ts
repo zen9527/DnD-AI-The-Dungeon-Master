@@ -1,3 +1,4 @@
+import { log } from "../../utils/logger.js";
 import { rollDice, calculateTotal } from "../../game/dice.js";
 import { combatStartSchema, initiativeRollSchema, diceRollSchema } from "../../../shared/index.js";
 import { parsePayload, requireDM, requirePlayer } from "../guards.js";
@@ -26,7 +27,7 @@ function handleCombatStart(ctx: HandlerContext): void {
 
   resolved.engine.startCombat(parsed.startInitiative ?? true);
   broadcastCombatState(ctx.manager, resolved.engine);
-  console.log(`[Combat] Combat started in game ${resolved.engine.id}`);
+  log.info(`[Combat] Combat started in game ${resolved.engine.id}`);
 }
 
 /** COMBAT_END — leave combat mode and clear the initiative order. */
@@ -36,7 +37,7 @@ function handleCombatEnd(ctx: HandlerContext): void {
 
   resolved.engine.endCombat();
   broadcastCombatState(ctx.manager, resolved.engine);
-  console.log(`[Combat] Combat ended in game ${resolved.engine.id}`);
+  log.info(`[Combat] Combat ended in game ${resolved.engine.id}`);
 }
 
 /** INITIATIVE_ROLL — the DM rolls initiative for one player or NPC. */
@@ -54,7 +55,7 @@ function handleInitiativeRoll(ctx: HandlerContext): void {
     newEntry: { entityId: parsed.entityId, score },
   });
 
-  console.log(`[Initiative] ${parsed.isPlayer ? "Player" : "NPC"} ${parsed.entityId} rolled ${score}`);
+  log.info(`[Initiative] ${parsed.isPlayer ? "Player" : "NPC"} ${parsed.entityId} rolled ${score}`);
 }
 
 /** TURN_ADVANCE — the DM manually hands the turn to the next combatant. */
@@ -64,7 +65,7 @@ function handleTurnAdvance(ctx: HandlerContext): void {
 
   resolved.engine.advanceTurn();
   broadcastCombatState(ctx.manager, resolved.engine);
-  console.log(`[Combat] Turn advanced in game ${resolved.engine.id}`);
+  log.info(`[Combat] Turn advanced in game ${resolved.engine.id}`);
 }
 
 /** DICE_ROLL — rolled server-side so clients cannot fabricate results. */
