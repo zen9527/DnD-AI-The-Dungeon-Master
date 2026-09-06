@@ -440,7 +440,6 @@
   "dm_error.notification": "DMエラー: {message}",
   "spell.cast_tooltip": "呪文を発動",
   "player_joined.notification": "{name} が冒険に参加しました！",
-  "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[{targetName} への非公開]: {content}",
   "private_chat.sent": "{targetName} に非公開メッセージを送信しました",
   "private_chat.received": "{senderName} からの非公開メッセージ",

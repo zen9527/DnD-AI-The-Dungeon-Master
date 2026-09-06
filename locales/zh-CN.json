@@ -507,7 +507,6 @@
   "dm_error.notification": "DM 错误: {message}",
   "spell.cast_tooltip": "施放法术",
   "player_joined.notification": "{name} 加入了冒险！",
-  "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[私聊 to {targetName}]: {content}",
   "private_chat.sent": "已发送私聊给 {targetName}",
   "private_chat.received": "收到来自 {senderName} 的私聊",

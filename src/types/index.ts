@@ -101,7 +101,7 @@ export interface ChatMessage {
   playerName?: string;
   characterName?: string;
   content: string;
-  type: 'text' | 'roll' | 'npc' | 'event' | 'narrative' | 'emote'; // Added 'emote' type
+  type: 'text' | 'roll' | 'npc' | 'event' | 'narrative';
   timestamp: number;
   diceResult?: DiceRoll; // Auto-rolled dice result for skill checks
 }
@@ -186,7 +186,6 @@ export type MessageType =
   | 'LIST_GAMES'
   | 'PLAYER_ACTION'
   | 'CHAT_MESSAGE'        // Chat message from player
-  | 'PLAYER_EMOTE'        // Emote command support
   | 'PRIVATE_CHAT'        // Private messaging
   | 'SET_LOCALE'
   | 'DICE_ROLL'
@@ -222,7 +221,6 @@ export type MessageType =
   | 'PLAYER_LEFT'
   | 'PLAYER_ACTION_RESULT'
   | 'CHAT_MESSAGE'
-  | 'EMOTE_MESSAGE'       // NEW: Emote broadcast
   | 'PRIVATE_MESSAGE'     // NEW: Private message delivery
   | 'DICE_ROLL_RESULT'
   | 'NPC_CREATED'

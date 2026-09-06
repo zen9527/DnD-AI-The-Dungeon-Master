@@ -436,7 +436,6 @@
   "dm_error.notification": "DM 오류: {message}",
   "spell.cast_tooltip": "주문 시전",
   "player_joined.notification": "{name}이(가) 모험에 참가했습니다!",
-  "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[{targetName}에게 귓속말]: {content}",
   "private_chat.sent": "{targetName}에게 귓속말을 보냈습니다",
   "private_chat.received": "{senderName}의 귓속말",

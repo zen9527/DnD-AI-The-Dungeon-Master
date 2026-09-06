@@ -221,7 +221,6 @@ class App {
     });
 
     wsManager.on("CHAT_MESSAGE", payload => this.applyChatUpdate(payload));
-    wsManager.on("EMOTE_MESSAGE", payload => this.applyChatUpdate(payload));
 
     wsManager.on("PRIVATE_MESSAGE", payload => {
       const p = payload as { message: ChatMessage; targetPlayerId?: string; senderPlayerId?: string };
@@ -345,7 +344,7 @@ class App {
     });
   }
 
-  /** CHAT_MESSAGE and EMOTE_MESSAGE both carry the authoritative game state. */
+  /** CHAT_MESSAGE carries the authoritative game state. */
   private applyChatUpdate(payload: unknown): void {
     const p = payload as { message: ChatMessage; gameState?: Game };
     if (p.gameState) {

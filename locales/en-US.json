@@ -499,7 +499,6 @@
   "dm_error.notification": "DM error: {message}",
   "spell.cast_tooltip": "Cast a spell",
   "player_joined.notification": "{name} has joined the adventure!",
-  "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[Private to {targetName}]: {content}",
   "private_chat.sent": "Private message sent to {targetName}",
   "private_chat.received": "Private message from {senderName}",

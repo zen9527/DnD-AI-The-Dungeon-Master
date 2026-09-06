@@ -84,9 +84,7 @@ export class ChatView {
     }
 
     const el = document.createElement("div");
-    el.className = message.type === "emote"
-      ? `message emote ${isOwn ? "own" : ""}`
-      : `message ${message.type} ${isOwn ? "own" : ""}`;
+    el.className = `message ${message.type} ${isOwn ? "own" : ""}`;
     el.innerHTML = `
       <div class="message-header">
         <strong class="${isDMNarrative ? "dm-sender" : ""}">${escapeHtml(senderName)}</strong>

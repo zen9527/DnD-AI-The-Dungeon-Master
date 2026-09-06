@@ -121,7 +121,7 @@ export class ActionBar {
       </div>
       ${diceHtml}
       <div class="free-text">
-        <input type="text" id="action-input" placeholder="${t("action.placeholder")} (/emote text, /pm player message)">
+        <input type="text" id="action-input" placeholder="${t("action.placeholder")} (/pm player message)">
         <button id="action-submit" class="primary">${t("action.submit")}</button>
       </div>
     `;
@@ -187,18 +187,6 @@ export class ActionBar {
     if (!action.trim()) return;
     
     const trimmedAction = action.trim();
-    
-    // Parse /emote command - send as PLAYER_EMOTE
-    if (trimmedAction.startsWith("/emote ")) {
-      const emoteText = trimmedAction.substring(7).trim();
-      if (emoteText) {
-        wsManager.send({ type: "PLAYER_EMOTE", payload: { action: emoteText } });
-      }
-      // Clear input after sending
-      const input = document.getElementById("action-input") as HTMLInputElement;
-      if (input) input.value = "";
-      return;
-    }
     
     // Parse /pm or /whisper command - send as PRIVATE_CHAT
     // Format: /pm <playerName> <message> or /whisper <playerName> <message>

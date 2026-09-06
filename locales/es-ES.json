@@ -435,7 +435,6 @@
   "dm_error.notification": "Error del DM: {message}",
   "spell.cast_tooltip": "Lanzar hechizo",
   "player_joined.notification": "¡{name} se ha unido a la aventura!",
-  "emote.format": "*{playerName} {action}*",
   "private_chat.prefix": "[Privado para {targetName}]: {content}",
   "private_chat.sent": "Mensaje privado enviado a {targetName}",
   "private_chat.received": "Mensaje privado de {senderName}",

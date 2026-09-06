@@ -58,10 +58,8 @@ export type { PlayerActionInput, PresetActionId } from "./schemas/action.js";
 export type { ChatMessageInput } from "./schemas/chat.js";
 export type { ChatMessageInput as MessageInput } from "./schemas/chat.js";
 
-// Emote & Private Chat schemas
-export { emoteSchema } from "./schemas/emote.js";
+// Private Chat schema
 export { privateChatSchema } from "./schemas/private-chat.js";
-export type { EmoteInput } from "./schemas/emote.js";
 export type { PrivateChatInput } from "./schemas/private-chat.js";
 
 // Scenario
