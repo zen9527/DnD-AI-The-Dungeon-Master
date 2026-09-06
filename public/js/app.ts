@@ -11,10 +11,9 @@ import { CombatPanelView } from "./views/combat-panel.js";
 import { DMControlsView } from "./views/dm-controls.js";
 import { InventoryPanelView } from "./views/inventory-panel.js";
 import { SettingsModal } from "./views/settings-modal.js";
-import { LobbyView } from "./views/lobby.js";
+import { JoinView } from "./views/join-view.js";
 import type { Player, ChatMessage, DiceRoll, Game, InitiativeEntry, Item } from "../../shared/index.js";
 
-const ACTIVE_GAMES_REFRESH_MS = 30000;
 /** Give the server a moment to answer an auto-join before falling back to the form. */
 const AUTO_JOIN_TIMEOUT_MS = 3000;
 const TIMER_WARNING_SECONDS = 10;
@@ -63,7 +62,7 @@ class App {
   private readonly combatPanel = new CombatPanelView();
   private readonly dmControls = new DMControlsView();
   private readonly inventoryPanel = new InventoryPanelView();
-  private readonly lobby = new LobbyView();
+  private readonly joinView = new JoinView();
 
   constructor() {
     void this.init();
@@ -82,24 +81,12 @@ class App {
     // existing seat and showing the join form once the connection is open.
     if (this.gameId) return;
 
-    new CharacterCreator(() => void this.fetchActiveGames());
-    void this.fetchActiveGames();
-    setInterval(() => void this.fetchActiveGames(), ACTIVE_GAMES_REFRESH_MS);
-  }
-
-  public async fetchActiveGames(): Promise<void> {
-    try {
-      const response = await fetch("/api/games");
-      if (!response.ok) return;
-      this.lobby.renderActiveGames(await response.json());
-    } catch {
-      // The API may not be up yet; the next refresh tick will retry.
-    }
+    new CharacterCreator();
   }
 
   private showJoinForm(): void {
     if (!this.gameId) return;
-    this.lobby.showJoinForm(this.gameId, () => new SettingsModal().show());
+    this.joinView.showJoinForm(this.gameId, () => new SettingsModal().show());
   }
 
   // ---- WebSocket wiring ----

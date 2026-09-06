@@ -1,13 +1,6 @@
 {
   "app.title": "DnD AI: The Dungeon Master",
   "hero.subtitle": "The AI Dungeon Master awaits your adventure. Choose a scenario, create your character, and let the story unfold.",
-  "active_games.title": "⚔️ Active Adventures",
-  "active_games.refresh": "🔄 Refresh",
-  "active_games.no_games.icon": "🏰",
-  "active_games.no_games.text": "No active adventures yet. Be the first to begin!",
-  "active_games.full": "Full",
-  "active_games.players": "{current}/{max} players",
-  "active_games.join": "Join Adventure",
   "create_own.title": "Create Your Own Adventure",
   "create_own.subtitle": "Start a new game and invite friends to join",
   "create_game.btn": "Create New Game",

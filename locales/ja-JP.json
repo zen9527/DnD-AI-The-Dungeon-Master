@@ -1,13 +1,6 @@
 {
   "app.title": "知域冒険",
   "hero.subtitle": "AIダンジョンマスターがあなたの冒険を待っています。シナリオを選び、キャラクターを作成し、物語を進めましょう。",
-  "active_games.title": "⚔️ アクティブな冒険",
-  "active_games.refresh": "🔄 更新",
-  "active_games.no_games.icon": "🏰",
-  "active_games.no_games.text": "現在進行中の冒険はありません。最初の一歩を踏み出しましょう！",
-  "active_games.full": "満員",
-  "active_games.players": "{current}/{max} プレイヤー",
-  "active_games.join": "冒険に参加",
   "create_own.title": "独自の冒険を作成",
   "create_own.subtitle": "新しいゲームを開始して友達を招待しましょう",
   "create_game.btn": "新しいゲームを作成",

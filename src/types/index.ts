@@ -183,7 +183,6 @@ export type MessageType =
   // Client → Server
   | 'CREATE_GAME'
   | 'JOIN_GAME'
-  | 'LIST_GAMES'
   | 'PLAYER_ACTION'
   | 'CHAT_MESSAGE'        // Chat message from player
   | 'PRIVATE_CHAT'        // Private messaging
@@ -216,7 +215,7 @@ export type MessageType =
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
-  | 'GAME_STATE'
+
   | 'PLAYER_JOINED'
   | 'PLAYER_LEFT'
   | 'PLAYER_ACTION_RESULT'

@@ -273,11 +273,6 @@ function handleLoadGame(ctx: HandlerContext): void {
   log.info(`[LoadGame] Restored ${resolved.engine.id} from disk`);
 }
 
-/** LIST_GAMES — lobby listing of in-memory and saved games. */
-function handleListGames(ctx: HandlerContext): void {
-  ctx.manager.send(ctx.ws, "GAME_STATE", { games: gameStore.listGames() });
-}
-
 /** PLAYER_ACTION — the core loop: echo the action, then stream the DM's response. */
 async function handlePlayerAction(ctx: HandlerContext): Promise<void> {
   const resolved = requirePlayer(ctx);
@@ -391,7 +386,6 @@ export const gameHandlers: HandlerRegistry = {
   JOIN_GAME: handleJoinGame,
   REJOIN_GAME: handleRejoinGame,
   LOAD_GAME: handleLoadGame,
-  LIST_GAMES: handleListGames,
   PLAYER_ACTION: handlePlayerAction,
   SET_LOCALE: handleSetLocale,
   SAVE_GAME: handleSaveGame,

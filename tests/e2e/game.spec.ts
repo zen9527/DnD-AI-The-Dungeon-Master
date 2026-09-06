@@ -117,19 +117,28 @@ test("flow 5 — switching language re-renders in place without dropping the soc
   await expect(page.locator("#chat-messages")).toContainText("我举起火把");
 });
 
-test("flow 6 — the lobby lists the games that exist", async ({ page }) => {
-  const gameName = `Smoke: Lobby ${Date.now()}`;
+test("flow 6 — the campaign book lists saved games and a code joins them", async ({ page }) => {
+  const gameName = `Smoke: Book ${Date.now()}`;
   await createGame(page, gameName);
+  await waitForOpeningScene(page);
 
-  // Arrive fresh, the way a second player would.
+  // The campaign book reads the disk, so save first.
+  await page.locator("#save-game-btn").click();
+  await expect(page.locator(".notification")).toContainText("Game saved");
+  const gameId = new URL(page.url()).searchParams.get("game")!;
+
+  // Arrive fresh, the way a second player would: the book shows the campaign.
   await page.goto("/");
-
-  // This listing was blank for every visitor: the creator reached for
-  // `window.app`, got the `<div id="app">` element that already owns that
-  // global, and the TypeError aborted the rest of the lobby's setup.
-  const card = page.locator("#active-games-container .game-card", { hasText: gameName });
+  const card = page.locator("#saved-games-container .game-card", { hasText: gameName });
   await expect(card).toBeVisible();
-  await expect(card.locator(".status-badge")).toContainText("1/4");
+
+  // And the join-by-code field reaches the same table — as a stranger does,
+  // without the creator's rejoin token in localStorage (with it, the app
+  // correctly reclaims the seat instead of offering the join form).
+  await page.evaluate(() => window.localStorage.clear());
+  await page.locator("#game-id-input").fill(gameId);
+  await page.locator("#join-game-btn").click();
+  await expect(page.locator("#join-form")).toBeVisible();
 });
 
 test("flow 7 — the phone layout fits, with the party, story and composer all reachable", async ({ page }) => {

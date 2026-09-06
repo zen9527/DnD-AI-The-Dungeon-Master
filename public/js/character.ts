@@ -8,8 +8,6 @@ import { SavedGamesView } from "./views/saved-games.js";
 
 export class CharacterCreator {
   private element: HTMLElement | null = null;
-  /** Refresh the "active adventures" list. Owned by App, which does the fetching. */
-  private readonly refreshActiveGames: () => void;
   private selectedScenario: string = "dungeon";
   // Store handler references for cleanup (fixes event listener leak)
   private raceChangeHandler: (() => void) | null = null;
@@ -42,8 +40,7 @@ export class CharacterCreator {
     });
   }
 
-  constructor(refreshActiveGames: () => void = () => {}) {
-    this.refreshActiveGames = refreshActiveGames;
+  constructor() {
     this.element = document.getElementById("app");
     if (!this.element) return;
     this.showForm();
@@ -57,15 +54,7 @@ export class CharacterCreator {
         <p class="hero-subtitle">${t("hero.subtitle")}</p>
       </div>
 
-      <div class="active-games-section">
-        <div class="section-header">
-          <h2 class="section-title">${t("active_games.title")}</h2>
-          <button id="refresh-games-btn" class="refresh-btn">${t("active_games.refresh")}</button>
-        </div>
-        <div id="active-games-container"></div>
-      </div>
-
-      <!-- Saved Games Section -->
+      <!-- Campaign book: everything saved on this machine, newest first -->
       <div class="saved-games-section" id="saved-games-section" style="display:none;">
         <div class="section-header">
           <h2 class="section-title">${t("saved_games.title")}</h2>
@@ -90,7 +79,6 @@ export class CharacterCreator {
     `;
 
     document.getElementById("create-game-btn")?.addEventListener("click", () => this.showScenarioSelection());
-    document.getElementById("refresh-games-btn")?.addEventListener("click", () => this.refreshActiveGames());
     document.getElementById("join-game-btn")?.addEventListener("click", () => {
       const gameId = (document.getElementById("game-id-input") as HTMLInputElement).value.trim();
       if (gameId) window.location.href = `?game=${gameId}`;

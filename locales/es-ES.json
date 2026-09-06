@@ -1,13 +1,6 @@
 {
   "app.title": "DnD AI: El Maestro del Dungeon",
   "hero.subtitle": "El Maestro del Mazmorra con IA espera tu aventura. Elige un escenario, crea tu personaje y deja que la historia se desarrolle.",
-  "active_games.title": "⚔️ Aventuras Activas",
-  "active_games.refresh": "🔄 Actualizar",
-  "active_games.no_games.icon": "🏰",
-  "active_games.no_games.text": "No hay aventuras activas aún. ¡Sé el primero en comenzar!",
-  "active_games.full": "Completo",
-  "active_games.players": "{current}/{max} jugadores",
-  "active_games.join": "Unirse a la Aventura",
   "create_own.title": "Crea Tu Propia Aventura",
   "create_own.subtitle": "Inicia un nuevo juego e invita amigos a unirse",
   "create_game.btn": "Crear Nuevo Juego",

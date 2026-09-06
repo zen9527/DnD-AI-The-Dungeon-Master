@@ -89,16 +89,6 @@ export class GameStore {
     return this.games.get(gameId);
   }
 
-  listGames(): Array<{ id: string; name: string; scenario: string; players: number; maxPlayers: number }> {
-    return Array.from(this.games.values()).map(e => ({
-      id: e.id,
-      name: e.name,
-      scenario: e.game.scenario,
-      players: e.getPlayerCount(),
-      maxPlayers: e.getMaxPlayers(),
-    }));
-  }
-
   deleteGame(gameId: string): boolean {
     const deleted = this.games.delete(gameId);
     if (deleted) log.info(`[GameStore] Deleted game: ${gameId}`);

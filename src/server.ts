@@ -65,10 +65,6 @@ app.post("/api/config", postConfigHandler);
 app.get("/api/config/models", getModelsHandler);
 app.post("/api/config/test", postConfigTestHandler);
 
-app.get("/api/games", (_req, res) => {
-  res.json(gameStore.listGames());
-});
-
 // ---- Save/Load Game API Routes ----
 
 app.post("/api/games/:id/save", gamesSavePostHandler);
