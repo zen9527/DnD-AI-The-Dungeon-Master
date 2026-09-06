@@ -1704,6 +1704,28 @@ hr {
 
 .settings-panel label { margin-bottom: var(--s3); }
 
+/* Read-only config rows in the settings dialog (dl/dt/dd). */
+.settings-rows { margin: 0 0 var(--s2); }
+.settings-rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px solid var(--rule);
+}
+.settings-rows dt {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.settings-rows dd {
+  margin: 0;
+  font-size: var(--fs-sm);
+  text-align: right;
+  word-break: break-all;
+}
+
 .settings-hint {
   display: block;
   font-family: var(--font-ui);

@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { maskApiKey, isMaskedApiKey, resolveApiKey } from "../../src/utils/secrets.js";
+import { maskApiKey } from "../../src/utils/secrets.js";
 import { LLMRateLimiter } from "../../src/websocket/rate-limit.js";
 
 /**
  * `GET /api/config` used to return the raw key so the settings dialog could
  * pre-fill the field — meaning any browser that could reach the server could
- * read it. These guard the mask-and-restore scheme that replaced it.
+ * read it. The dialog is read-only now, and these guard what remains: the key
+ * is displayed masked and never travels back over HTTP in either direction.
  */
 describe("API key masking", () => {
   const REAL_KEY = "sk-ant-api03-abcdefghijklmnop4f2a";
@@ -29,31 +30,6 @@ describe("API key masking", () => {
   it("reports an unset key as empty rather than a mask", () => {
     expect(maskApiKey("")).toBe("");
     expect(maskApiKey(null)).toBe("");
-  });
-
-  it("recognises its own output as a mask", () => {
-    expect(isMaskedApiKey(maskApiKey(REAL_KEY))).toBe(true);
-    expect(isMaskedApiKey(REAL_KEY)).toBe(false);
-  });
-});
-
-describe("resolveApiKey", () => {
-  const STORED = "sk-ant-api03-abcdefghijklmnop4f2a";
-
-  it("keeps the stored key when the field comes back untouched", () => {
-    expect(resolveApiKey(maskApiKey(STORED), STORED)).toBe(STORED);
-  });
-
-  it("accepts a genuinely new key", () => {
-    expect(resolveApiKey("sk-ant-brand-new-key-value", STORED)).toBe("sk-ant-brand-new-key-value");
-  });
-
-  it("lets an emptied field clear the key", () => {
-    expect(resolveApiKey("", STORED)).toBe("");
-  });
-
-  it("does not resurrect a key that was never stored", () => {
-    expect(resolveApiKey("", null)).toBe("");
   });
 });
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createLLMClient } from "../../src/llm/client.js";
 import { AnthropicClient } from "../../src/llm/anthropic-client.js";
 import { OpenAICompatibleClient } from "../../src/llm/openai-client.js";
-import { configSchema, endpointPresets, llmProviderSchema } from "../../shared/schemas/config.js";
+import { llmProviderOptions, llmProviderSchema } from "../../shared/schemas/config.js";
 
 describe("createLLMClient", () => {
   it("returns the Anthropic client for the anthropic provider", () => {
@@ -81,34 +81,11 @@ describe("AnthropicClient request shaping", () => {
 });
 
 describe("provider config", () => {
-  it("defaults to the OpenAI-compatible protocol when unspecified", () => {
-    const parsed = configSchema.parse({ llmBaseUrl: "", llmApiKey: "", llmModel: "" });
-    expect(parsed.llmProvider).toBe("openai-compatible");
-  });
-
-  it("accepts a blank base URL, which Claude does not need", () => {
-    const parsed = configSchema.safeParse({
-      llmBaseUrl: "",
-      llmApiKey: "sk-test",
-      llmModel: "claude-opus-5",
-      llmProvider: "anthropic",
-    });
-    expect(parsed.success).toBe(true);
+  it("offers exactly the two wire protocols the client factory implements", () => {
+    expect(llmProviderOptions).toEqual(["openai-compatible", "anthropic"]);
   });
 
   it("rejects an unknown provider", () => {
     expect(llmProviderSchema.safeParse("gemini").success).toBe(false);
-  });
-
-  it("tags every preset with a valid provider", () => {
-    for (const preset of endpointPresets) {
-      expect(llmProviderSchema.safeParse(preset.provider).success).toBe(true);
-    }
-  });
-
-  it("ships a Claude preset pointing at a current model", () => {
-    const claude = endpointPresets.find(p => p.provider === "anthropic");
-    expect(claude).toBeDefined();
-    expect(claude!.model).toBe("claude-opus-5");
   });
 });

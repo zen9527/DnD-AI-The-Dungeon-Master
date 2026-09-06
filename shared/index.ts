@@ -66,10 +66,9 @@ export type { PrivateChatInput } from "./schemas/private-chat.js";
 export { scenarioOptions, scenarioDescriptions } from "./schemas/scenario.js";
 export type { Scenario } from "./schemas/scenario.js";
 
-// Config
-export { configSchema, endpointPresets } from "./schemas/config.js";
-export type { ConfigInput } from "./schemas/config.js";
-export type { EndpointPreset } from "./schemas/config.js";
+// Config (provider selection only — settings live in .env, not over HTTP)
+export { llmProviderOptions, llmProviderSchema } from "./schemas/config.js";
+export type { LLMProviderId } from "./schemas/config.js";
 
 // Locale
 export { SUPPORTED_LOCALES, LOCALE_DISPLAY, LOCALE_NATIVE, localeSchema } from "./schemas/locale.js";

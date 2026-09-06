@@ -42,7 +42,7 @@ import { WebSocketManager } from "./websocket/manager.js";
 import { gameStore } from "./game/store.js";
 import gamesSavePostHandler from "./routes/games.save.post.js";
 import gamesDeleteHandler from "./routes/games.delete.js";
-import { getConfigHandler, postConfigHandler, getModelsHandler, postConfigTestHandler } from "./routes/config.js";
+import { getConfigHandler, postConfigTestHandler } from "./routes/config.js";
 import { listGames as listSavedGames } from "./utils/storage.js";
 
 
@@ -61,8 +61,6 @@ const HOST = config.host;
 // ---- Config API Routes ----
 
 app.get("/api/config", getConfigHandler);
-app.post("/api/config", postConfigHandler);
-app.get("/api/config/models", getModelsHandler);
 app.post("/api/config/test", postConfigTestHandler);
 
 // ---- Save/Load Game API Routes ----
