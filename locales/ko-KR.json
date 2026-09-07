@@ -413,6 +413,8 @@
   "stream_cancelled.notification": "내레이션이 중지되었습니다",
   "stream.stop.btn": "중지",
   "stream.stop.tooltip": "이 내레이션 중지",
+  "connection.lost": "연결이 끊어졌습니다 — 재연결 중…",
+  "connection.restored": "연결이 복구되었습니다",
   "spell.cast_tooltip": "주문 시전",
   "player_joined.notification": "{name}이(가) 모험에 참가했습니다!",
   "private_chat.prefix": "[{targetName}에게 귓속말]: {content}",

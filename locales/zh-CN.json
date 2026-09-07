@@ -484,6 +484,8 @@
   "stream_cancelled.notification": "叙述已停止",
   "stream.stop.btn": "停止",
   "stream.stop.tooltip": "停止本次叙述",
+  "connection.lost": "连接已断开——正在重连……",
+  "connection.restored": "连接已恢复",
   "spell.cast_tooltip": "施放法术",
   "player_joined.notification": "{name} 加入了冒险！",
   "private_chat.prefix": "[私聊 to {targetName}]: {content}",

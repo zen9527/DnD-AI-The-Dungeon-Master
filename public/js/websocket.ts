@@ -19,6 +19,8 @@ export class WebSocketManager {
   private messageQueue: unknown[] = [];
   private eventHandlers: Record<string, EventHandler[]> = {};
   private connected = false;
+  /** True once a connection has succeeded — the banner only cares about losses after that. */
+  private everConnected = false;
 
   connect(): void {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -30,6 +32,8 @@ export class WebSocketManager {
     
     this.ws.onopen = () => {
       console.log('WebSocket connected');
+      const restored = this.everConnected;
+      this.everConnected = true;
       this.connected = true;
       this.reconnectAttempts = 0;
       
@@ -40,6 +44,7 @@ export class WebSocketManager {
       }
       
       this.triggerHandlers('open', undefined);
+      if (restored) this.triggerHandlers('connection-restored', undefined);
     };
 
     this.ws.onmessage = (event: MessageEvent) => {
@@ -61,6 +66,11 @@ export class WebSocketManager {
       
       // Attempt reconnection
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
+        // Tell the table once, at the moment a live connection dies — not on
+        // every retry and not when the very first connect never got through.
+        if (this.everConnected && this.reconnectAttempts === 0) {
+          this.triggerHandlers('connection-lost', undefined);
+        }
         this.reconnectAttempts++;
         const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
         console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);

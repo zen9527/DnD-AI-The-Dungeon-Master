@@ -417,6 +417,8 @@
   "stream_cancelled.notification": "ナレーションを停止しました",
   "stream.stop.btn": "停止",
   "stream.stop.tooltip": "このナレーションを停止",
+  "connection.lost": "接続が切断されました——再接続中…",
+  "connection.restored": "接続が回復しました",
   "spell.cast_tooltip": "呪文を発動",
   "player_joined.notification": "{name} が冒険に参加しました！",
   "private_chat.prefix": "[{targetName} への非公開]: {content}",

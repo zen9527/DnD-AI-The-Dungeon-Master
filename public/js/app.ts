@@ -76,6 +76,7 @@ class App {
     wsManager.connect();
     this.setupWebSocketHandlers();
     this.attachGlobalEventDelegation();
+    this.setupConnectionBanner();
 
     // With a game in the URL, the socket handler decides between rejoining an
     // existing seat and showing the join form once the connection is open.
@@ -532,6 +533,33 @@ class App {
       if (target.classList.contains("settings-overlay")) {
         target.parentElement?.remove();
       }
+    });
+  }
+
+  /**
+   * A strip across the top while the wire to the host is down, so a table
+   * mid-spell knows the silence is the network and not the Dungeon Master.
+   */
+  private setupConnectionBanner(): void {
+    const banner = document.createElement("div");
+    banner.id = "connection-banner";
+    banner.className = "connection-banner hidden";
+    document.body.prepend(banner);
+
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+    wsManager.on("connection-lost", () => {
+      if (hideTimer) clearTimeout(hideTimer);
+      banner.textContent = t("connection.lost");
+      banner.classList.remove("hidden", "restored");
+    });
+
+    wsManager.on("connection-restored", () => {
+      if (hideTimer) clearTimeout(hideTimer);
+      banner.textContent = t("connection.restored");
+      banner.classList.remove("hidden");
+      banner.classList.add("restored");
+      hideTimer = setTimeout(() => banner.classList.add("hidden"), 3000);
     });
   }
 

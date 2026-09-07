@@ -476,6 +476,8 @@
   "stream_cancelled.notification": "Narration stopped",
   "stream.stop.btn": "Stop",
   "stream.stop.tooltip": "Stop this narration",
+  "connection.lost": "Connection lost — reconnecting…",
+  "connection.restored": "Connection restored",
   "spell.cast_tooltip": "Cast a spell",
   "player_joined.notification": "{name} has joined the adventure!",
   "private_chat.prefix": "[Private to {targetName}]: {content}",

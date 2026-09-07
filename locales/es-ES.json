@@ -412,6 +412,8 @@
   "stream_cancelled.notification": "Narración detenida",
   "stream.stop.btn": "Detener",
   "stream.stop.tooltip": "Detener esta narración",
+  "connection.lost": "Conexión perdida — reintentando…",
+  "connection.restored": "Conexión restablecida",
   "spell.cast_tooltip": "Lanzar hechizo",
   "player_joined.notification": "¡{name} se ha unido a la aventura!",
   "private_chat.prefix": "[Privado para {targetName}]: {content}",
