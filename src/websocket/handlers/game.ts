@@ -10,6 +10,7 @@ import { parsePayload, requireDM, requireGame, requirePlayer } from "../guards.j
 import { playerSessions } from "../sessions.js";
 import * as storage from "../../utils/storage.js";
 import { rejoinGameSchema } from "../../../shared/index.js";
+import { parseLLMResponse } from "../../../shared/utils/parseLLMResponse.js";
 import type { HandlerContext, HandlerRegistry, ManagerApi } from "../types.js";
 
 /** The DM stalls for a few seconds before the opening scene so the lobby settles. */
@@ -275,6 +276,9 @@ function handleLoadGame(ctx: HandlerContext): void {
   log.info(`[LoadGame] Restored ${resolved.engine.id} from disk`);
 }
 
+/** Live narrations by `${gameId}:${playerId}`, so Stop targets exactly one stream. */
+const activeStreams = new Map<string, AbortController>();
+
 /** PLAYER_ACTION — the core loop: echo the action, then stream the DM's response. */
 async function handlePlayerAction(ctx: HandlerContext): Promise<void> {
   const resolved = requirePlayer(ctx);
@@ -300,24 +304,51 @@ async function handlePlayerAction(ctx: HandlerContext): Promise<void> {
     isStatus: true,
   });
 
+  // One live narration per player; CANCEL_STREAM from this socket aborts it.
+  const streamKey = `${engine.id}:${playerId}`;
+  const controller = new AbortController();
+  activeStreams.set(streamKey, controller);
+
+  // What has been streamed so far — if the player stops, this becomes the turn's story.
+  let streamed = "";
+
   let result;
   try {
     result = await engine.handlePlayerAction(actionPayload, playerId, {
       onChunk: (chunk: string) => {
+        streamed += chunk;
         ctx.manager.broadcastToGame(engine.id, "STREAM_CHUNK", { content: chunk, isFinal: false });
       },
       // Broadcast happens after the await so the engine's state updates are visible.
       onEnd: () => {},
       onError: () => {},
-    });
+    }, controller.signal);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
+    activeStreams.delete(streamKey);
+
+    if (message.includes("cancelled by player")) {
+      // Stopping is not a failure. Whatever streamed becomes the narrative;
+      // the DM's memory deliberately skips the unfinished half-sentence.
+      const partial = parseLLMResponse(streamed).fullNarrative.trim();
+      if (partial) {
+        engine.persistCancelledNarrative(partial);
+        ctx.manager.broadcastToGame(engine.id, "CHAT_MESSAGE", {
+          message: engine.game.chatHistory[engine.game.chatHistory.length - 1],
+          gameState: engine.game,
+        });
+      }
+      ctx.manager.broadcastToGame(engine.id, "STREAM_CANCELLED", { playerId });
+      return;
+    }
+
+    // A failure is a failure: say so plainly. The client turns this into an
+    // error card with a Retry button — no invented story goes on the record.
     log.error(`[DM Response] Failed for player ${playerId}:`, message);
-    const fallback = `You attempt: "${actionPayload.action}". The result is uncertain...`;
-    engine.addEvent("DM", fallback);
-    ctx.manager.broadcastToGame(engine.id, "STREAM_ERROR", { message, fallbackNarrative: fallback });
+    ctx.manager.broadcastToGame(engine.id, "STREAM_ERROR", { message });
     return;
   }
+  activeStreams.delete(streamKey);
 
   const latestMessage = engine.game.chatHistory[engine.game.chatHistory.length - 1];
   if (latestMessage?.type === "narrative") {
@@ -386,12 +417,20 @@ function handleSaveGame(ctx: HandlerContext): void {
   }
 }
 
+/** CANCEL_STREAM — stop the caller's own running narration. */
+function handleCancelStream(ctx: HandlerContext): void {
+  const resolved = requirePlayer(ctx);
+  if (!resolved) return;
+  activeStreams.get(`${resolved.engine.id}:${ctx.client.playerId!}`)?.abort();
+}
+
 export const gameHandlers: HandlerRegistry = {
   CREATE_GAME: handleCreateGame,
   JOIN_GAME: handleJoinGame,
   REJOIN_GAME: handleRejoinGame,
   LOAD_GAME: handleLoadGame,
   PLAYER_ACTION: handlePlayerAction,
+  CANCEL_STREAM: handleCancelStream,
   SET_LOCALE: handleSetLocale,
   SAVE_GAME: handleSaveGame,
 };

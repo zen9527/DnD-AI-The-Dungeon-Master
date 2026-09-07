@@ -1,6 +1,6 @@
 import { log } from "../utils/logger.js";
 import { normalizeLlmBaseUrl } from "../utils/normalizeUrl.js";
-import { DEFAULT_IDLE_TIMEOUT_MS, type LLMCallbacks, type LLMClient, type LLMMessage } from "./types.js";
+import { resolveIdleTimeout, type LLMCallbacks, type LLMClient, type LLMMessage } from "./types.js";
 
 /** Sampling settings tuned for descriptive DM narration. */
 const TEMPERATURE = 0.8;
@@ -33,10 +33,24 @@ export class OpenAICompatibleClient implements LLMClient {
   async streamChat(
     messages: LLMMessage[],
     callbacks: LLMCallbacks,
-    idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS
+    idleTimeoutMs?: number,
+    signal?: AbortSignal
   ): Promise<string> {
+    const timeout = resolveIdleTimeout(idleTimeoutMs);
     const controller = new AbortController();
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    // Distinguishes "the player pressed Stop" from a transport abort, so the
+    // error reaching the table says which.
+    let userCancelled = false;
+
+    if (signal) {
+      const onAbort = () => {
+        userCancelled = true;
+        controller.abort();
+      };
+      if (signal.aborted) onAbort();
+      else signal.addEventListener("abort", onAbort, { once: true });
+    }
 
     const url = `${this.baseUrl}/chat/completions`;
 
@@ -69,7 +83,7 @@ export class OpenAICompatibleClient implements LLMClient {
         clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
           controller.abort();
-        }, idleTimeoutMs);
+        }, timeout);
       };
       resetIdleTimer();
 
@@ -106,7 +120,9 @@ export class OpenAICompatibleClient implements LLMClient {
       return fullContent;
     } catch (error) {
       clearTimeout(idleTimer);
-      const wrapped = this.describeError(error, idleTimeoutMs);
+      const wrapped = userCancelled
+        ? new Error("LLM stream cancelled by player")
+        : this.describeError(error, timeout);
       callbacks.onError(wrapped);
       throw wrapped;
     }

@@ -122,6 +122,7 @@ export class ActionBar {
       ${diceHtml}
       <div class="free-text">
         <input type="text" id="action-input" placeholder="${t("action.placeholder")} (/pm player message)">
+        <button id="stop-stream-btn" class="secondary hidden" title="${t("stream.stop.tooltip")}">⏹ ${t("stream.stop.btn")}</button>
         <button id="action-submit" class="primary">${t("action.submit")}</button>
       </div>
     `;
@@ -214,8 +215,11 @@ export class ActionBar {
       return;
     }
     
-    // Regular action - send as PLAYER_ACTION
-    wsManager.send({ type: "PLAYER_ACTION", payload: { action: trimmedAction, actionId } });
+    // Regular action - send as PLAYER_ACTION. Remembered so an error card's
+    // Retry button can resend exactly this turn if the DM drops it.
+    const payload = { action: trimmedAction, actionId };
+    gameState.lastPlayerAction = payload;
+    wsManager.send({ type: "PLAYER_ACTION", payload });
     
     // Clear free text input after sending
     const input = document.getElementById("action-input") as HTMLInputElement;

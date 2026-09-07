@@ -113,8 +113,13 @@ export class GameEngine {
 
   // ---- DM narration ----
 
-  handlePlayerAction(payload: PlayerActionPayload, playerId: string, callbacks: LLMCallbacks): Promise<StreamResult> {
-    return this.narration.handlePlayerAction(payload, playerId, callbacks);
+  handlePlayerAction(payload: PlayerActionPayload, playerId: string, callbacks: LLMCallbacks, signal?: AbortSignal): Promise<StreamResult> {
+    return this.narration.handlePlayerAction(payload, playerId, callbacks, signal);
+  }
+
+  /** Keep a cancelled narration's partial text as the turn's story. */
+  persistCancelledNarrative(text: string): void {
+    this.narration.persistCancelledNarrative(text);
   }
 
   /**

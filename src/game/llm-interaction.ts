@@ -35,7 +35,6 @@ const SUMMARY_INTERVAL = 5;
 /** XP granted for defeating an NPC. Flat for now; should scale with CR. */
 const XP_PER_DEFEATED_ENEMY = 50;
 
-const ACTION_STREAM_TIMEOUT_MS = 60000;
 const OPENING_STREAM_TIMEOUT_MS = 90000;
 const SUMMARY_STREAM_TIMEOUT_MS = 30000;
 
@@ -130,6 +129,20 @@ Combat: ${this.game.npcs.length > 0 ? `Active - Round ${this.combat.round}` : "N
     this.state.mutate(game => {
       game.chatHistory.push(message);
       if (game.chatHistory.length > MAX_CHAT_HISTORY) game.chatHistory.shift();
+    });
+  }
+
+  /**
+   * Keep the partial text of a cancelled narration as the turn's story.
+   * Deliberately not written into conversationHistory: the DM never finished
+   * thinking, and half a sentence in its memory steers the next scene wrong.
+   */
+  persistCancelledNarrative(text: string): void {
+    this.pushChatMessage({
+      id: generateId(),
+      content: text,
+      type: "narrative",
+      timestamp: Date.now(),
     });
   }
 
@@ -252,13 +265,13 @@ Format as bullet points. Keep it factual, not narrative.`;
    * Run one player turn: resolve special actions, roll, prompt the DM, stream
    * the narrative, then fold the structured result back into the game.
    */
-  async handlePlayerAction(payload: PlayerActionPayload, playerId: string, callbacks: LLMCallbacks): Promise<StreamResult> {
+  async handlePlayerAction(payload: PlayerActionPayload, playerId: string, callbacks: LLMCallbacks, signal?: AbortSignal): Promise<StreamResult> {
     const player = this.game.players.find(p => p.id === playerId);
     if (!player) throw new Error("Player not found");
 
     const actionLower = payload.action.toLowerCase();
     if (actionLower.includes("rest")) {
-      return this.handleShortRest(player, callbacks);
+      return this.handleShortRest(player, callbacks, signal);
     }
 
     if (actionLower.includes("drink potion") || actionLower.includes("use potion") || actionLower.includes("potion of healing")) {
@@ -290,7 +303,8 @@ Format as bullet points. Keep it factual, not narrative.`;
     const result = await this.llmClient.streamChat(
       this.buildMessages(player, actionContext),
       callbacks,
-      ACTION_STREAM_TIMEOUT_MS
+      undefined, // global idle timeout (LLM_IDLE_TIMEOUT_MS; the turn timer bounds the rest)
+      signal
     );
     const parsed = parseLLMResponse(result);
 
@@ -408,7 +422,7 @@ Format as bullet points. Keep it factual, not narrative.`;
    * D&D 5e short rest: spend one hit die to heal, recover some spell slots,
    * and clear death saves. The DM then narrates the breather.
    */
-  private async handleShortRest(player: Player, callbacks: LLMCallbacks): Promise<StreamResult> {
+  private async handleShortRest(player: Player, callbacks: LLMCallbacks, signal?: AbortSignal): Promise<StreamResult> {
     const hitDiceAvailable = (player.hitDice?.total || 0) - (player.hitDice?.used || 0);
     const healed = hitDiceAvailable > 0 ? rollHitDice(player).healed : 0;
 
@@ -450,7 +464,8 @@ Format as bullet points. Keep it factual, not narrative.`;
     const result = await this.llmClient.streamChat(
       this.buildMessages(player, restPrompt),
       callbacks,
-      ACTION_STREAM_TIMEOUT_MS
+      undefined, // global idle timeout, same as a normal turn
+      signal
     );
     const parsed = parseLLMResponse(result);
 

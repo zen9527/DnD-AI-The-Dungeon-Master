@@ -1,6 +1,6 @@
 import { log } from "../utils/logger.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { DEFAULT_IDLE_TIMEOUT_MS, type LLMCallbacks, type LLMClient, type LLMMessage } from "./types.js";
+import { resolveIdleTimeout, type LLMCallbacks, type LLMClient, type LLMMessage } from "./types.js";
 
 const MAX_TOKENS = 8000;
 
@@ -58,8 +58,10 @@ export class AnthropicClient implements LLMClient {
   async streamChat(
     messages: LLMMessage[],
     callbacks: LLMCallbacks,
-    idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS
+    idleTimeoutMs?: number,
+    signal?: AbortSignal
   ): Promise<string> {
+    const timeout = resolveIdleTimeout(idleTimeoutMs);
     const { system, messages: conversation } = this.toRequest(messages);
 
     if (conversation.length === 0) {
@@ -72,6 +74,7 @@ export class AnthropicClient implements LLMClient {
 
     let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let timedOut = false;
+    let userCancelled = false;
 
     try {
       const stream = this.client.beta.messages.stream(
@@ -85,15 +88,24 @@ export class AnthropicClient implements LLMClient {
           betas: [FALLBACK_BETA],
           fallbacks: "default",
         },
-        { timeout: idleTimeoutMs }
+        { timeout }
       );
+
+      if (signal) {
+        const onAbort = () => {
+          userCancelled = true;
+          stream.abort();
+        };
+        if (signal.aborted) onAbort();
+        else signal.addEventListener("abort", onAbort, { once: true });
+      }
 
       const resetIdleTimer = () => {
         clearTimeout(idleTimer);
         idleTimer = setTimeout(() => {
           timedOut = true;
           stream.abort();
-        }, idleTimeoutMs);
+        }, timeout);
       };
       resetIdleTimer();
 
@@ -119,7 +131,9 @@ export class AnthropicClient implements LLMClient {
       return fullContent;
     } catch (error) {
       clearTimeout(idleTimer);
-      const wrapped = this.describeError(error, idleTimeoutMs, timedOut);
+      const wrapped = userCancelled
+        ? new Error("LLM stream cancelled by player")
+        : this.describeError(error, timeout, timedOut);
       callbacks.onError(wrapped);
       throw wrapped;
     }

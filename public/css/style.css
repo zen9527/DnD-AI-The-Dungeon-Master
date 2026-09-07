@@ -1754,6 +1754,14 @@ hr {
 .settings-result.success { color: var(--jade); background: rgba(103, 215, 154, 0.1); border-color: rgba(103, 215, 154, 0.3); }
 .settings-result.error { color: #ffb3a6; background: rgba(228, 106, 82, 0.1); border-color: rgba(228, 106, 82, 0.35); }
 
+/* Transient failure card in the log: honest about being a fault, not a scene. */
+.message.error {
+  border-left: 3px solid rgba(228, 106, 82, 0.7);
+  background: rgba(228, 106, 82, 0.08);
+}
+
+.retry-stream-btn { margin-top: var(--s2); }
+
 /* ============================================================================
    Notifications
    ============================================================================ */

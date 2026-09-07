@@ -176,10 +176,12 @@ class App {
 
       gameState.updateStreamBuffer(p.content);
       this.chat.renderStream();
+      this.setStreaming(true);
     });
 
     wsManager.on("STREAM_END", payload => {
       const p = payload as { fullNarrative: string; structured: Game };
+      this.setStreaming(false);
       gameState.clearStreamBuffer();
       this.chat.clearStream();
       // The server already appended the narrative to chatHistory.
@@ -189,22 +191,33 @@ class App {
     });
 
     wsManager.on("STREAM_ERROR", payload => {
-      const p = payload as { message: string; fallbackNarrative: string };
+      const p = payload as { message: string };
+      this.setStreaming(false);
       gameState.clearStreamBuffer();
       this.chat.clearStream();
 
-      const isOffline = p.message.includes("unreachable") || p.message.includes("ECONNREFUSED");
+      // A failure is shown as one — never dressed up as story. The card is a
+      // transient table event (like a dice roll): client-side only, carrying
+      // the Retry button that resends the turn the DM dropped.
+      gameState.removeChatMessage("stream-error");
       gameState.addChatMessage({
         id: "stream-error",
-        content: isOffline
-          ? t("dm_offline.notification", { message: p.message })
-          : p.fallbackNarrative || t("stream_error.fallback"),
-        type: isOffline ? "error" : "narrative",
+        content: `${t("stream_error.title")}: ${p.message}`,
+        type: "error",
         timestamp: Date.now(),
-      } as ChatMessage);
+      } as unknown as ChatMessage);
 
       this.chat.render();
       showNotification(t("dm_error.notification", { message: p.message }), "error");
+    });
+
+    wsManager.on("STREAM_CANCELLED", () => {
+      // The kept partial arrives as a normal CHAT_MESSAGE; here we only
+      // dismantle the live stream view.
+      this.setStreaming(false);
+      gameState.clearStreamBuffer();
+      this.chat.clearStream();
+      showNotification(t("stream_cancelled.notification"), "info");
     });
 
     wsManager.on("CHAT_MESSAGE", payload => this.applyChatUpdate(payload));
@@ -494,6 +507,21 @@ class App {
         return;
       }
 
+      // Stop the narration that is streaming right now. The server keeps what
+      // has already arrived as this turn's story.
+      if (target.id === "stop-stream-btn") {
+        wsManager.send({ type: "CANCEL_STREAM", payload: {} });
+        return;
+      }
+
+      // Failure card's way back: resend the turn the DM dropped.
+      if (target.classList.contains("retry-stream-btn")) {
+        const last = gameState.lastPlayerAction;
+        gameState.removeChatMessage("stream-error");
+        if (last) wsManager.send({ type: "PLAYER_ACTION", payload: last });
+        return;
+      }
+
       // Settings modal dismissal: the ✕ button or a click on the backdrop.
       const closeTarget = target.closest("[data-action='close']");
       if (closeTarget) {
@@ -510,6 +538,11 @@ class App {
   private getCurrentPlayerName(): string {
     const player = gameState.currentPlayer;
     return player?.characterName || player?.name || t("player.unknown");
+  }
+
+  /** Show/hide the composer's Stop control alongside the live stream. */
+  private setStreaming(live: boolean): void {
+    document.getElementById("stop-stream-btn")?.classList.toggle("hidden", !live);
   }
 }
 

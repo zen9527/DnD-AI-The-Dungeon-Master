@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { randomBytes } from "crypto";
-import { getStorageDir } from "../utils/storage.js";
+import { atomicWriteFileSync, getStorageDir } from "../utils/storage.js";
 
 interface Seat {
   gameId: string;
@@ -53,15 +53,11 @@ class PlayerSessionRegistry {
     }
   }
 
-  /** Atomic write (tmp + rename) after every mutation; best-effort 0600. */
+  /** Atomic write after every mutation; best-effort 0600 (inside the helper). */
   private persist(): void {
     const dir = getStorageDir();
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    const tmp = `${this.file()}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(Object.fromEntries(this.seats)));
-    try { fs.chmodSync(tmp, 0o600); } catch { /* POSIX only; Windows inherits directory ACLs */ }
-    fs.renameSync(tmp, this.file());
+    atomicWriteFileSync(this.file(), JSON.stringify(Object.fromEntries(this.seats)));
   }
 
   /** Mint a token for a seat, retiring any token that seat already had. */

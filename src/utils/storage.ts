@@ -35,6 +35,22 @@ function mergeChatHistory(existing: ChatMessage[], current: ChatMessage[]): Chat
   return [...existing, ...appended];
 }
 
+/** Unique per write so concurrent writers never share a scratch file. */
+let tmpCounter = 0;
+
+/**
+ * Write beside the target, then rename over it: a crash mid-write can never
+ * leave a half-written file where the old one was. Node's rename replaces an
+ * existing file atomically on Windows too. The scratch name is unique per
+ * call — two writers into the same directory cannot clobber each other.
+ */
+export function atomicWriteFileSync(filePath: string, data: string): void {
+  const tmpPath = `${filePath}.${process.pid}.${tmpCounter++}.tmp`;
+  fs.writeFileSync(tmpPath, data);
+  try { fs.chmodSync(tmpPath, 0o600); } catch { /* POSIX only; Windows inherits directory ACLs */ }
+  fs.renameSync(tmpPath, filePath);
+}
+
 export function saveGame(game: Game): string {
   ensureStorageDir();
 
@@ -47,12 +63,7 @@ export function saveGame(game: Game): string {
     : { ...game };
   toWrite.lastPlayedAt = Date.now();
 
-  // Write beside the target, then rename over it: a crash mid-write can never
-  // leave a half-written campaign where the old one was. Node's rename
-  // replaces an existing file atomically on Windows too.
-  const tmpPath = `${filePath}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(toWrite, null, 2));
-  fs.renameSync(tmpPath, filePath);
+  atomicWriteFileSync(filePath, JSON.stringify(toWrite, null, 2));
 
   log.info(`[Storage] Saved game ${game.id} (${toWrite.chatHistory?.length ?? 0} messages)`);
   return game.id;

@@ -214,6 +214,7 @@ export type MessageType =
   | 'SAVE_GAME'           // NEW: Client requests game save
   | 'REJOIN_GAME'         // Reclaim a seat after a refresh, using a session token
   | 'LOAD_GAME'           // DM restores the game from its last save
+  | 'CANCEL_STREAM'       // Player stops their own running narration
   // Server → Client
   | 'GAME_CONNECTED'
   | 'GAME_CREATED'
@@ -229,6 +230,7 @@ export type MessageType =
   | 'STREAM_CHUNK'
   | 'STREAM_END'
   | 'STREAM_ERROR'
+  | 'STREAM_CANCELLED'    // NEW: Narration stopped by the player; partial kept
   | 'LOCALE_UPDATED'
   | 'TURN_TIMER'          // NEW: Turn timer notification
   | 'COMBAT_STATE'        // NEW: Combat mode state update

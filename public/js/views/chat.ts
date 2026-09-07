@@ -82,6 +82,10 @@ export class ChatView {
     if (message.diceResult) {
       content += `<br><strong>${escapeHtml(formatDiceResult(message.diceResult))}</strong>`;
     }
+    // The transient failure card carries its own way back: resend the turn.
+    if (message.id === "stream-error" && gameState.lastPlayerAction) {
+      content += ` <button type="button" class="retry-stream-btn">${t("stream_error.retry")}</button>`;
+    }
 
     const el = document.createElement("div");
     el.className = `message ${message.type} ${isOwn ? "own" : ""}`;

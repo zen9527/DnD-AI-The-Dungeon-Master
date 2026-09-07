@@ -57,14 +57,23 @@ describe("saveGame", () => {
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockGame));
 
     saveGame(mockGame as any);
+    saveGame(mockGame as any);
 
-    const writtenPath = vi.mocked(fs.writeFileSync).mock.calls[0][0] as string;
-    expect(writtenPath.endsWith("atomic-game.json.tmp")).toBe(true);
+    // Scratch files are named <target>.<pid>.<counter>.tmp — unique per write,
+    // so concurrent writers into the same directory can never share one.
+    const scratch = (path: string) => /^atomic-game\.json\.\d+\.\d+\.tmp$/.test(path.split(/[\\/]/).pop()!);
 
-    expect(fs.renameSync).toHaveBeenCalledTimes(1);
-    const [from, to] = vi.mocked(fs.renameSync).mock.calls[0] as [string, string];
-    expect(from.endsWith("atomic-game.json.tmp")).toBe(true);
-    expect(to.endsWith("atomic-game.json")).toBe(true);
+    const firstWrite = vi.mocked(fs.writeFileSync).mock.calls[0][0] as string;
+    expect(scratch(firstWrite)).toBe(true);
+
+    expect(fs.renameSync).toHaveBeenCalledTimes(2);
+    const [from1, to1] = vi.mocked(fs.renameSync).mock.calls[0] as [string, string];
+    expect(scratch(from1)).toBe(true);
+    expect(to1.endsWith("atomic-game.json")).toBe(true);
+
+    // The second save must not reuse the first writer's scratch file.
+    const [from2] = vi.mocked(fs.renameSync).mock.calls[1] as [string, string];
+    expect(from2).not.toBe(from1);
   });
 });
 

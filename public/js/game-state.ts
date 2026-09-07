@@ -24,6 +24,8 @@ export class GameState {
   private _currentRound: number = 1;
   private _currentTurnIndex: number = 0;
   private _currentPlayerName: string | undefined = undefined;
+  /** The last PLAYER_ACTION payload sent, so an error card can retry it. */
+  private _lastPlayerAction: { action: string; actionId?: string } | null = null;
   private listeners: GameStateListener[] = [];
 
   get game(): Game | null { return this._game; }
@@ -35,6 +37,9 @@ export class GameState {
   get currentRound(): number { return this._currentRound; }
   get currentTurnIndex(): number { return this._currentTurnIndex; }
   get currentPlayerName(): string | undefined { return this._currentPlayerName; }
+
+  get lastPlayerAction(): { action: string; actionId?: string } | null { return this._lastPlayerAction; }
+  set lastPlayerAction(payload: { action: string; actionId?: string } | null) { this._lastPlayerAction = payload; }
 
   /** NPCs currently in the game; empty before the first state arrives. */
   get npcs(): NPC[] { return this._game?.npcs ?? []; }
@@ -55,6 +60,16 @@ export class GameState {
     if (this._game) {
       if (!this._game.chatHistory) this._game.chatHistory = [];
       this._game.chatHistory.push(message);
+      this.notifyListeners();
+    }
+  }
+
+  /** Drop client-only messages (the transient error card) by id. */
+  removeChatMessage(id: string): void {
+    if (!this._game?.chatHistory) return;
+    const kept = this._game.chatHistory.filter(m => m.id !== id);
+    if (kept.length !== this._game.chatHistory.length) {
+      this._game.chatHistory = kept;
       this.notifyListeners();
     }
   }
