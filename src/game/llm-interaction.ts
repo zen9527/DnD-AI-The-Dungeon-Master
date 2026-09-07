@@ -415,7 +415,14 @@ Format as bullet points. Keep it factual, not narrative.`;
         }
       }
 
-      if (newNPCs) game.npcs.push(...newNPCs);
+      if (newNPCs) {
+        game.npcs.push(...newNPCs.map(npc => ({
+          ...npc,
+          hp: toHp(npc.hp),
+          maxHp: toHp(npc.maxHp),
+          ...(npc.temporaryHp !== undefined && { temporaryHp: toHp(npc.temporaryHp) }),
+        })));
+      }
     });
   }
 
