@@ -417,7 +417,7 @@ class App {
               <span class="btn-icon" aria-hidden="true">${icon("gear")}</span>
             </button>
             <button id="copy-link-btn" class="secondary icon-only" title="${t("copy_link.tooltip")}">
-              <span class="btn-icon" aria-hidden="true">🔗</span>
+              <span class="btn-icon" aria-hidden="true">${icon("link")}</span>
             </button>
           </div>
         </header>
