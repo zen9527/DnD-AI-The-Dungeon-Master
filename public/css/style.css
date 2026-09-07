@@ -1209,6 +1209,43 @@ hr {
   color: var(--text-faint);
 }
 
+/* Dice: a wax seal stamped into the chronicle. Normal = dark red wax,
+   natural 20 = gilt with a ring of light, natural 1 = black wax. */
+.dice-roll { display: inline-flex; align-items: center; gap: var(--s2); margin-top: var(--s1); }
+
+.dice-seal {
+  width: clamp(28px, 4vw, 34px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #f7e7c3;
+  background: radial-gradient(circle at 35% 30%, var(--rust), #6e2415);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  animation: diceStamp 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.dice-seal.crit {
+  background: radial-gradient(circle at 35% 30%, var(--gilt-bright), var(--gilt-deep));
+  color: #2a2013;
+  animation: diceStamp 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both, diceGild 1.4s ease-out 0.25s 2;
+}
+
+.dice-seal.fumble {
+  background: radial-gradient(circle at 35% 30%, #4a4340, #17120f);
+  color: #b9ac93;
+}
+
+.dice-detail.success { color: var(--jade); }
+.dice-detail.failure { color: var(--rust); }
+
+@keyframes diceStamp { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes diceGild { 0% { box-shadow: 0 0 0 0 rgba(240, 205, 132, 0.7); } 100% { box-shadow: 0 0 0 14px rgba(240, 205, 132, 0); } }
+
 /* --- The live stream, above the composer --- */
 .stream-display {
   flex: none;
@@ -1999,4 +2036,5 @@ hr {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+  .dice-seal, .dice-seal.crit { animation: none; }
 }

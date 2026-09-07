@@ -73,12 +73,14 @@ test("flow 3 — rolling a d20 puts a server-rolled result in the log", async ({
   await page.locator("#dice-modifier").fill("3");
   await page.locator('.dice-btn[data-dice="20"]').click();
 
+  // The total is stamped in a wax seal; the arithmetic sits beside it.
   const roll = page.locator("#chat-messages .message.roll").last();
-  await expect(roll).toContainText("d20:");
+  const seal = roll.locator(".dice-seal");
+  await expect(seal).toBeVisible();
+  await expect(roll.locator(".dice-detail")).toContainText("d20 +3 (");
 
   // The result has to be a real number in range — 1..20 plus the +3 modifier.
-  const text = await roll.locator(".message-content").innerText();
-  const total = Number(text.match(/d20:\s*(-?\d+)/)![1]);
+  const total = Number((await seal.innerText()).trim());
   expect(total).toBeGreaterThanOrEqual(4);
   expect(total).toBeLessThanOrEqual(23);
 });

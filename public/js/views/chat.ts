@@ -19,24 +19,34 @@ const SKILL_LABEL_KEYS = {
   Attack: "skill.attack",
 } as const;
 
-/** Render a dice roll for the chat log, localising the skill name and outcome. */
+/**
+ * Render a dice roll for the chat log as a wax seal stamped into the page:
+ * the total lives in the seal, the arithmetic sits beside it. A natural 20
+ * stamps in gilt, a natural 1 in black wax. Skill checks tint their detail
+ * line jade or rust. Returns HTML — every interpolated value is escaped.
+ */
 export function formatDiceResult(dice: DiceRoll): string {
-  if (!dice.skillCheck) {
+  const natural = dice.rolls[0];
+  let variant = "";
+  if (dice.diceType === 20 && natural === 20) variant = " crit";
+  else if (dice.diceType === 20 && natural === 1) variant = " fumble";
+
+  let detail: string;
+  if (dice.skillCheck) {
+    const labelKey = SKILL_LABEL_KEYS[dice.skillCheck.skill as keyof typeof SKILL_LABEL_KEYS];
+    detail = t("dice.check_detail", {
+      skill: labelKey ? t(labelKey) : dice.skillCheck.skill,
+      result: t(dice.skillCheck.success ? "dice.success" : "dice.failure"),
+      dc: dice.skillCheck.dc,
+    });
+  } else {
     const rolls = dice.rolls.join(" + ");
-    const modifier = dice.modifier ? ` ${dice.modifier > 0 ? "+" : "-"} ${Math.abs(dice.modifier)}` : "";
-    return `🎲 d${dice.diceType}: ${dice.total}  (${rolls}${modifier})`;
+    const modifier = dice.modifier ? ` ${dice.modifier > 0 ? "+" : "-"}${Math.abs(dice.modifier)}` : "";
+    detail = `d${dice.diceType}${modifier} (${rolls})`;
   }
 
-  const labelKey = SKILL_LABEL_KEYS[dice.skillCheck.skill as keyof typeof SKILL_LABEL_KEYS];
-
-  return t("dice.skill_check", {
-    skill: labelKey ? t(labelKey) : dice.skillCheck.skill,
-    total: dice.total,
-    roll: dice.rolls[0] || dice.total,
-    mod: dice.modifier,
-    result: t(dice.skillCheck.success ? "dice.success" : "dice.failure"),
-    dc: dice.skillCheck.dc,
-  });
+  const tone = dice.skillCheck ? (dice.skillCheck.success ? " success" : " failure") : "";
+  return `<span class="dice-roll"><span class="dice-seal${variant}" aria-hidden="true">${dice.total}</span><span class="dice-detail${tone}">${escapeHtml(detail)}</span></span>`;
 }
 
 /**
@@ -80,7 +90,8 @@ export class ChatView {
 
     let content = escapeHtml(message.content);
     if (message.diceResult) {
-      content += `<br><strong>${escapeHtml(formatDiceResult(message.diceResult))}</strong>`;
+      // formatDiceResult returns composed HTML with its values already escaped.
+      content += `<br>${formatDiceResult(message.diceResult)}`;
     }
     // The transient failure card carries its own way back: resend the turn.
     if (message.id === "stream-error" && gameState.lastPlayerAction) {
