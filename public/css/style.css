@@ -1240,6 +1240,10 @@ hr {
 .dice-detail.success { color: var(--jade); }
 .dice-detail.failure { color: var(--rust); }
 
+/* The DM is at the table: a candle burns beside the live narration. */
+.dm-candle { display: inline-flex; margin-right: var(--s1); vertical-align: -0.15em; color: var(--ember); }
+.dm-candle svg { animation: candleFlicker 2.6s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(244, 169, 67, 0.45)); }
+
 @keyframes diceStamp { from { transform: scale(2.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes diceGild { 0% { box-shadow: 0 0 0 0 rgba(240, 205, 132, 0.7); } 100% { box-shadow: 0 0 0 14px rgba(240, 205, 132, 0); } }
 
@@ -2034,4 +2038,5 @@ hr {
     transition-duration: 0.001ms !important;
   }
   .dice-seal, .dice-seal.crit { animation: none; }
+  .dm-candle svg { animation: none; }
 }

@@ -120,7 +120,7 @@ export class ChatView {
 
     // The buffer still contains the raw ---JSON--- envelope; strip it for display.
     const narrative = gameState.getParsedNarrative();
-    display.innerHTML = `<div class="streaming"><span class="typing">${escapeHtml(narrative)}<span class="cursor">▊</span></span></div>`;
+    display.innerHTML = `<span class="dm-candle">${icon("candle")}</span><div class="streaming"><span class="typing">${escapeHtml(narrative)}<span class="cursor">▊</span></span></div>`;
     display.scrollTop = display.scrollHeight;
   }
 
