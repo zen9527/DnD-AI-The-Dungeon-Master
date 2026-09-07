@@ -120,7 +120,16 @@ export class ChatView {
 
     // The buffer still contains the raw ---JSON--- envelope; strip it for display.
     const narrative = gameState.getParsedNarrative();
-    display.innerHTML = `<span class="dm-candle">${icon("candle")}</span><div class="streaming"><span class="typing">${escapeHtml(narrative)}<span class="cursor">▊</span></span></div>`;
+
+    // Candle is mounted once per stream — rebuilding it per token would pin
+    // its flicker at frame 0 and thrash the filter layer on phones.
+    if (!display.querySelector(".dm-candle")) {
+      display.innerHTML = `<div class="dm-stream-row"><span class="dm-candle">${icon("candle")}</span><div class="stream-body"></div></div>`;
+    }
+    const body = display.querySelector<HTMLElement>(".stream-body");
+    if (body) {
+      body.innerHTML = `<div class="streaming"><span class="typing">${escapeHtml(narrative)}<span class="cursor">▊</span></span></div>`;
+    }
     display.scrollTop = display.scrollHeight;
   }
 
