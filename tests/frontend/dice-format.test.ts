@@ -25,6 +25,11 @@ describe("formatDiceResult", () => {
     expect(formatDiceResult(roll({ diceType: 6, rolls: [6], modifier: 0, total: 6 }))).not.toContain("crit");
   });
 
+  it("signs the modifier in the detail and drops it when zero", () => {
+    expect(formatDiceResult(roll({ modifier: -3, total: 9 }))).toContain("d20 -3 (");
+    expect(formatDiceResult(roll({ modifier: 0, total: 12 }))).toContain("d20 (");
+  });
+
   it("tints skill checks by outcome and escapes hostile detail", () => {
     const check = roll({ skillCheck: { skill: "Stealth", success: true, dc: 15 } as DiceRoll["skillCheck"] });
     expect(formatDiceResult(check)).toContain("dice-detail success");

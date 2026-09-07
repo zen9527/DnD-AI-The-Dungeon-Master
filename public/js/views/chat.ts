@@ -46,7 +46,7 @@ export function formatDiceResult(dice: DiceRoll): string {
   }
 
   const tone = dice.skillCheck ? (dice.skillCheck.success ? " success" : " failure") : "";
-  return `<span class="dice-roll"><span class="dice-seal${variant}" aria-hidden="true">${dice.total}</span><span class="dice-detail${tone}">${escapeHtml(detail)}</span></span>`;
+  return `<span class="dice-roll"><span class="dice-seal${variant}">${escapeHtml(String(dice.total))}</span><span class="dice-detail${tone}">${escapeHtml(detail)}</span></span>`;
 }
 
 /**
