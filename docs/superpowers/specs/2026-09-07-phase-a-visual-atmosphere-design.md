@@ -73,7 +73,7 @@ The stylesheet is mobile-out; this phase keeps that discipline:
 
 - Seal size via `clamp()` (~28px phone → 34px desktop); inline-flex row, never wraps.
 - Icons inherit color and sit on the text baseline at `1em` — no per-breakpoint sizes.
-- Texture density/strength steps down under the first breakpoint.
+- Texture density/strength steps down under the first breakpoint. *(Implementation note: the global overlay was superseded during implementation — the pre-existing candlelight/vignette layers were kept untouched and grain ships as the `.grained` utility on non-scrolling raised cards at its single ~4% setting; do not "restore" an overlay without reading commit 4270878.)*
 - `prefers-reduced-motion: reduce` disables stamp-in, flame flicker, and the gold
   crit ring (seal still shows, statically).
 - Cross-platform win: SVG icons render identically on Android/iOS/Windows, unlike emoji.
