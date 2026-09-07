@@ -40,9 +40,15 @@ export function saveGame(game: Game): string {
   const previous = loadGame(game.id);
   const toWrite: Game = previous
     ? { ...game, chatHistory: mergeChatHistory(previous.chatHistory ?? [], game.chatHistory ?? []) }
-    : game;
+    : { ...game };
+  toWrite.lastPlayedAt = Date.now();
 
-  fs.writeFileSync(filePath, JSON.stringify(toWrite, null, 2));
+  // Write beside the target, then rename over it: a crash mid-write can never
+  // leave a half-written campaign where the old one was. Node's rename
+  // replaces an existing file atomically on Windows too.
+  const tmpPath = `${filePath}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(toWrite, null, 2));
+  fs.renameSync(tmpPath, filePath);
 
   log.info(`[Storage] Saved game ${game.id} (${toWrite.chatHistory?.length ?? 0} messages)`);
   return game.id;
@@ -78,7 +84,7 @@ export function loadGame(gameId: string): Game | null {
   }
 }
 
-export function listGames(): Array<{ id: string; name: string; createdAt: number }> {
+export function listGames(): Array<{ id: string; name: string; createdAt: number; lastPlayedAt: number }> {
   ensureStorageDir();
   
   const files = fs.readdirSync(STORAGE_DIR).filter(f => f.endsWith(".json"));
@@ -90,11 +96,14 @@ export function listGames(): Array<{ id: string; name: string; createdAt: number
     try {
       const content = fs.readFileSync(filePath, "utf-8");
       const game = JSON.parse(content) as Game;
-      return { id: game.id, name: game.name, createdAt: game.createdAt };
+      // Old saves predate lastPlayedAt; creation is the best we know.
+      return { id: game.id, name: game.name, createdAt: game.createdAt, lastPlayedAt: game.lastPlayedAt ?? game.createdAt };
     } catch {
       return null;
     }
-  }).filter((g): g is NonNullable<typeof g> => g !== null);
+  }).filter((g): g is NonNullable<typeof g> => g !== null)
+    // The campaign book reads newest-first: what you played lately floats up.
+    .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 }
 
 export function deleteGame(gameId: string): boolean {

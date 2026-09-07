@@ -529,7 +529,7 @@
   "saved_games.loading": "Loading saved games...",
   "saved_games.empty": "No saved adventures yet. Save a game during play to see it here.",
   "saved_games.load_btn": "Load Game",
-  "saved_games.date_format": "{date}",
+  "saved_games.last_played": "Last played: {date}",
   "npc.create_btn": "Create NPC",
   "level.max": "MAX LEVEL",
   "skill.stealth": "Stealth",

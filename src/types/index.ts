@@ -171,6 +171,8 @@ export interface Game {
   chatHistory: ChatMessage[];
   conversationHistory: { role: 'system' | 'user' | 'assistant'; content: string }[];
   createdAt: number;
+  /** Bumped on every save; drives the campaign book's ordering. Absent in old saves. */
+  lastPlayedAt?: number;
   
   // Combat state
   combatMode: boolean; // True when combat is active

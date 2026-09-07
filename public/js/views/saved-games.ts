@@ -5,6 +5,7 @@ export interface SavedGame {
   id: string;
   name: string;
   createdAt: number;
+  lastPlayedAt?: number;
 }
 
 /**
@@ -47,7 +48,7 @@ export class SavedGamesView {
   }
 
   private renderCard(game: SavedGame): string {
-    const date = new Date(game.createdAt).toLocaleDateString();
+    const date = new Date(game.lastPlayedAt ?? game.createdAt).toLocaleDateString();
     return `
       <div class="game-card saved-game" data-saved-id="${escapeHtml(game.id)}">
         <div class="game-card-header">
@@ -56,7 +57,7 @@ export class SavedGamesView {
           <button class="delete-saved-btn" data-saved-id="${escapeHtml(game.id)}" title="${t("saved_games.delete_btn")}">🗑️</button>
         </div>
         <div class="game-card-body">
-          <span class="game-scenario-label">${t("saved_games.date_format", { date })}</span>
+          <span class="game-scenario-label">${t("saved_games.last_played", { date })}</span>
           <button class="join-game-btn load-saved-btn" data-saved-id="${escapeHtml(game.id)}">
             ${t("saved_games.load_btn")}
           </button>
