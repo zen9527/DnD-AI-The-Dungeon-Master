@@ -159,6 +159,12 @@ test("flow 7 — the phone layout fits, with the party, story and composer all r
   await expect(page.locator("#action-input")).toBeInViewport();
   await expect(page.locator("#chat-messages")).toContainText(STUB_NARRATIVE);
 
+  // Phase A elements hold up on the phone: SVG icons in the preset row and a
+  // wax seal that fits the narrow column.
+  await expect(page.locator(".preset-btn svg.icon").first()).toBeVisible();
+  await page.locator('.dice-btn[data-dice="20"]').click();
+  await expect(page.locator("#chat-messages .dice-seal").last()).toBeVisible();
+
   // The pack opens as a sheet rather than a column that has nowhere to go.
   await page.locator("#inventory-btn").click();
   await expect(page.locator("#inventory-panel")).toBeVisible();
