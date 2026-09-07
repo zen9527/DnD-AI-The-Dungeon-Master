@@ -41,7 +41,8 @@ export default defineConfig({
     {
       command: "node tests/e2e/stub-llm.mjs",
       port: STUB_LLM_PORT,
-      env: { STUB_LLM_PORT: String(STUB_LLM_PORT) },
+      // Slow enough that the cancel flow can interrupt a reply mid-sentence.
+      env: { STUB_LLM_PORT: String(STUB_LLM_PORT), STUB_CHUNK_DELAY_MS: "80" },
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
     },

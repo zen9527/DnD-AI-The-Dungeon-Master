@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 
 /**
- * Eight flows through the real browser against the real server.
+ * Ten flows through the real browser against the real server.
  *
  * Everything below has been broken at some point without a single unit test
  * failing: the action bar rendered but sent nothing, the DM panel stayed empty
@@ -191,4 +191,45 @@ test("flow 8 — save writes to disk and load restores it", async ({ page }) => 
   // was a client-side location.reload() that never loaded anything.
   await expect(page.locator("#chat-messages")).toContainText("I map the chamber");
   await expect(page.locator(".players-panel .character-name").filter({ hasText: "Ranulf" })).toBeVisible();
+});
+
+test("flow 9 — Stop keeps what has streamed and closes the stream", async ({ page }) => {
+  await createGame(page, "Smoke: Cancel");
+  await waitForOpeningScene(page);
+
+  await page.locator("#action-input").fill("I whisper a word to the dark");
+  await page.locator("#action-submit").click();
+
+  // Stop lives only while something is actually streaming. The stub replies at
+  // ~80ms per chunk, so there is a window to catch it mid-sentence.
+  const stop = page.locator("#stop-stream-btn");
+  await expect(stop).toBeVisible();
+  await expect(page.locator("#stream-display")).toContainText("torchlight", { timeout: 10_000 });
+  await stop.click();
+
+  // What arrived becomes a real narrative message...
+  await expect(page.locator("#chat-messages .message.narrative").last()).toContainText("torchlight");
+  // ...and the live stream view is dismantled.
+  await expect(page.locator("#stream-display")).toBeEmpty();
+  await expect(stop).toBeHidden();
+});
+
+test("flow 10 — a failed DM reply shows an honest error card that can retry", async ({ page }) => {
+  await createGame(page, "Smoke: Retry");
+  await waitForOpeningScene(page);
+
+  // The stub fails the first request carrying this marker, then heals.
+  await page.locator("#action-input").fill("TRIGGER FAILURE — open the sealed door");
+  await page.locator("#action-submit").click();
+
+  const card = page.locator("#chat-messages .message.error");
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  // No invented story went on the record — only the fault and a way back.
+  await expect(page.locator("#chat-messages .message.narrative")).toHaveCount(1);
+
+  await card.locator(".retry-stream-btn").click();
+
+  // The retry resends the same turn; this time the DM answers, card gone.
+  await expect(page.locator("#chat-messages .message.error")).toHaveCount(0);
+  await expect(page.locator("#chat-messages .message.narrative").last()).toContainText(STUB_NARRATIVE, { timeout: 40_000 });
 });
