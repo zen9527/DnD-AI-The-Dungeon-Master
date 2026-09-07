@@ -176,9 +176,10 @@ tests/e2e/              # Playwright browser tests + the stub DM they run agains
 
 **Browser tests.** `npm run test:e2e` builds the app, starts it on port 3210
 against a canned DM (`tests/e2e/stub-llm.mjs`, port 3199), and drives Chromium
-through eight flows: create a game, take a turn, roll dice, refresh and reclaim
-your seat, switch language, list the lobby, drive the phone layout, and save
-and load. It needs no API key and never touches `saved_games/` —
+through ten flows: create a game, take a turn, roll dice, refresh and reclaim
+your seat, switch language, find the campaign book and join by code, drive the
+phone layout, save and load, stop a running narration, and retry a failed one.
+It needs no API key and never touches `saved_games/` —
 `tests/e2e/.env.e2e` and a scratch save directory isolate the run. First time
 only: `npx playwright install chromium`.
 
@@ -203,7 +204,7 @@ only: `npx playwright install chromium`.
 ### 🔌 Multiplayer
 - Real-time sync via WebSocket with exponential backoff reconnection
 - Dedicated AI DM card + player character cards
-- Active games list with join buttons
+- Campaign book of saved games; join by invite link or game code
 - One-click copy link to invite friends
 
 ---
@@ -211,22 +212,11 @@ only: `npx playwright install chromium`.
 ## ⚙️ Configuration API · 配置 API
 
 ```bash
-# Get current config
+# Get current config (read-only; API keys come back masked)
 GET  /api/config
 
-# Update LLM settings
-POST /api/config
-{ "llmBaseUrl": "http://localhost:11434/v1", "llmApiKey": "", "llmModel": "llama3.1:8b" }
-
-# Fetch available models
-GET  /api/config/models?url=http://localhost:11434/v1&key=your-key
-
-# Test connection
+# Test the stored config against the provider (empty body)
 POST /api/config/test
-{ "llmBaseUrl": "http://localhost:11434/v1", "llmApiKey": "", "llmModel": "" }
-
-# List active games
-GET  /api/games
 
 # List saved games
 GET  /api/saved-games

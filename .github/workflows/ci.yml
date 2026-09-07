@@ -31,7 +31,7 @@ jobs:
         run: npm run build
 
       # The only step that exercises the actual UI: Chromium drives the real
-      # server through eight flows, with a stub DM standing in for the LLM
+      # server through ten flows, with a stub DM standing in for the LLM
       # (tests/e2e/stub-llm.mjs). Unit tests never catch a dead button.
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
