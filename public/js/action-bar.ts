@@ -128,7 +128,7 @@ export class ActionBar {
       ${diceHtml}
       <div class="free-text">
         <input type="text" id="action-input" placeholder="${t("action.placeholder")} (/pm player message)">
-        <button id="stop-stream-btn" class="secondary hidden" title="${t("stream.stop.tooltip")}">⏹ ${t("stream.stop.btn")}</button>
+        <button id="stop-stream-btn" class="secondary hidden" title="${t("stream.stop.tooltip")}">${icon("stop")} ${t("stream.stop.btn")}</button>
         <button id="action-submit" class="primary">${t("action.submit")}</button>
       </div>
     `;

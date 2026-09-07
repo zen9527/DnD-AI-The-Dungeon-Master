@@ -6,7 +6,7 @@ describe("icon()", () => {
     for (const name of [
       "sword", "search", "chat", "run", "brain", "shield", "potion", "spellbook",
       "dice", "candle", "heart", "gear", "dial", "backpack", "scroll",
-      "folder-open", "trash", "flag", "arrow-right", "link",
+      "folder-open", "trash", "flag", "arrow-right", "link", "stop",
     ] as IconName[]) {
       expect(ICON_NAMES).toContain(name);
     }
