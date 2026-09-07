@@ -39,6 +39,7 @@ app.use(express.static(fs.existsSync(distPublic) && fs.existsSync(path.join(dist
 app.use("/api", express.json());
 
 import { WebSocketManager } from "./websocket/manager.js";
+import { playerSessions } from "./websocket/sessions.js";
 import { gameStore } from "./game/store.js";
 import gamesSavePostHandler from "./routes/games.save.post.js";
 import gamesDeleteHandler from "./routes/games.delete.js";
@@ -50,6 +51,8 @@ const wsManager = new WebSocketManager(server);
 
 // Load saved games from disk into memory at startup
 gameStore.loadSavedGames();
+// Rejoin tokens too, so a restart does not turn every player into a stranger.
+playerSessions.load();
 log.info(`[GameStore] Loaded ${gameStore.getGameCount()} game(s) from storage`);
 
 // Start auto-save every 60 seconds

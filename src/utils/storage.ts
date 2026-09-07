@@ -5,13 +5,17 @@ import type { ChatMessage, Game } from "../types/index.js";
 
 /**
  * Where saves live. Overridable so an end-to-end run gets a scratch directory
- * instead of writing into somebody's real campaigns.
+ * instead of writing into somebody's real campaigns. Read per call: tests set
+ * the variable after this module is first imported.
  */
-const STORAGE_DIR = process.env.DND_SAVED_GAMES_DIR || path.join(process.cwd(), "saved_games");
+export function getStorageDir(): string {
+  return process.env.DND_SAVED_GAMES_DIR || path.join(process.cwd(), "saved_games");
+}
 
 function ensureStorageDir(): void {
-  if (!fs.existsSync(STORAGE_DIR)) {
-    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+  const dir = getStorageDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
 
@@ -34,7 +38,7 @@ function mergeChatHistory(existing: ChatMessage[], current: ChatMessage[]): Chat
 export function saveGame(game: Game): string {
   ensureStorageDir();
 
-  const filePath = path.join(STORAGE_DIR, `${game.id}.json`);
+  const filePath = path.join(getStorageDir(), `${game.id}.json`);
 
   // Preserve history the in-memory game has already aged out.
   const previous = loadGame(game.id);
@@ -66,7 +70,7 @@ function stripRetiredFields(game: Game & { events?: unknown }): Game {
 export function loadGame(gameId: string): Game | null {
   ensureStorageDir();
   
-  const filePath = path.join(STORAGE_DIR, `${gameId}.json`);
+  const filePath = path.join(getStorageDir(), `${gameId}.json`);
   
   if (!fs.existsSync(filePath)) {
     log.warn(`[Storage] Game ${gameId} not found`);
@@ -87,11 +91,11 @@ export function loadGame(gameId: string): Game | null {
 export function listGames(): Array<{ id: string; name: string; createdAt: number; lastPlayedAt: number }> {
   ensureStorageDir();
   
-  const files = fs.readdirSync(STORAGE_DIR).filter(f => f.endsWith(".json"));
+  const files = fs.readdirSync(getStorageDir()).filter(f => f.endsWith(".json"));
   
   return files.map(file => {
     const gameId = file.replace(".json", "");
-    const filePath = path.join(STORAGE_DIR, file);
+    const filePath = path.join(getStorageDir(), file);
     
     try {
       const content = fs.readFileSync(filePath, "utf-8");
@@ -109,7 +113,7 @@ export function listGames(): Array<{ id: string; name: string; createdAt: number
 export function deleteGame(gameId: string): boolean {
   ensureStorageDir();
   
-  const filePath = path.join(STORAGE_DIR, `${gameId}.json`);
+  const filePath = path.join(getStorageDir(), `${gameId}.json`);
   
   if (!fs.existsSync(filePath)) {
     return false;

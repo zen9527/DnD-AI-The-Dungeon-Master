@@ -11,7 +11,7 @@ import type { ChatMessage, Game } from "../../src/types/index.js";
  */
 
 let workDir: string;
-let originalCwd: string;
+let originalEnvDir: string | undefined;
 let storage: typeof import("../../src/utils/storage.js");
 
 function message(id: string, content: string): ChatMessage {
@@ -28,15 +28,18 @@ function gameWith(chatHistory: ChatMessage[]): Game {
 }
 
 beforeEach(async () => {
-  originalCwd = process.cwd();
+  // Isolate via the env variable getStorageDir reads, not cwd: the directory
+  // is resolved per call now, and Vitest pins a global scratch dir otherwise.
+  originalEnvDir = process.env.DND_SAVED_GAMES_DIR;
   workDir = fs.mkdtempSync(path.join(os.tmpdir(), "dnd-storage-"));
-  process.chdir(workDir);
+  process.env.DND_SAVED_GAMES_DIR = workDir;
   vi.resetModules();
   storage = await import("../../src/utils/storage.js");
 });
 
 afterEach(() => {
-  process.chdir(originalCwd);
+  if (originalEnvDir === undefined) delete process.env.DND_SAVED_GAMES_DIR;
+  else process.env.DND_SAVED_GAMES_DIR = originalEnvDir;
   fs.rmSync(workDir, { recursive: true, force: true });
 });
 

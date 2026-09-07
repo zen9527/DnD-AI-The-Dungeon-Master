@@ -1,4 +1,12 @@
+import fs from "fs";
+import os from "os";
+import path from "path";
 import { defineConfig } from 'vitest/config';
+
+// Anything a test persists — saves, session tokens — lands in a throwaway
+// directory, never in the developer's real saved_games/. Workers inherit this
+// because it is set before Vitest forks them.
+process.env.DND_SAVED_GAMES_DIR ||= fs.mkdtempSync(path.join(os.tmpdir(), "dnd-test-saves-"));
 
 export default defineConfig({
   test: {
