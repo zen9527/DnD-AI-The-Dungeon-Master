@@ -224,3 +224,70 @@ describe("GameStore - Save/Load Methods", () => {
     });
   });
 });
+
+describe("schedulePostNarrationSave", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    (gameStore as any).games.clear();
+  });
+
+  afterEach(() => {
+    // Drop timers this suite scheduled so they cannot fire into later tests.
+    for (const t of (gameStore as any).pendingSaves.values()) clearTimeout(t);
+    (gameStore as any).pendingSaves.clear();
+    vi.useRealTimers();
+  });
+
+  function fakeEngine(id: string, dirty = true) {
+    const engine = {
+      id,
+      hasUnsavedChanges: dirty,
+      saveGame: vi.fn(),
+      getConnectedPlayerCount: () => 1,
+      getCreatedAt: () => 0,
+      stopTimer: vi.fn(),
+    };
+    (gameStore as any).games.set(id, engine);
+    return engine;
+  }
+
+  it("coalesces repeated calls into a single save", () => {
+    const engine = fakeEngine("pn-1");
+
+    gameStore.schedulePostNarrationSave("pn-1");
+    gameStore.schedulePostNarrationSave("pn-1");
+    gameStore.schedulePostNarrationSave("pn-1");
+    vi.advanceTimersByTime(5000);
+
+    expect(engine.saveGame).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips a game with nothing to write", () => {
+    const engine = fakeEngine("pn-2", false);
+
+    gameStore.schedulePostNarrationSave("pn-2");
+    vi.advanceTimersByTime(5000);
+
+    expect(engine.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("survives the game vanishing before the timer fires", () => {
+    const engine = fakeEngine("pn-3");
+
+    gameStore.schedulePostNarrationSave("pn-3");
+    (gameStore as any).games.delete("pn-3");
+
+    expect(() => vi.advanceTimersByTime(5000)).not.toThrow();
+    expect(engine.saveGame).not.toHaveBeenCalled();
+  });
+
+  it("deleteGame cancels a pending save", () => {
+    const engine = fakeEngine("pn-4");
+
+    gameStore.schedulePostNarrationSave("pn-4");
+    gameStore.deleteGame("pn-4");
+    vi.advanceTimersByTime(5000);
+
+    expect(engine.saveGame).not.toHaveBeenCalled();
+  });
+});

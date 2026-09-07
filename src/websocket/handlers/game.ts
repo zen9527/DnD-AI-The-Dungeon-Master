@@ -86,6 +86,8 @@ async function streamOpeningScene(
           characterName: dmPlayer.characterName,
         });
       }
+      // The opening scene is story — do not wait a minute for the next save.
+      gameStore.schedulePostNarrationSave(engine.id);
       return;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -338,6 +340,9 @@ async function handlePlayerAction(ctx: HandlerContext): Promise<void> {
     });
     ctx.manager.startTimerBroadcast(engine.id);
   }
+
+  // The turn's story is written — persist it soon rather than on the next tick.
+  gameStore.schedulePostNarrationSave(engine.id);
 }
 
 /** SET_LOCALE — switch a player's UI language and the DM's narration language. */

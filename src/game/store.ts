@@ -7,12 +7,6 @@ import type { LLMConfig } from "../llm/client.js";
 import { playerSessions } from "../websocket/sessions.js";
 import type { Game, Player, ChatMessage, NPC } from "../types/index.js";
 
-interface Snapshot {
-  gameId: string;
-  data: string;
-  timestamp: number;
-}
-
 /** Project the .env config onto the LLM client's config shape. */
 function toLLMConfig(config: ReturnType<typeof configManager.read>): LLMConfig {
   return {
@@ -23,35 +17,39 @@ function toLLMConfig(config: ReturnType<typeof configManager.read>): LLMConfig {
   };
 }
 
-const SNAPSHOT_INTERVAL_MS = 300000;
 const AUTO_SAVE_INTERVAL_MS = 60000;
+/** How long a narration waits before its save fires — long enough for the
+ *  follow-up state writes of the same turn to join the one write. */
+const POST_NARRATION_SAVE_DELAY_MS = 5000;
 /** How long an empty game stays in memory before it is reclaimed. */
 const EMPTY_GAME_TTL_MS = 3600000;
 
 export class GameStore {
   private games: Map<string, GameEngine>;
-  private snapshots: Map<string, Snapshot>;
-  private cleanupInterval!: ReturnType<typeof setInterval>;
+  /** Per-game debounce for the save that follows a finished narration. */
+  private pendingSaves = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor() {
     this.games = new Map();
-    this.snapshots = new Map();
-    this.startSnapshotTimer();
   }
 
-  private startSnapshotTimer(): void {
-    this.cleanupInterval = setInterval(() => this.saveSnapshots(), SNAPSHOT_INTERVAL_MS);
+  /** Persist a game shortly after a narration lands; repeated calls coalesce. */
+  schedulePostNarrationSave(gameId: string, delayMs = POST_NARRATION_SAVE_DELAY_MS): void {
+    const existing = this.pendingSaves.get(gameId);
+    if (existing) clearTimeout(existing);
+
+    this.pendingSaves.set(gameId, setTimeout(() => {
+      this.pendingSaves.delete(gameId);
+      const engine = this.games.get(gameId);
+      if (engine && engine.hasUnsavedChanges) engine.saveGame();
+    }, delayMs));
   }
 
-  private saveSnapshots(): void {
-    for (const [gameId, engine] of this.games.entries()) {
-      if (engine.getConnectedPlayerCount() === 0) continue;
-      const snapshot: Snapshot = {
-        gameId,
-        data: JSON.stringify(engine.game),
-        timestamp: Date.now(),
-      };
-      this.snapshots.set(gameId, snapshot);
+  private cancelPendingSave(gameId: string): void {
+    const pending = this.pendingSaves.get(gameId);
+    if (pending) {
+      clearTimeout(pending);
+      this.pendingSaves.delete(gameId);
     }
   }
 
@@ -91,14 +89,17 @@ export class GameStore {
 
   deleteGame(gameId: string): boolean {
     const deleted = this.games.delete(gameId);
-    if (deleted) log.info(`[GameStore] Deleted game: ${gameId}`);
+    if (deleted) {
+      this.cancelPendingSave(gameId);
+      log.info(`[GameStore] Deleted game: ${gameId}`);
+    }
     return deleted;
   }
 
   /**
    * Drop games that everyone has left and that are older than the cutoff.
-   * They stay on disk — this only frees the in-memory engine and its snapshot,
-   * so an abandoned game can still be reloaded from the lobby.
+   * They stay on disk — this only frees the in-memory engine, so an abandoned
+   * campaign can still be reopened from the campaign book.
    */
   cleanupEmptyGames(olderThanMs: number = EMPTY_GAME_TTL_MS): number {
     const now = Date.now();
@@ -108,7 +109,7 @@ export class GameStore {
       if (engine.getConnectedPlayerCount() === 0 && now - engine.getCreatedAt() > olderThanMs) {
         engine.stopTimer();
         this.games.delete(gameId);
-        this.snapshots.delete(gameId);
+        this.cancelPendingSave(gameId);
         playerSessions.releaseGame(gameId);
         cleaned++;
       }
