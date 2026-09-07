@@ -2,6 +2,7 @@ import { wsManager } from "./websocket.js";
 import { gameState } from "./game-state.js";
 import { t } from "./i18n.js";
 import { escapeHtml } from "./utils.js";
+import { icon, type IconName } from "./icons.js";
 import type { PresetActionId } from "../../shared/index.js";
 
 /** Dice the tray offers, in the order a player expects to see them. */
@@ -20,6 +21,11 @@ const STATIC_PRESETS: Array<{ id: PresetActionId; label: () => string; action: (
   { id: "arcana", label: () => t("action.intelligence"), action: () => t("action.intelligence_text") },
   { id: "defend", label: () => t("action.defend"), action: () => t("action.defend_text") },
 ];
+
+/** Which glyph belongs to which preset — icon lives in code, text in locales. */
+const PRESET_ICONS: Record<string, IconName> = {
+  attack: "sword", search: "search", talk: "chat", hide: "run", arcana: "brain", defend: "shield",
+};
 
 export class ActionBar {
   private element: HTMLElement | null = null;
@@ -61,14 +67,14 @@ export class ActionBar {
     // Build static preset buttons HTML — label and action are both functions returning translated strings
     let presetsHtml = "";
     for (const preset of STATIC_PRESETS) {
-      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}" data-action-id="${preset.id}">${preset.label()}</button>`;
+      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}" data-action-id="${preset.id}">${icon(PRESET_ICONS[preset.id] ?? "sword")} ${escapeHtml(preset.label())}</button>`;
     }
 
     // Build potion buttons — only shown if player has potions available
     let potionsHtml = "";
     if (potions.length > 0) {
       potionsHtml = potions.map(p => 
-        `<button class="action-item-btn potion-btn" data-action="${escapeHtml(p.name)}">🧪 ${escapeHtml(p.name)}</button>`
+        `<button class="action-item-btn potion-btn" data-action="${escapeHtml(p.name)}">${icon("potion")} ${escapeHtml(p.name)}</button>`
       ).join("");
     }
 

@@ -12,6 +12,7 @@ import { DMControlsView } from "./views/dm-controls.js";
 import { InventoryPanelView } from "./views/inventory-panel.js";
 import { SettingsModal } from "./views/settings-modal.js";
 import { JoinView } from "./views/join-view.js";
+import { icon } from "./icons.js";
 import type { Player, ChatMessage, DiceRoll, Game, InitiativeEntry, Item } from "../../shared/index.js";
 
 /** Give the server a moment to answer an auto-join before falling back to the form. */
@@ -404,16 +405,16 @@ class App {
           </div>
           <div class="game-actions">
             <button id="inventory-btn" class="secondary" title="${t("inventory.title")}">
-              <span class="btn-icon" aria-hidden="true">🎒</span><span class="btn-label">${t("inventory.short")}</span>
+              <span class="btn-icon" aria-hidden="true">${icon("backpack")}</span><span class="btn-label">${t("inventory.short")}</span>
             </button>
             <button id="save-game-btn" class="secondary" title="${t("save.btn")}">
-              <span class="btn-icon" aria-hidden="true">💾</span><span class="btn-label">${t("save.btn")}</span>
+              <span class="btn-icon" aria-hidden="true">${icon("scroll")}</span><span class="btn-label">${t("save.btn")}</span>
             </button>
             <button id="load-game-btn" class="secondary" title="${t("load.btn")}">
-              <span class="btn-icon" aria-hidden="true">📂</span><span class="btn-label">${t("load.btn")}</span>
+              <span class="btn-icon" aria-hidden="true">${icon("folder-open")}</span><span class="btn-label">${t("load.btn")}</span>
             </button>
             <button id="settings-btn" class="secondary icon-only" title="${t("settings.title")}">
-              <span class="btn-icon" aria-hidden="true">⚙️</span>
+              <span class="btn-icon" aria-hidden="true">${icon("gear")}</span>
             </button>
             <button id="copy-link-btn" class="secondary icon-only" title="${t("copy_link.tooltip")}">
               <span class="btn-icon" aria-hidden="true">🔗</span>

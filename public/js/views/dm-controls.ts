@@ -2,6 +2,7 @@ import { wsManager } from "../websocket.js";
 import { gameState } from "../game-state.js";
 import { t } from "../i18n.js";
 import { escapeHtml } from "../utils.js";
+import { icon } from "../icons.js";
 import type { NPC } from "../../../shared/index.js";
 
 /** The D&D 5e condition list offered as toggles on every NPC. */
@@ -36,7 +37,7 @@ export class DMControlsView {
       button.id = "dm-control-toggle";
       button.className = "dm-control-panel-toggle secondary icon-only";
       button.title = t("dm_control.title");
-      button.innerHTML = `<span class="btn-icon" aria-hidden="true">🎛️</span>`;
+      button.innerHTML = `<span class="btn-icon" aria-hidden="true">${icon("dial")}</span>`;
       button.addEventListener("click", () => this.toggle());
       this.toggleButton = button;
     }
@@ -76,7 +77,7 @@ export class DMControlsView {
 
     panel.innerHTML = `
       <div class="dm-quick-actions">
-        <button id="start-combat-btn" class="primary">${t("combat.start")}</button>
+        <button id="start-combat-btn" class="primary">${icon("sword")} ${t("combat.start")}</button>
         <button id="create-npc-btn" class="secondary">${t("npc.create_btn")}</button>
       </div>
 

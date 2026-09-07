@@ -1,6 +1,7 @@
 import { gameState } from "../game-state.js";
 import { t } from "../i18n.js";
 import { escapeHtml } from "../utils.js";
+import { icon } from "../icons.js";
 import type { ChatMessage, DiceRoll } from "../../../shared/index.js";
 
 /**
@@ -102,7 +103,7 @@ export class ChatView {
     el.className = `message ${message.type} ${isOwn ? "own" : ""}`;
     el.innerHTML = `
       <div class="message-header">
-        <strong class="${isDMNarrative ? "dm-sender" : ""}">${escapeHtml(senderName)}</strong>
+        <strong class="${isDMNarrative ? "dm-sender" : ""}">${isDMNarrative ? `${icon("candle")} ` : ""}${escapeHtml(senderName)}</strong>
         <span class="timestamp">${new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
       <div class="message-content">${content}</div>

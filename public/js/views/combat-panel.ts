@@ -2,6 +2,7 @@ import { wsManager } from "../websocket.js";
 import { gameState } from "../game-state.js";
 import { t } from "../i18n.js";
 import { escapeHtml } from "../utils.js";
+import { icon } from "../icons.js";
 import type { InitiativeEntry } from "../../../shared/index.js";
 
 const HP_HIGH_PERCENT = 60;
@@ -42,8 +43,8 @@ export class CombatPanelView {
     const dmControls = gameState.currentPlayer?.isDM
       ? `
         <div class="dm-controls">
-          <button id="advance-turn-btn" class="secondary">${t("combat.advance_turn")}</button>
-          <button id="end-combat-btn" class="danger">${t("combat.end")}</button>
+          <button id="advance-turn-btn" class="secondary">${icon("arrow-right")} ${t("combat.advance_turn")}</button>
+          <button id="end-combat-btn" class="danger">${icon("flag")} ${t("combat.end")}</button>
         </div>
       `
       : "";

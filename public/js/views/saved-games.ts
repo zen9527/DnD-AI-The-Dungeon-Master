@@ -1,4 +1,5 @@
 import { t } from "../i18n.js";
+import { icon } from "../icons.js";
 import { escapeHtml, showNotification } from "../utils.js";
 
 export interface SavedGame {
@@ -52,9 +53,9 @@ export class SavedGamesView {
     return `
       <div class="game-card saved-game" data-saved-id="${escapeHtml(game.id)}">
         <div class="game-card-header">
-          <span class="scenario-badge">💾</span>
+          <span class="scenario-badge">${icon("scroll")}</span>
           <h3>${escapeHtml(game.name)}</h3>
-          <button class="delete-saved-btn" data-saved-id="${escapeHtml(game.id)}" title="${t("saved_games.delete_btn")}">🗑️</button>
+          <button class="delete-saved-btn" data-saved-id="${escapeHtml(game.id)}" title="${t("saved_games.delete_btn")}">${icon("trash")}</button>
         </div>
         <div class="game-card-body">
           <span class="game-scenario-label">${t("saved_games.last_played", { date })}</span>

@@ -1,4 +1,5 @@
 import { t } from "../i18n.js";
+import { icon } from "../icons.js";
 import type { LLMProviderId } from "../../../shared/schemas/config.js";
 
 interface StoredConfig {
@@ -73,7 +74,7 @@ export class SettingsModal {
       <div class="settings-overlay" data-action="close"></div>
       <div class="settings-panel">
         <div class="settings-header">
-          <h3>⚙️ ${t("settings.title")}</h3>
+          <h3>${icon("gear")} ${t("settings.title")}</h3>
           <button class="close-btn" data-action="close">✕</button>
         </div>
         <dl class="settings-rows">

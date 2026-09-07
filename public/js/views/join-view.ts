@@ -2,6 +2,7 @@ import { wsManager } from "../websocket.js";
 import { gameState } from "../game-state.js";
 import { t, tKey, toSupportedLocale, getLocale, setLocale, SUPPORTED_LOCALES } from "../i18n.js";
 import { renderLocaleDropdownHTML, getLocaleDisplayName } from "../utils.js";
+import { icon } from "../icons.js";
 import { raceOptions, classOptions } from "../../../shared/schemas/game.js";
 
 const ATTRIBUTES = ["str", "dex", "con", "int", "wis", "cha"] as const;
@@ -20,7 +21,7 @@ export class JoinView {
     app.innerHTML = `
       <div class="welcome-screen">
         ${renderLocaleDropdownHTML(SUPPORTED_LOCALES, getLocale(), getLocaleDisplayName)}
-        <div class="settings-trigger" title="${t("settings.title")}">⚙️</div>
+        <div class="settings-trigger" title="${t("settings.title")}">${icon("gear")}</div>
         <h2>${t("join_game_page.title")}</h2>
         <form id="join-form">
           <label>${t("player_name.label")} <input type="text" id="player-name" required></label>

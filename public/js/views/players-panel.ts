@@ -1,6 +1,7 @@
 import { gameState } from "../game-state.js";
 import { t, getLocalizedRaceName, getLocalizedClassName } from "../i18n.js";
 import { escapeHtml } from "../utils.js";
+import { icon } from "../icons.js";
 import { XP_THRESHOLDS } from "../../../shared/schemas/game.js";
 import type { Player } from "../../../shared/index.js";
 
@@ -70,7 +71,7 @@ export class PlayersPanelView {
           <div class="hp-bar-container">
             <div class="hp-bar-track">
               <div class="hp-bar-fill ${hpClass(player.hp, player.maxHp)}" style="width:${Math.round((player.hp / player.maxHp) * 100)}%"></div>
-              <span class="hp-bar-text">❤ ${player.hp}/${player.maxHp}</span>
+              <span class="hp-bar-text">${icon("heart")} ${player.hp}/${player.maxHp}</span>
             </div>
           </div>
         ` : ""}
@@ -102,7 +103,7 @@ export class PlayersPanelView {
       }
 
       const text = item.querySelector<HTMLElement>(".hp-bar-text");
-      if (text) text.textContent = `❤ ${player.hp}/${player.maxHp}`;
+      if (text) text.innerHTML = `${icon("heart")} ${player.hp}/${player.maxHp}`;
     });
   }
 }

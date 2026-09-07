@@ -5,6 +5,7 @@ import { renderLocaleDropdownHTML, getLocaleDisplayName } from "./utils.js";
 import { SettingsModal } from "./views/settings-modal.js";
 import { generateDefaultAttributes, generateDefaultCharacterName } from "./character-defaults.js";
 import { SavedGamesView } from "./views/saved-games.js";
+import { icon } from "./icons.js";
 
 export class CharacterCreator {
   private element: HTMLElement | null = null;
@@ -50,7 +51,7 @@ export class CharacterCreator {
     this.element!.innerHTML = `
       <div class="hero-section">
         ${this.chrome()}
-        <h1 class="hero-title">🎲 DnD AI: The Dungeon Master</h1>
+        <h1 class="hero-title">${icon("dice")} DnD AI: The Dungeon Master</h1>
         <p class="hero-subtitle">${t("hero.subtitle")}</p>
       </div>
 
@@ -63,7 +64,7 @@ export class CharacterCreator {
       </div>
 
       <div class="welcome-screen">
-        <div class="settings-trigger" title="${t("settings.title")}">⚙️</div>
+        <div class="settings-trigger" title="${t("settings.title")}">${icon("gear")}</div>
         <h2>${t("create_own.title")}</h2>
         <p class="subtitle">${t("create_own.subtitle")}</p>
 
