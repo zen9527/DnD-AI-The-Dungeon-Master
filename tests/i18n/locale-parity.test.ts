@@ -30,6 +30,22 @@ describe("locale files", () => {
     expect(sourceKeys.length).toBeGreaterThan(0);
   });
 
+  it("keeps emoji out of chrome strings (icons live in code)", () => {
+    const leadingEmoji = /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}]/u;
+    const chromeKeys = [
+      "action.attack", "action.search", "action.talk", "action.hide",
+      "action.intelligence", "action.defend", "spell.cast_placeholder",
+      "combat.start", "combat.end", "combat.advance_turn",
+      "saved_games.title", "inventory.title", "buff.title", "dm.name",
+    ];
+    for (const locale of localeFiles) {
+      const data = loadLocale(locale);
+      for (const key of chromeKeys) {
+        expect(leadingEmoji.test((data as Record<string, string>)[key]), `${locale}/${key}`).toBe(false);
+      }
+    }
+  });
+
   for (const locale of localeFiles.filter(l => l !== SOURCE_LOCALE)) {
     describe(locale, () => {
       const target = loadLocale(locale);

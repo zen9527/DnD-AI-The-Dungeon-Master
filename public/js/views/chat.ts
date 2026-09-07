@@ -103,7 +103,7 @@ export class ChatView {
     el.className = `message ${message.type} ${isOwn ? "own" : ""}`;
     el.innerHTML = `
       <div class="message-header">
-        <strong class="${isDMNarrative ? "dm-sender" : ""}">${isDMNarrative ? `${icon("candle")} ` : ""}${escapeHtml(senderName)}</strong>
+        <strong class="${isDMNarrative ? "dm-sender" : ""}">${isDMNarrative ? `<span class="dm-candle">${icon("candle")}</span> ` : ""}${escapeHtml(senderName)}</strong>
         <span class="timestamp">${new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
       </div>
       <div class="message-content">${content}</div>

@@ -231,6 +231,7 @@ button:active { transform: translateY(1px); }
 button:disabled, button.disabled { opacity: 0.45; cursor: default; transform: none; }
 
 .btn-icon { font-size: 1em; line-height: 1; }
+.icon { vertical-align: -0.15em; }
 
 /* Gilt call-to-action. One per screen, ideally. */
 button.primary,

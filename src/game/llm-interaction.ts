@@ -35,6 +35,9 @@ const SUMMARY_INTERVAL = 5;
 /** XP granted for defeating an NPC. Flat for now; should scale with CR. */
 const XP_PER_DEFEATED_ENEMY = 50;
 
+/** HP reported by the model: NaN/garbage → 0, negatives clamped. The frontend renders HP through innerHTML. */
+const toHp = (v: unknown): number => Math.max(0, Number(v) || 0);
+
 const OPENING_STREAM_TIMEOUT_MS = 90000;
 const SUMMARY_STREAM_TIMEOUT_MS = 30000;
 
@@ -396,12 +399,12 @@ Format as bullet points. Keep it factual, not narrative.`;
     this.state.mutate(game => {
       if (creatureHp) {
         const creature = game.npcs.find(n => n.name === creatureHp.name);
-        if (creature) creature.hp = creatureHp.after;
+        if (creature) creature.hp = toHp(creatureHp.after);
       }
 
       if (playerHp) {
         const player = game.players.find(p => p.id === playerId);
-        if (player) player.hp = playerHp.after;
+        if (player) player.hp = toHp(playerHp.after);
       }
 
       if (creatureDefeated && creatureHp) {

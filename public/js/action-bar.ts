@@ -23,7 +23,7 @@ const STATIC_PRESETS: Array<{ id: PresetActionId; label: () => string; action: (
 ];
 
 /** Which glyph belongs to which preset — icon lives in code, text in locales. */
-const PRESET_ICONS: Record<string, IconName> = {
+const PRESET_ICONS: Record<PresetActionId, IconName> = {
   attack: "sword", search: "search", talk: "chat", hide: "run", arcana: "brain", defend: "shield",
 };
 
@@ -67,7 +67,7 @@ export class ActionBar {
     // Build static preset buttons HTML — label and action are both functions returning translated strings
     let presetsHtml = "";
     for (const preset of STATIC_PRESETS) {
-      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}" data-action-id="${preset.id}">${icon(PRESET_ICONS[preset.id] ?? "sword")} ${escapeHtml(preset.label())}</button>`;
+      presetsHtml += `<button class="preset-btn" data-action="${escapeHtml(preset.action())}" data-action-id="${preset.id}">${icon(PRESET_ICONS[preset.id])} ${escapeHtml(preset.label())}</button>`;
     }
 
     // Build potion buttons — only shown if player has potions available
