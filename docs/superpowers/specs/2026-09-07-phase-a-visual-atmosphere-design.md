@@ -52,8 +52,13 @@ New module `public/js/icons.ts`:
 - Replaces emoji in code: action-bar potion buttons, app.ts header buttons, character
   hero title + settings trigger, dm-controls button, saved-games badge/delete,
   players-panel HP heart, join-view/settings-modal triggers, chat dice line.
-- **Locales**: leading emoji stripped from values (e.g. `"⚔️ Attack"` → `"Attack"`);
-  keys untouched; icons rendered from code beside the text. Parity test must stay green.
+- **Locales**, two groups: (a) *chrome strings* rendered next to a real control —
+  `action.*`, `spell.cast_placeholder`, `combat.*`, `saved_games.title`,
+  `inventory.title`, `buff.title`, `dm.name` — lose their leading emoji; the icon is
+  rendered from code beside the text. (b) *transient toast/status strings*
+  (`save.*`, `load.*`, `settings.test_*`, `timer.warning`) keep ✅/❌/⚠️ as semantic
+  punctuation — they are escaped plain-text contexts where markup would add risk for
+  zero visual gain. Keys untouched everywhere; parity test must stay green.
 
 ### 4. Parchment texture layer
 
