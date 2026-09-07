@@ -166,9 +166,17 @@ body > * { position: relative; z-index: 2; }
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--gilt); background-clip: padding-box; }
 
-/* The paper grain reused by every raised surface. */
-.grained { position: relative; }
-.grained::after {
+/* The paper grain reused by every raised surface. Only on non-scrolling cards:
+   an absolutely positioned ::after inside an overflow container scrolls away
+   with the content instead of shading the panel. */
+.grained,
+.game-card,
+.scenario-card,
+.inventory-item { position: relative; }
+.grained::after,
+.game-card::after,
+.scenario-card::after,
+.inventory-item::after {
   content: '';
   position: absolute;
   inset: 0;
